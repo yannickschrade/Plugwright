@@ -93,6 +93,7 @@ Whenever you install or update a plugin, create the lock file again.
 ## Next steps
 
 - [Verify plugins with a lock file](../how-to/verify-plugins-with-a-lock-file.md), including where to keep the lock file in production.
+- [Sign plugins and trust their publisher](../how-to/sign-plugins.md), so that plugin updates need no change on the host.
 - [Configure plugins](../how-to/add-a-plugin.md#read-settings) with their own settings section.
 - [Declare dependencies between plugins](../how-to/declare-plugin-dependencies.md).
 - [Security model](../explanation/security-model.md): what verification protects against, and what not.

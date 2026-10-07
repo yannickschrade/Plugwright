@@ -4,6 +4,8 @@
   href: load-plugins-from-a-directory.md
 - name: Verify plugins with a lock file
   href: verify-plugins-with-a-lock-file.md
+- name: Sign plugins and trust their publisher
+  href: sign-plugins.md
 - name: Declare plugin dependencies
   href: declare-plugin-dependencies.md
 - name: Write a plugin handler

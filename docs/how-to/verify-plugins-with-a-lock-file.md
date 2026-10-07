@@ -90,5 +90,6 @@ Every verification is logged with event ID 1005 (passed) or 1006 (failed). The r
 
 ## See also
 
+- [Sign plugins and trust their publisher](sign-plugins.md): an alternative that needs no update on the host when plugins change.
 - [Security model](../explanation/security-model.md)
 - [CLI reference](../reference/cli.md)
