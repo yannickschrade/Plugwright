@@ -40,10 +40,10 @@ public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
             return [];
         }
 
-        var packages = ReadPackages(directory, context);
+        var packages = ReadPackages(directory, context, verify: true);
         var downloadDirectory = System.IO.Path.GetFullPath(Options.DownloadDirectory, context.ContentRoot);
         var downloads = Directory.Exists(downloadDirectory)
-            ? ReadPackages(downloadDirectory, context).Where(package => !package.IsPlugin)
+            ? ReadPackages(downloadDirectory, context, verify: Options.VerifyDownloads).Where(package => !package.IsPlugin)
             : [];
 
         var resolver = new PackageDependencyResolver(
@@ -70,7 +70,11 @@ public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
     /// Reads and verifies a package file, or reports why it cannot be used.
     /// </summary>
     /// <returns>The package, or <see langword="null"/> if it cannot be read or fails verification.</returns>
-    internal PluginPackage? ReadPackage(string path, byte[] content, PluginDiscoveryContext context)
+    /// <param name="path">The path of the package file.</param>
+    /// <param name="content">The content of the package file.</param>
+    /// <param name="context">The discovery context.</param>
+    /// <param name="verify">Whether the package must pass the registered verifiers.</param>
+    internal PluginPackage? ReadPackage(string path, byte[] content, PluginDiscoveryContext context, bool verify)
     {
         var fileName = System.IO.Path.GetFileName(path);
         PluginPackage package;
@@ -85,7 +89,8 @@ public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
         }
 
         // A package is verified under its file name without .nupkg, so that versions of a library do not collide.
-        if (context.VerificationEnabled
+        if (verify
+            && context.VerificationEnabled
             && !context.Verify(this, System.IO.Path.GetFileNameWithoutExtension(path), path, [PluginDiscoveryContext.CreateFile(fileName, content)]))
         {
             return null;
@@ -97,7 +102,7 @@ public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
     /// <summary>
     /// Reads every .nupkg file of a folder once into memory and verifies it.
     /// </summary>
-    private List<PluginPackage> ReadPackages(string directory, PluginDiscoveryContext context)
+    private List<PluginPackage> ReadPackages(string directory, PluginDiscoveryContext context, bool verify)
     {
         List<PluginPackage> packages = [];
         foreach (var path in Directory.EnumerateFiles(directory, "*.nupkg").Order(StringComparer.Ordinal))
@@ -113,7 +118,7 @@ public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
                 continue;
             }
 
-            if (ReadPackage(path, content, context) is { } package)
+            if (ReadPackage(path, content, context, verify) is { } package)
             {
                 packages.Add(package);
             }
@@ -308,7 +313,7 @@ internal sealed class PackageDependencyResolver
         }
 
         var path = Path.Combine(_downloadDirectory, $"{dependency.Id}.{version.ToNormalizedString()}.nupkg");
-        if (_source.ReadPackage(path, content, _context) is not { } package)
+        if (_source.ReadPackage(path, content, _context, _source.Options.VerifyDownloads) is not { } package)
         {
             return $"The downloaded package '{Path.GetFileName(path)}' cannot be used.";
         }

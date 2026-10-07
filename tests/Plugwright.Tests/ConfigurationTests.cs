@@ -108,6 +108,19 @@ public sealed class ConfigurationTests
         exception.Message.ShouldBe("The configuration 'Plugwright:Verification:Hash' must have settings, or be true or false, but is 'maybe'.");
     }
 
+    [Theory]
+    [InlineData("Plugwright:Verification:Hash:LockFil", "LockFil")]
+    [InlineData("Plugwright:Verification:Certificate:TrustedThumbprint:0", "TrustedThumbprint")]
+    public void Unknown_verifier_setting_is_rejected(string key, string unknownSetting)
+    {
+        var builder = Builder(new() { [key] = "value" });
+
+        var exception = Should.Throw<InvalidOperationException>(() =>
+            builder.PluginVerifiers.AddFromConfiguration(builder.Configuration.GetSection("Plugwright:Verification")));
+
+        exception.Message.ShouldContain(unknownSetting);
+    }
+
     [Fact]
     public void Unknown_verifier_is_rejected()
     {

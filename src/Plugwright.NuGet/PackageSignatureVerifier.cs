@@ -139,7 +139,7 @@ public static class PackageVerifierExtensions
             ArgumentNullException.ThrowIfNull(verifiers);
             ArgumentNullException.ThrowIfNull(section);
             var options = new CertificateVerifierOptions();
-            section.Bind(options);
+            section.Bind(options, binder => binder.ErrorOnUnknownConfiguration = true);
             return verifiers.Add(new PackageSignatureVerifier(CertificateTrust.Create(options, verifiers.ContentRoot)));
         }
     }

@@ -27,4 +27,15 @@ public sealed class PluginPackageOptions
     /// Gets or sets how long downloading one package may take before it fails. The default is 30 seconds.
     /// </summary>
     public TimeSpan DownloadTimeout { get; set; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// Gets or sets whether packages from the feed must pass the registered verifiers, like the packages in the
+    /// package folder. This applies to new downloads and to packages already in the download folder.
+    /// The default is <see langword="true"/>.
+    /// </summary>
+    /// <remarks>
+    /// Turn it off only if you trust the feed itself, for example a feed of your own company: packages from the feed then
+    /// run without verification. Packages in the package folder are always verified when verifiers are registered.
+    /// </remarks>
+    public bool VerifyDownloads { get; set; } = true;
 }

@@ -112,7 +112,7 @@ public sealed class PluginVerifierCollection : IReadOnlyCollection<IPluginVerifi
     public PluginVerifierCollection AddHashVerifier(IConfigurationSection section)
     {
         ArgumentNullException.ThrowIfNull(section);
-        return AddHashVerifier(section.Get<HashVerifierOptions>() ?? new HashVerifierOptions());
+        return AddHashVerifier(section.Get<HashVerifierOptions>(binder => binder.ErrorOnUnknownConfiguration = true) ?? new HashVerifierOptions());
     }
 
     /// <summary>
@@ -181,7 +181,7 @@ public sealed class PluginVerifierCollection : IReadOnlyCollection<IPluginVerifi
     {
         ArgumentNullException.ThrowIfNull(section);
         var options = new CertificateVerifierOptions();
-        section.Bind(options);
+        section.Bind(options, binder => binder.ErrorOnUnknownConfiguration = true);
         return AddCertificateVerifier(options);
     }
 
@@ -240,7 +240,8 @@ public sealed class PluginVerifierCollection : IReadOnlyCollection<IPluginVerifi
 
             if (PluginConfigurationReaders.IsEnabled(child))
             {
-                read(this, child);
+                // "Hash": true turns a verifier on with its defaults: it gets an empty section instead of the value.
+                read(this, child.GetChildren().Any() ? child : new ConfigurationBuilder().Build().GetSection(child.Key));
             }
         }
 
