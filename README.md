@@ -46,7 +46,7 @@ Plugins run with full trust inside your process. Only load plugins you trust, an
 | --- | --- |
 | `Plugwright.Abstractions` | Plugin contract. Reference it from plugin projects. |
 | `Plugwright` | The plugin system. Reference it from the host application. |
-| `Plugwright.Cli` | The `plugwright` tool. Creates lock files for verifying plugins. |
+| `Plugwright.Cli` | The `plugwright` tool. Creates lock files and signs plugins for verification. |
 
 ## Documentation
 

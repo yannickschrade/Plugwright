@@ -6,7 +6,7 @@ The full specification (German, with rationale and decision log) lives in `docs/
 
 ## Status
 
-Done: repo setup (central package management, CI, DocFX), plugin contract, extension members and handler pipeline, directory loading, metadata and dependencies, verification infrastructure with `HashVerifier`, `PluginReport`, CLI `lock`. Next: `CertificateVerifier` with signed manifests (CLI `sign`), then NuGet source.
+Done: repo setup (central package management, CI, DocFX), plugin contract, extension members and handler pipeline, directory loading, metadata and dependencies, verification with `HashVerifier` and `CertificateVerifier`, `PluginReport`, CLI `lock` and `sign`. Next: NuGet source.
 
 ## Baseline
 
@@ -107,8 +107,10 @@ docs/                        DocFX site; docs/design/specification.md
 - All verifiers implement `IPluginVerifier` and declare supported sources via `CanVerify`. All responsible verifiers must pass. Verifiers registered but none responsible for a plugin → plugin failure. Plugins added in code are never verified.
 - Verification failures of any kind are plugin failures (skip-and-log applies). Results: log events 1005/1006 and `PluginReport`.
 - Hash mode: host-side lock file covering all plugin files; hashes carry an algorithm prefix (`sha256-…`).
-- Certificate mode: NuGet package signatures; for DLL directories a CMS-signed manifest with plugin ID, version and hashes of all files. Files not listed in the manifest fail verification. Trust by certificate thumbprint or by issuer plus subject. No timestamps in v1 (certificate must be valid at verification time). Revocation mode configurable (`NoCheck`/`Online`/`Offline`), default `NoCheck`.
-- CLI: package `Plugwright.Cli`, command `plugwright`. Commands: `lock` (done), `sign`, `verify`. No command-line parsing library.
+- Certificate mode: NuGet package signatures; for DLL directories a CMS-signed manifest with plugin ID, version and hashes of all files. Files not listed in the manifest fail verification. Trust by certificate thumbprint or by issuer plus subject. No timestamps in v1 (certificate must be valid at verification time). Revocation mode configurable (`NoCheck`/`Online`/`Offline`), default `NoCheck`, applies to publishers only.
+  - Manifest: `plugwright.manifest.p7s` in the plugin folder, CMS with embedded JSON (version, plugin ID, plugin version, hashes of all other files).
+  - Publisher trust: root certificate file plus subject DN; intermediates come from the signature.
+- CLI: package `Plugwright.Cli`, command `plugwright`. Commands: `lock` and `sign` (done), `verify`. No command-line parsing library.
 - Verify before reading metadata. Load from the verified bytes (`LoadFromStream`). Re-verify or re-extract the NuGet cache on every start.
 - Verifier settings come from code by default; binding them to a configuration section requires an explicit call. Which verifiers exist is always decided in code.
 - Every check emits a structured log event with a fixed EventId; results are also available via API.

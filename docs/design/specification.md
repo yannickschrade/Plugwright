@@ -346,6 +346,9 @@ v1 enthält ein CLI-Tool als `dotnet tool` mit drei Aufgaben:
 - Lock-Datei: JSON mit `version` und je Plugin-Ordner (Name ohne Beachtung der Groß-/Kleinschreibung) allen Dateien mit `sha256-{base64}`. Standardpfad `plugins.lock.json` im Content Root.
 - Ergebnisse per API: `PluginReport` im DI-Container mit aktiven, übersprungenen Plugins und allen Prüfergebnissen.
 - Zertifikate: in v1 keine Zeitstempel; das Zertifikat muss zum Prüfzeitpunkt gültig sein. Sperrlistenprüfung einstellbar (`NoCheck`, `Online`, `Offline`), Standard `NoCheck`.
+- Signiertes Manifest: eine Datei `plugwright.manifest.p7s` im Plugin-Ordner, CMS-Signatur mit eingebettetem JSON (Version, Plugin-ID, Plugin-Version, Hashes aller übrigen Dateien). Die Plugin-ID muss zum Ordnernamen passen; die Version ist über den Hash der Haupt-Assembly gebunden.
+- Vertrauen per Fingerabdruck (SHA-256 oder SHA-1) oder als Herausgeber: Stamm-Zertifikat als Datei plus Antragsteller (Distinguished Name, unabhängig von Schreibweise). Zwischenzertifikate kommen aus der Signatur. Die Sperrlistenprüfung gilt nur für Herausgeber.
+- `plugwright sign` liest das Zertifikat aus einer PKCS#12-Datei; Passwort per Option oder Umgebungsvariable `PLUGWRIGHT_CERTIFICATE_PASSWORD`.
 - CLI: Paket `Plugwright.Cli`, Befehl `plugwright`. `lock` wurde vorgezogen, damit Doku und Beispiele zur Prüfung ein echtes Werkzeug nutzen. Argumente werden ohne zusätzliche Bibliothek ausgewertet.
 
 ## Scope v1 und Roadmap
@@ -563,3 +566,8 @@ docs/       Anwenderdokumentation
 | 2026-10-07 | Prüffehler aller Art sind Plugin-Fehler und lassen sich mit SkipAndLog überspringen | Konsistent mit den übrigen Ladefehlern |
 | 2026-10-07 | PluginReport im DI-Container mit aktiven und übersprungenen Plugins und Prüfergebnissen | Erfüllt „Ergebnisse per API“ und die früher besprochene Abfrage geladener Plugins |
 | 2026-10-07 | Hinweis „keine Prüfer registriert“ auf Ebene Information, nur wenn Plugin-Verzeichnisse hinzugefügt wurden | Ohne Verzeichnisse gibt es nichts zu prüfen; Information statt Warnung, da ungeprüftes Laden eine zulässige Wahl ist |
+| 2026-10-07 | Signiertes Manifest als eine Datei plugwright.manifest.p7s (CMS mit eingebettetem JSON) | Eine Datei statt Manifest plus Signatur; einfach zu signieren und auszuliefern |
+| 2026-10-07 | Vertrauen als Herausgeber über Stamm-Zertifikat als Datei und Antragsteller; Zwischenzertifikate aus der Signatur | Plattformunabhängig ohne Zertifikatsspeicher; Erneuerung des Zertifikats ohne Änderung am Host |
+| 2026-10-07 | Sperrlistenprüfung nur für Herausgeber, nicht für Fingerabdrücke | Selbstsignierte Zertifikate haben keine Sperrliste; bei Fingerabdrücken entfernt man den Eintrag |
+| 2026-10-07 | plugwright sign mit PKCS#12-Datei, Passwort auch aus PLUGWRIGHT_CERTIFICATE_PASSWORD | Gängiges Format für Signaturzertifikate; Passwort muss nicht im Shell-Verlauf landen |
+| 2026-10-07 | Beispiel SignedPlugins erzeugt eine Beispiel-CA beim Build; keine Schlüssel im Repository | Private Schlüssel gehören nicht ins Repository; Doku-Ausschnitt bleibt rechnerunabhängig |
