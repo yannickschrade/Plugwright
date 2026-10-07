@@ -1,0 +1,8 @@
+- name: How-to guides
+  href: how-to/
+- name: Explanation
+  href: explanation/
+- name: Reference
+  href: reference/
+- name: API
+  href: api/

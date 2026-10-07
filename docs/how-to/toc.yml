@@ -1,0 +1,6 @@
+- name: Add a plugin
+  href: add-a-plugin.md
+- name: Write a plugin handler
+  href: write-a-plugin-handler.md
+- name: Handle plugin failures
+  href: handle-plugin-failures.md
