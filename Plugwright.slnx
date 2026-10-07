@@ -4,6 +4,10 @@
     <Project Path="samples/FailureHandling/FailureHandling.csproj" />
     <Project Path="samples/Heartbeat/Heartbeat.csproj" />
   </Folder>
+  <Folder Name="/samples/DirectoryPlugins/">
+    <Project Path="samples/DirectoryPlugins/Acme.Greeter/Acme.Greeter.csproj" />
+    <Project Path="samples/DirectoryPlugins/App/DirectoryPlugins.App.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Plugwright.Abstractions/Plugwright.Abstractions.csproj" />
     <Project Path="src/Plugwright/Plugwright.csproj" />
