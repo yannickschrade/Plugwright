@@ -71,9 +71,9 @@ public sealed class HashVerifier : IPluginVerifier
                 return PluginVerificationResult.Failure($"File '{file.Path}' is not listed in the lock file.");
             }
 
-            if (!PluginFileHash.Matches(expectedHash, file.Content.Span, out var problem))
+            if (PluginFileHash.Check(file.Path, expectedHash, file.Content.Span, "the lock file") is { } problem)
             {
-                return PluginVerificationResult.Failure($"File '{file.Path}' {problem}.");
+                return PluginVerificationResult.Failure(problem);
             }
         }
 
@@ -96,23 +96,24 @@ internal static class PluginFileHash
 
     public static string Compute(ReadOnlySpan<byte> content) => Sha256Prefix + Convert.ToBase64String(SHA256.HashData(content));
 
-    public static bool Matches(string expectedHash, ReadOnlySpan<byte> content, out string problem)
+    /// <summary>
+    /// Compares a file with its expected hash.
+    /// </summary>
+    /// <param name="path">The file path, for the message.</param>
+    /// <param name="expectedHash">The expected hash, for example <c>sha256-…</c>.</param>
+    /// <param name="content">The file content.</param>
+    /// <param name="listName">Where the expected hash comes from, for the message, for example <c>the lock file</c>.</param>
+    /// <returns><see langword="null"/> if the file matches, otherwise why not.</returns>
+    public static string? Check(string path, string expectedHash, ReadOnlySpan<byte> content, string listName)
     {
         if (!expectedHash.StartsWith(Sha256Prefix, StringComparison.Ordinal))
         {
-            problem = $"has a hash with an unsupported algorithm: '{expectedHash.Split('-', 2)[0]}'. Supported is 'sha256'";
-            return false;
+            return $"File '{path}' has a hash with an unsupported algorithm in {listName}: '{expectedHash.Split('-', 2)[0]}'. Supported is 'sha256'.";
         }
 
-        if (!CryptographicOperations.FixedTimeEquals(
+        var matches = CryptographicOperations.FixedTimeEquals(
             System.Text.Encoding.ASCII.GetBytes(expectedHash),
-            System.Text.Encoding.ASCII.GetBytes(Compute(content))))
-        {
-            problem = "does not match its hash in the lock file";
-            return false;
-        }
-
-        problem = string.Empty;
-        return true;
+            System.Text.Encoding.ASCII.GetBytes(Compute(content)));
+        return matches ? null : $"File '{path}' does not match its hash in {listName}.";
     }
 }

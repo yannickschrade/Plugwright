@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.Configuration;
 
 namespace Plugwright;
@@ -111,12 +112,110 @@ public sealed class PluginVerifierCollection : IReadOnlyCollection<IPluginVerifi
     }
 
     /// <summary>
+    /// Adds the <see cref="CertificateVerifier"/>, which verifies the signed manifest of every plugin folder.
+    /// </summary>
+    /// <param name="configure">Configures which certificates are trusted. At least one thumbprint or publisher is required.</param>
+    /// <returns>This collection, for chaining.</returns>
+    /// <exception cref="ArgumentException">The settings trust no certificate, or a setting is invalid.</exception>
+    /// <exception cref="InvalidOperationException">The issuer certificate of a trusted publisher cannot be loaded.</exception>
+    /// <example>
+    /// Trust one certificate by its thumbprint:
+    /// <code language="csharp">
+    /// builder.PluginVerifiers.AddCertificateVerifier(options =&gt;
+    ///     options.TrustedThumbprints.Add("3F2504E04F8911D39A0C0305E82C3301EB2E0C3D84EF2A5E3C5B8E2A1D0F9C7B"));
+    /// </code>
+    /// Trust every certificate the company CA issues to the plugin team, and check for revocation:
+    /// <code language="csharp">
+    /// builder.PluginVerifiers.AddCertificateVerifier(options =&gt;
+    /// {
+    ///     options.TrustedPublishers.Add(new TrustedPublisher
+    ///     {
+    ///         IssuerCertificate = "/etc/myapp/company-ca.crt",
+    ///         Subject = "CN=Acme Plugins, O=Acme",
+    ///     });
+    ///     options.RevocationMode = X509RevocationMode.Online;
+    /// });
+    /// </code>
+    /// </example>
+    public PluginVerifierCollection AddCertificateVerifier(Action<CertificateVerifierOptions> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        var options = new CertificateVerifierOptions();
+        configure(options);
+        return AddCertificateVerifier(options);
+    }
+
+    /// <summary>
+    /// Adds the <see cref="CertificateVerifier"/> with settings bound from a configuration section.
+    /// </summary>
+    /// <remarks>
+    /// The settings are the basis of trust. If they come from <c>appsettings.json</c>, protect that file
+    /// from whoever can write to the plugin directory.
+    /// </remarks>
+    /// <param name="section">The section with the settings, for example <c>Plugwright:Verification:Certificate</c>.</param>
+    /// <returns>This collection, for chaining.</returns>
+    /// <exception cref="ArgumentException">The settings trust no certificate, or a setting is invalid.</exception>
+    /// <exception cref="InvalidOperationException">The issuer certificate of a trusted publisher cannot be loaded.</exception>
+    /// <example>
+    /// <code language="csharp">
+    /// builder.PluginVerifiers.AddCertificateVerifier(builder.Configuration.GetSection("Plugwright:Verification:Certificate"));
+    /// </code>
+    /// <code language="json">
+    /// {
+    ///   "Plugwright": {
+    ///     "Verification": {
+    ///       "Certificate": {
+    ///         "TrustedPublishers": [ { "IssuerCertificate": "/etc/myapp/company-ca.crt", "Subject": "CN=Acme Plugins, O=Acme" } ],
+    ///         "RevocationMode": "Online"
+    ///       }
+    ///     }
+    ///   }
+    /// }
+    /// </code>
+    /// </example>
+    public PluginVerifierCollection AddCertificateVerifier(IConfigurationSection section)
+    {
+        ArgumentNullException.ThrowIfNull(section);
+        var options = new CertificateVerifierOptions();
+        section.Bind(options);
+        return AddCertificateVerifier(options);
+    }
+
+    /// <summary>
     /// Returns the registered verifiers in the order they were added.
     /// </summary>
     /// <returns>An enumerator over the verifiers.</returns>
     public IEnumerator<IPluginVerifier> GetEnumerator() => _verifiers.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    private PluginVerifierCollection AddCertificateVerifier(CertificateVerifierOptions options)
+    {
+        if (options.TrustedThumbprints.Count == 0 && options.TrustedPublishers.Count == 0)
+        {
+            throw new ArgumentException(
+                "The certificate verifier trusts no certificate. Add at least one trusted thumbprint or trusted publisher.", nameof(options));
+        }
+
+        List<(X509Certificate2 Issuer, string Subject)> publishers = [];
+        foreach (var publisher in options.TrustedPublishers)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(publisher.IssuerCertificate, nameof(publisher.IssuerCertificate));
+            ArgumentException.ThrowIfNullOrWhiteSpace(publisher.Subject, nameof(publisher.Subject));
+
+            var path = Path.GetFullPath(publisher.IssuerCertificate, _contentRoot);
+            try
+            {
+                publishers.Add((X509CertificateLoader.LoadCertificateFromFile(path), publisher.Subject));
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException)
+            {
+                throw new InvalidOperationException($"The issuer certificate '{path}' of a trusted publisher cannot be loaded: {exception.Message}", exception);
+            }
+        }
+
+        return Add(new CertificateVerifier(options.TrustedThumbprints, publishers, options.RevocationMode));
+    }
 
     private PluginVerifierCollection AddHashVerifier(HashVerifierOptions options)
     {

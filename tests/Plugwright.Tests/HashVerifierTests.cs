@@ -82,7 +82,7 @@ public sealed class HashVerifierTests : IDisposable
 
         var result = Verify(Request("Acme.Greeter", ("Acme.Greeter.dll", "main")));
 
-        result.Message.ShouldContain("unsupported algorithm: 'md5'");
+        result.Message.ShouldBe("File 'Acme.Greeter.dll' has a hash with an unsupported algorithm in the lock file: 'md5'. Supported is 'sha256'.");
     }
 
     [Theory]
