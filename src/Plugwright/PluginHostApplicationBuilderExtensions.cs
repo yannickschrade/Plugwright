@@ -51,6 +51,23 @@ public static class PluginHostApplicationBuilderExtensions
         }
 
         /// <summary>
+        /// Gets the plugin verifiers of the application. Verification is optional: without verifiers, plugins are not verified.
+        /// </summary>
+        /// <example>
+        /// <code language="csharp">
+        /// builder.PluginVerifiers.AddHashVerifier(options =&gt; options.LockFile = "/etc/myapp/plugins.lock.json");
+        /// </code>
+        /// </example>
+        public PluginVerifierCollection PluginVerifiers
+        {
+            get
+            {
+                ArgumentNullException.ThrowIfNull(builder);
+                return PluginSystem.GetOrCreate(builder).Verifiers;
+            }
+        }
+
+        /// <summary>
         /// Phase 1: creates every plugin and lets its handlers register services. Call it exactly once, before <c>Build()</c>.
         /// </summary>
         /// <remarks>

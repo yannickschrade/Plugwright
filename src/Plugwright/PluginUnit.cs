@@ -37,6 +37,11 @@ internal sealed class PluginUnit
     public string? MainAssemblyPath { get; private init; }
 
     /// <summary>
+    /// Gets the verified files of a plugin folder; <see langword="null"/> without verification and for plugins added in code.
+    /// </summary>
+    public VerifiedFiles? VerifiedFiles { get; private init; }
+
+    /// <summary>
     /// Gets or sets the loaded assembly. Set from the start for plugins added in code, after loading for plugin folders.
     /// </summary>
     public Assembly? Assembly { get; set; }
@@ -64,8 +69,8 @@ internal sealed class PluginUnit
     public static PluginUnit FromCode(Assembly assembly) =>
         new(PluginMetadataReader.Read(assembly), CodeSource) { Assembly = assembly };
 
-    public static PluginUnit FromFolder(PluginAssemblyInfo info, string folder, string mainAssemblyPath) =>
-        new(info, folder) { MainAssemblyPath = mainAssemblyPath };
+    public static PluginUnit FromFolder(PluginAssemblyInfo info, string folder, string mainAssemblyPath, VerifiedFiles? verifiedFiles = null) =>
+        new(info, folder) { MainAssemblyPath = mainAssemblyPath, VerifiedFiles = verifiedFiles };
 
     public string Describe() => IsInCode ? $"by '{PluginTypes[0]}' added in code" : $"by folder '{Source}'";
 }

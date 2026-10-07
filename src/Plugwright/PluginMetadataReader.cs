@@ -25,7 +25,9 @@ internal static class PluginMetadataReader
     /// <summary>
     /// Reads a plugin assembly in its own folder without loading it for execution. No plugin code runs.
     /// </summary>
-    public static PluginAssemblyInfo ReadWithoutLoading(string mainAssemblyPath)
+    /// <param name="mainAssemblyPath">The main assembly of the plugin folder.</param>
+    /// <param name="verifiedContent">The verified content of the main assembly, or <see langword="null"/> to read it from disk.</param>
+    public static PluginAssemblyInfo ReadWithoutLoading(string mainAssemblyPath, byte[]? verifiedContent)
     {
         // The host's assemblies and the framework, plus everything in the plugin folder.
         var hostAssemblies = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
@@ -33,7 +35,7 @@ internal static class PluginMetadataReader
         var pluginAssemblies = Directory.GetFiles(Path.GetDirectoryName(mainAssemblyPath)!, "*.dll");
 
         using var context = new MetadataLoadContext(new PathAssemblyResolver([.. hostAssemblies, .. pluginAssemblies]));
-        return Read(context.LoadFromAssemblyPath(mainAssemblyPath));
+        return Read(verifiedContent is null ? context.LoadFromAssemblyPath(mainAssemblyPath) : context.LoadFromByteArray(verifiedContent));
     }
 
     public static PluginAssemblyInfo Read(Assembly assembly)
