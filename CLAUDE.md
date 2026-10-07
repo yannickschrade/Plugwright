@@ -108,6 +108,7 @@ docs/                        DocFX site; docs/design/specification.md
 ## Code rules
 
 - Nullable reference types enabled, warnings as errors.
+- Full .NET naming conventions (dotnet/runtime style), enforced via `.editorconfig`: `_camelCase` private/internal instance fields, `s_camelCase` static fields, PascalCase constants, types and members, camelCase parameters and locals, no `this.`.
 - Keep the public API small; everything else `internal`.
 - Readability over cleverness: clear names, few abstraction layers.
 - Every public type and member has XML doc comments, with examples where useful.
