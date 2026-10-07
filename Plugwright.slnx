@@ -3,4 +3,7 @@
     <Project Path="src/Plugwright.Abstractions/Plugwright.Abstractions.csproj" />
     <Project Path="src/Plugwright/Plugwright.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Plugwright.Tests/Plugwright.Tests.csproj" />
+  </Folder>
 </Solution>

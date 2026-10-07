@@ -1,0 +1,6 @@
+[*.cs]
+# Test names use underscores for readability.
+dotnet_diagnostic.CA1707.severity = none
+# Tests log with plain logger calls; performance does not matter here.
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.CA1873.severity = none
