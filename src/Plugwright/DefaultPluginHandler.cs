@@ -5,12 +5,10 @@ namespace Plugwright;
 /// <summary>
 /// The built-in handler: calls <see cref="IPlugin.Configure"/> for every plugin that implements <see cref="IPlugin"/>.
 /// </summary>
-internal sealed class DefaultPluginHandler : IPluginHandler
+internal sealed class DefaultPluginHandler : PluginHandler<IPlugin>
 {
-    public bool CanHandle(Type pluginType) => typeof(IPlugin).IsAssignableFrom(pluginType);
-
-    public void Apply(PluginDescriptor plugin, IHostApplicationBuilder builder)
+    protected override void Apply(IPlugin instance, PluginDescriptor plugin, IHostApplicationBuilder builder)
     {
-        ((IPlugin)plugin.Instance).Configure(plugin.Context);
+        instance.Configure(plugin.Context);
     }
 }

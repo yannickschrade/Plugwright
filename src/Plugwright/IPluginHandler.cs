@@ -12,6 +12,10 @@ namespace Plugwright;
 /// handlers with <c>builder.PluginHandlers.Add&lt;T&gt;()</c> to support other kinds of plugins.
 /// </para>
 /// <para>
+/// For a handler that processes one plugin interface or base class, derive from <see cref="PluginHandler{TPlugin}"/>
+/// instead of implementing this interface directly.
+/// </para>
+/// <para>
 /// Handlers are created with their parameterless constructor, not resolved from dependency injection, because the
 /// service container does not exist yet in phase 1. All handlers that can handle a type process it, in registration
 /// order, with the built-in handler first. All of them share the same plugin instance.

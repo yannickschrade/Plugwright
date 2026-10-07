@@ -164,3 +164,24 @@ public sealed class PluginWithoutParameterlessConstructor(string name) : IPlugin
     {
     }
 }
+
+public sealed class TypedRecordingHandler : PluginHandler<ITaggedPlugin>
+{
+    protected override void Apply(ITaggedPlugin instance, PluginDescriptor plugin, IHostApplicationBuilder builder)
+    {
+        CallLog.From(builder).Calls.Add($"TypedApply:{instance.Tag}:{ReferenceEquals(instance, plugin.Instance)}");
+    }
+
+    protected override void Use(ITaggedPlugin instance, PluginDescriptor plugin, IHost app)
+    {
+        app.Services.GetRequiredService<CallLog>().Calls.Add($"TypedUse:{instance.Tag}:{ReferenceEquals(instance, plugin.Instance)}");
+    }
+}
+
+public sealed class TypedApplyOnlyHandler : PluginHandler<ITaggedPlugin>
+{
+    protected override void Apply(ITaggedPlugin instance, PluginDescriptor plugin, IHostApplicationBuilder builder)
+    {
+        CallLog.From(builder).Calls.Add("TypedApplyOnly");
+    }
+}
