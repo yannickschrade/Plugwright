@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugwright\Plugwright.csproj" />
+    <ProjectReference Include="..\..\..\src\Plugwright.NuGet\Plugwright.NuGet.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!--
+    For the sample only: deploy the plugin of the DirectoryPlugins sample to plugins/ and the packages of the
+    PackagePlugins sample to packages/, then create one lock file for both, as a deployment would:
+
+      plugwright lock <app>/plugins <app>/packages -o <app>/plugins.lock.json
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\DirectoryPlugins\Acme.Greeter\Acme.Greeter.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\..\PackagePlugins\Acme.Weather\Acme.Weather.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\..\..\src\Plugwright.Cli\Plugwright.Cli.csproj" ReferenceOutputAssembly="false" Private="false" />
+  </ItemGroup>
+
+  <Target Name="DeploySamplePlugins" AfterTargets="Build">
+    <PropertyGroup>
+      <PlugwrightCli>$(MSBuildThisFileDirectory)../../../src/Plugwright.Cli/bin/$(Configuration)/$(TargetFramework)/Plugwright.Cli.dll</PlugwrightCli>
+    </PropertyGroup>
+    <ItemGroup>
+      <SamplePluginFile Include="..\..\DirectoryPlugins\Acme.Greeter\bin\$(Configuration)\$(TargetFramework)\**\*" />
+      <SamplePackage Include="..\..\PackagePlugins\bin\packages\*.nupkg" />
+    </ItemGroup>
+    <RemoveDir Directories="$(OutDir)plugins;$(OutDir)packages" />
+    <Copy SourceFiles="@(SamplePluginFile)" DestinationFiles="@(SamplePluginFile->'$(OutDir)plugins\Acme.Greeter\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(SamplePackage)" DestinationFolder="$(OutDir)packages" />
+    <Exec Command="dotnet &quot;$(PlugwrightCli)&quot; lock &quot;$(OutDir)plugins&quot; &quot;$(OutDir)packages&quot; --output &quot;$(OutDir)plugins.lock.json&quot;" />
+  </Target>
+
+</Project>
