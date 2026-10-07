@@ -6,7 +6,7 @@ The full specification (German, with rationale and decision log) lives in `docs/
 
 ## Status
 
-Done: repo setup (central package management, CI, DocFX), plugin contract, extension members and handler pipeline, directory loading. Next: metadata and dependencies.
+Done: repo setup (central package management, CI, DocFX), plugin contract, extension members and handler pipeline, directory loading, metadata and dependencies. Next: verification.
 
 ## Baseline
 
@@ -83,8 +83,11 @@ docs/                        DocFX site; docs/design/specification.md
 - Identity, version and dependencies live at assembly/package level. Plugin classes in one assembly share them and load together.
 - Metadata comes from `.nuspec` or the assembly. `[Plugin]` and `[PluginDependency]` attributes only fill gaps, never override. Conflicting version constraints must both be satisfied.
 - Read metadata without executing plugin code (`MetadataLoadContext`).
+- Version: SemVer from `<Version>` (informational version without `+…`). `[PluginDependency]` has `MinVersion` only. References to another plugin's assembly are dependencies and also check `AssemblyVersion` as a minimum.
+- `[Plugin]` and `[PluginDependency]` are assembly-level only.
+- Plugins added in code can only depend on plugins added in code.
 - A dependency means presence + order + type sharing:
-  - Missing dependency, version mismatch or cycle → exception that names the problem.
+  - Missing dependency, version mismatch or cycle → exception that names the problem; with skip-and-log the affected plugins (all cycle members) and their dependents are skipped.
   - Dependencies are processed before dependents in both phases.
   - A plugin's load context forwards its dependencies' assemblies to their load contexts.
 - No optional dependencies in v1.
@@ -147,6 +150,5 @@ docs/                        DocFX site; docs/design/specification.md
   - CLI command names and package name
   - Manifest timestamping, revocation checking
   - NuGet folder: third-party package dependencies, extraction cache location and cleanup
-  - Version semantics for DLL plugins (`AssemblyVersion` vs. SemVer; `MinVersion` only or ranges)
   - Direct plugins when verifiers are registered (exempt from "no responsible verifier → exception"?)
 - When a decision changes, add a row to the decision log in the specification.

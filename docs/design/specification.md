@@ -269,10 +269,15 @@ public sealed class HeartbeatPlugin : IPlugin
 Metadaten und Referenzen werden gelesen, ohne Plugin-Code auszuführen, über `MetadataLoadContext` (Paket `System.Reflection.MetadataLoadContext`, als Abhängigkeit erlaubt). Abhängigkeiten und Integrität sind damit geprüft, bevor Code läuft.
 
 ```csharp
-// Nur nötig, wenn Acme.Logging nicht direkt referenziert wird
-[PluginDependency("Acme.Logging", MinVersion = "1.2.0")]
-public sealed class HeartbeatPlugin : IPlugin { ... }
+// Nur nötig, wenn Acme.Logging nicht direkt referenziert wird oder eine Mindestversion gelten soll
+[assembly: PluginDependency("Acme.Logging", MinVersion = "1.2.0")]
 ```
+
+- `[Plugin]` und `[PluginDependency]` gelten nur auf Assembly-Ebene.
+- Die Version ist eine semantische Version aus `<Version>` (`AssemblyInformationalVersion` ohne `+…`), verglichen nach SemVer 2.0. `[PluginDependency]` kennt nur `MinVersion`.
+- Eine Referenz auf die Assembly eines anderen Plugins ist eine Abhängigkeit; geprüft wird zusätzlich, dass dessen `AssemblyVersion` mindestens der referenzierten entspricht.
+- Setzt das Projekt weder `<Authors>` noch `<Company>`, trägt das SDK den Assembly-Namen ein; das gilt als nicht gesetzt, `[Plugin(Authors = …)]` füllt dann die Lücke.
+- Plugins aus dem Code können nur von Plugins aus dem Code abhängen.
 
 ### Regeln für Abhängigkeiten
 
@@ -467,7 +472,7 @@ docs/       Anwenderdokumentation
 - [x] Testframework
 - [x] Offene Punkte vor Start der Umsetzung (CI, Paketschnitt, Phase-1-Logging, Plugin-Instanzen, Ordnerkonvention, Ladeweg u. a.)
 - [x] Doppelte Plugin-IDs
-- [ ] Versionssemantik bei DLL-Plugins: `AssemblyVersion` oder SemVer; nur `MinVersion` oder Versionsbereiche in `[PluginDependency]`
+- [x] Versionssemantik bei DLL-Plugins
 - [ ] Direkt hinzugefügte Plugins bei registrierten Prüfern: von der Regel „kein zuständiger Prüfer → Exception“ ausnehmen
 - [ ] NuGet-Ordner: Drittpaket-Abhängigkeiten, Entpack-Cache und Aufräumen
 - [ ] Zertifikate: Zeitstempel, Sperrlistenprüfung
@@ -538,3 +543,11 @@ docs/       Anwenderdokumentation
 | 2026-10-07 | Plugin-Typen im Verzeichnis: nur öffentliche Typen der Haupt-Assembly | Klare Regel ohne Reflection auf interne Typen |
 | 2026-10-07 | PluginCollection ist nicht mehr aufzählbar; Quelle des Plugins steht in Fehlermeldungen und Log-Events (PluginSource) | Mit Verzeichnissen wären nur die Typen aus dem Code aufzählbar; im Betrieb muss erkennbar sein, woher ein Plugin kommt |
 | 2026-10-07 | PluginCollection zählt die hinzugefügten Quellen auf (öffentlich: PluginSource, PluginTypeSource, PluginDirectorySource). Ersetzt „PluginCollection ist nicht mehr aufzählbar“ | Iterierbar und ehrlich: enthält, was hinzugefügt wurde. Verzeichnisse werden nicht schon beim Hinzufügen gescannt, da Handler, Prüfer und Fehlermodus erst bei ApplyPlugins() feststehen und ungeprüfte DLLs sonst geladen würden. Die Quellen-Typen braucht später auch IPluginVerifier.CanVerify |
+| 2026-10-07 | Plugin-Version ist SemVer aus <Version> (InformationalVersion ohne Build-Metadaten); Assembly-Referenzen prüfen zusätzlich die AssemblyVersion als Minimum | Gleiches Format wie NuGet-Pakete später; Referenzprüfung folgt der .NET-Bindungsregel |
+| 2026-10-07 | [PluginDependency] nur mit MinVersion | Reicht für DLL-Plugins; NuGet-Pakete bringen Versionsbereiche aus der .nuspec mit; kein eigener Bereichsparser im Kern |
+| 2026-10-07 | [Plugin] und [PluginDependency] nur auf Assembly-Ebene | Metadaten und Abhängigkeiten gehören eindeutig zur Assembly |
+| 2026-10-07 | Fehlende oder zu alte Abhängigkeit, Zyklus: Plugin-Fehler; mit SkipAndLog werden betroffene Plugins (bei Zyklen alle Mitglieder) samt Abhängigen übersprungen | Konsistent mit Fail-fast; andere Plugins sollen weiterlaufen können |
+| 2026-10-07 | Schlägt ein Plugin-Typ einer Assembly fehl, gelten abhängige Plugins als nicht erfüllt; andere Typen derselben Assembly laufen weiter | Abhängige brauchen evtl. genau die Dienste des fehlgeschlagenen Typs; Plugins im Host-Projekt sollen sich nicht gegenseitig blockieren |
+| 2026-10-07 | Plugins aus dem Code können nicht von Plugins aus einem Verzeichnis abhängen | Sie liegen im Standard-Kontext und würden eine eigene Kopie der Assembly laden; Typgleichheit wäre nicht möglich |
+| 2026-10-07 | Metadaten von Plugin-Ordnern per MetadataLoadContext mit den Host-Assemblies (TPA) und den Dateien des Ordners | Abhängigkeiten werden geprüft, bevor Plugin-Code geladen wird |
+| 2026-10-07 | InternalsVisibleTo für Plugwright.Tests | Unit-Tests für SemVer-Vergleich und Abhängigkeitsauflösung ohne öffentliche API dafür |
