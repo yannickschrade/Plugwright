@@ -9,6 +9,14 @@
     <Project Path="src/Plugwright/Plugwright.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Plugwright.IntegrationTests/Plugwright.IntegrationTests.csproj" />
     <Project Path="tests/Plugwright.Tests/Plugwright.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/TestPlugins/">
+    <Project Path="tests/TestPlugins/Counter/Counter.csproj" />
+    <Project Path="tests/TestPlugins/Greeter/Greeter.csproj" />
+    <Project Path="tests/TestPlugins/NoPlugins/NoPlugins.csproj" />
+    <Project Path="tests/TestPlugins/TextLibV1/TextLibV1.csproj" />
+    <Project Path="tests/TestPlugins/TextLibV2/TextLibV2.csproj" />
   </Folder>
 </Solution>

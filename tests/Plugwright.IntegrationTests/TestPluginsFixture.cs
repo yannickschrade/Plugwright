@@ -1,0 +1,75 @@
+using System.Reflection;
+
+[assembly: AssemblyFixture(typeof(Plugwright.IntegrationTests.TestPluginsFixture))]
+
+namespace Plugwright.IntegrationTests;
+
+/// <summary>
+/// Knows where the built test plugins are and installs them into plugin directories.
+/// The test plugins are built together with this project (see the project file).
+/// </summary>
+public sealed class TestPluginsFixture
+{
+    public const string Greeter = "Greeter";
+    public const string Counter = "Counter";
+    public const string NoPlugins = "NoPlugins";
+
+    public const string GreeterId = "Plugwright.TestPlugins.Greeter";
+    public const string CounterId = "Plugwright.TestPlugins.Counter";
+    public const string NoPluginsId = "Plugwright.TestPlugins.NoPlugins";
+
+    private static readonly Dictionary<string, string> s_pluginIds = new()
+    {
+        [Greeter] = GreeterId,
+        [Counter] = CounterId,
+        [NoPlugins] = NoPluginsId,
+    };
+
+    public TestPluginsFixture()
+    {
+        BuildOutputPath = typeof(TestPluginsFixture).Assembly
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .Single(attribute => attribute.Key == "TestPluginsPath")
+            .Value!;
+
+        foreach (var project in s_pluginIds.Keys)
+        {
+            if (!Directory.Exists(Path.Combine(BuildOutputPath, project)))
+            {
+                throw new InvalidOperationException(
+                    $"Test plugin '{project}' was not built to '{BuildOutputPath}'. Build the solution before running the tests.");
+            }
+        }
+    }
+
+    public string BuildOutputPath { get; }
+
+    /// <summary>
+    /// Copies the build output of a test plugin project into its own folder in the plugin directory,
+    /// as <c>{pluginDirectory}/{PluginId}/</c>.
+    /// </summary>
+    /// <returns>The plugin folder.</returns>
+    public string Install(string project, string pluginDirectory)
+    {
+        var folder = Path.Combine(pluginDirectory, s_pluginIds[project]);
+        CopyDirectory(Path.Combine(BuildOutputPath, project), folder);
+        return folder;
+    }
+
+    /// <summary>
+    /// Returns the path of a test plugin's main assembly in the build output.
+    /// </summary>
+    public string MainAssemblyPath(string project) =>
+        Path.Combine(BuildOutputPath, project, $"{s_pluginIds[project]}.dll");
+
+    private static void CopyDirectory(string source, string target)
+    {
+        Directory.CreateDirectory(target);
+        foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+        {
+            var targetFile = Path.Combine(target, Path.GetRelativePath(source, file));
+            Directory.CreateDirectory(Path.GetDirectoryName(targetFile)!);
+            File.Copy(file, targetFile);
+        }
+    }
+}

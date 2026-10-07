@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TestPluginsPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../artifacts/test-plugins/$(Configuration)/'))</TestPluginsPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Plugwright\Plugwright.csproj" />
+  </ItemGroup>
+
+  <!-- Build the test plugins first, but never reference them: the tests load them like real plugins. -->
+  <ItemGroup>
+    <ProjectReference Include="..\TestPlugins\Greeter\Greeter.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\TestPlugins\Counter\Counter.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\TestPlugins\NoPlugins\NoPlugins.csproj" ReferenceOutputAssembly="false" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>TestPluginsPath</_Parameter1>
+      <_Parameter2>$(TestPluginsPath)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="Shouldly" />
+  </ItemGroup>
+
+</Project>

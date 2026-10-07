@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- An assembly without plugin types, to test the error for such a folder. -->
+  <PropertyGroup>
+    <AssemblyName>Plugwright.TestPlugins.NoPlugins</AssemblyName>
+    <RootNamespace>Plugwright.TestPlugins.NoPlugins</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugwright.Abstractions\Plugwright.Abstractions.csproj" Private="false" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+</Project>

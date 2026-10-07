@@ -1,0 +1,14 @@
+<Project>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!--
+    Test plugins are never referenced by the tests. They are built into one folder per project, like real plugins,
+    and the integration tests copy them into plugin directories.
+  -->
+  <PropertyGroup>
+    <OutDir>$(MSBuildThisFileDirectory)../../artifacts/test-plugins/$(Configuration)/$(MSBuildProjectName)/</OutDir>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+
+</Project>

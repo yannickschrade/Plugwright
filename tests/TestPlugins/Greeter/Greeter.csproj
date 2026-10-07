@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- References the plugin contract as recommended: compile against it, but do not copy it. -->
+  <PropertyGroup>
+    <AssemblyName>Plugwright.TestPlugins.Greeter</AssemblyName>
+    <RootNamespace>Plugwright.TestPlugins.Greeter</RootNamespace>
+    <Version>1.2.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugwright.Abstractions\Plugwright.Abstractions.csproj" Private="false" ExcludeAssets="runtime" />
+    <ProjectReference Include="..\TextLibV1\TextLibV1.csproj" />
+  </ItemGroup>
+
+</Project>

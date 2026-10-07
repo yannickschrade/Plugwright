@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    References the plugin contract the simple way, so its DLL is copied into the plugin folder.
+    The load context must still use the host's copy.
+  -->
+  <PropertyGroup>
+    <AssemblyName>Plugwright.TestPlugins.Counter</AssemblyName>
+    <RootNamespace>Plugwright.TestPlugins.Counter</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugwright.Abstractions\Plugwright.Abstractions.csproj" />
+    <ProjectReference Include="..\TextLibV2\TextLibV2.csproj" />
+  </ItemGroup>
+
+</Project>
