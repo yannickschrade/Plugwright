@@ -2,6 +2,8 @@
 
 The <xref:Plugwright.HashVerifier> only loads plugins whose files match a lock file on the host side. A changed, added or removed file in a plugin folder stops the plugin from loading. This guide shows how to set it up and keep it up to date.
 
+The same verifier also verifies [NuGet packages](load-plugins-from-packages.md#verify-packages): the lock file then lists each `.nupkg` file.
+
 The complete, runnable project is in `samples/GettingStarted` in the repository.
 
 ## Register the verifier

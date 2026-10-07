@@ -18,6 +18,8 @@ Then add the package folder before calling `ApplyPlugins()`:
 
 A relative path is resolved against the content root. If the folder does not exist, a warning is logged and no plugins are loaded from it.
 
+The sample also verifies every package against a lock file; see [Verify packages](#verify-packages).
+
 ## Build a plugin package
 
 A plugin package is an ordinary NuGet package with the package type `PlugwrightPlugin`:
@@ -63,6 +65,20 @@ The package metadata wins over the assembly:
 | Dependencies | `.nuspec` dependencies on plugin packages, with their version ranges, plus `[assembly: PluginDependency]` |
 
 Configure the plugin under its package ID, `Plugwright:Plugins:Acme.Weather:Settings`.
+
+## Verify packages
+
+Packages are code that runs in your process, library packages as much as plugin packages. With verifiers registered, every package in the folder must pass them before anything is read from it. Two verifiers can verify packages:
+
+- The <xref:Plugwright.HashVerifier> compares every package file with a lock file, as for plugin folders. Create the lock file for the package folder with `plugwright lock`; it lists every `.nupkg` under its file name:
+
+  ```bash
+  plugwright lock /srv/myapp/packages --output /etc/myapp/plugins.lock.json
+  ```
+
+- The <xref:Plugwright.PackageSignatureVerifier> checks the NuGet signature of every package. See [Verify package signatures](verify-package-signatures.md).
+
+A library package that fails verification is not used, so plugins that depend on it fail as well.
 
 ## What happens at runtime
 

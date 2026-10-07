@@ -8,6 +8,8 @@
   href: sign-plugins.md
 - name: Load plugins from NuGet packages
   href: load-plugins-from-packages.md
+- name: Verify package signatures
+  href: verify-package-signatures.md
 - name: Declare plugin dependencies
   href: declare-plugin-dependencies.md
 - name: Write a plugin handler

@@ -16,11 +16,11 @@ plugwright lock <plugin-directory> [--output <file>]
 
 | Argument or option | Meaning |
 | --- | --- |
-| `<plugin-directory>` | The plugin directory, with one subfolder per plugin. |
+| `<plugin-directory>` | The plugin directory with one subfolder per plugin, or a folder of NuGet packages. |
 | `-o`, `--output <file>` | The lock file to write. Default: `plugins.lock.json` in the current directory. |
 | `-h`, `--help` | Show help. |
 
-The lock file contains the sha256 hash of every file in every subfolder. Files directly in the plugin directory are not part of any plugin; the tool lists them as warnings and leaves them out.
+The lock file contains the sha256 hash of every file in every subfolder, under the folder's name, and of every `.nupkg` file, under its file name without `.nupkg`. Other files directly in the directory are not part of any plugin; the tool lists them as warnings and leaves them out.
 
 ## plugwright sign
 

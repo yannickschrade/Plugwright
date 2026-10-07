@@ -10,6 +10,7 @@ Verification is optional. When you register a verifier, Plugwright loads a plugi
 
 - The <xref:Plugwright.HashVerifier> accepts exactly the files listed in a lock file on the host. Changed, added and removed files are rejected.
 - The <xref:Plugwright.CertificateVerifier> accepts plugins whose files match a manifest signed by a trusted publisher. Changed, added and removed files are rejected as well, and so is a plugin signed by anybody else.
+- For NuGet packages, the <xref:Plugwright.HashVerifier> checks each package file against the lock file, and the <xref:Plugwright.PackageSignatureVerifier> checks NuGet package signatures. Library packages are verified like plugin packages, because their code runs in the process as well.
 
 This protects against plugin files that were changed or added without going through your deployment: a tampered DLL, an extra assembly dropped into a plugin folder, a plugin copied in by someone who may write to the plugin directory but should not decide what runs.
 
