@@ -14,15 +14,20 @@ The host application defines what its plugins look like. Here, a plugin returns 
 
 ## Write the handler
 
-A handler implements <xref:Plugwright.IPluginHandler>:
+Derive the handler from <xref:Plugwright.PluginHandler`1>, with your plugin interface as the type argument. The handler then processes every plugin type that implements the interface:
 
-- <xref:Plugwright.IPluginHandler.CanHandle(System.Type)> returns whether the handler processes a plugin type.
-- <xref:Plugwright.IPluginHandler.Apply(Plugwright.PluginDescriptor,Microsoft.Extensions.Hosting.IHostApplicationBuilder)> runs in phase 1, before the host is built. Register services here.
-- <xref:Plugwright.IPluginHandler.Use(Plugwright.PluginDescriptor,Microsoft.Extensions.Hosting.IHost)> runs in phase 2, after the host is built. It is optional; the default implementation does nothing.
+- <xref:Plugwright.PluginHandler`1.Apply*> runs in phase 1, before the host is built. Register services here.
+- <xref:Plugwright.PluginHandler`1.Use*> runs in phase 2, after the host is built. It is optional; the default implementation does nothing.
+
+Both methods receive the plugin instance already typed as your interface:
 
 [!code-csharp[](../../samples/CustomHandler/GreetingPluginHandler.cs?name=handler)]
 
-The <xref:Plugwright.PluginDescriptor> gives the handler the plugin's type, its instance, its metadata and its <xref:Plugwright.PluginContext>.
+The <xref:Plugwright.PluginDescriptor> gives the handler the plugin's type, its metadata and its <xref:Plugwright.PluginContext>.
+
+### Decide yourself which types to handle
+
+When a handler needs a different rule than "implements this interface", implement <xref:Plugwright.IPluginHandler> directly. Then <xref:Plugwright.IPluginHandler.CanHandle(System.Type)> decides which types the handler processes, and <xref:Plugwright.PluginDescriptor.Instance> is an `object` that you cast yourself.
 
 ## Register the handler
 
