@@ -14,6 +14,7 @@ internal static class CliApp
 
         Commands:
           lock <plugin-directory>    Create a lock file with the hashes of all plugin files.
+          sign <plugin-folder>       Sign the manifest of a plugin folder with a certificate.
 
         Options:
           -h, --help                 Show help.
@@ -39,6 +40,7 @@ internal static class CliApp
         return args[0] switch
         {
             "lock" => LockCommand.Run(args[1..], output, error),
+            "sign" => SignCommand.Run(args[1..], output, error),
             _ => Fail(error, $"Unknown command '{args[0]}'.\n\n{Usage}"),
         };
     }
