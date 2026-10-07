@@ -16,6 +16,8 @@ internal sealed class PluginSystem
 
     private readonly LogBuffer _logBuffer = new();
     private readonly List<ActivePlugin> _activePlugins = [];
+    private readonly List<SkippedPlugin> _skippedPlugins = [];
+    private readonly List<PluginVerification> _verifications = [];
     private bool _applied;
     private bool _used;
 
@@ -80,6 +82,8 @@ internal sealed class PluginSystem
         }
 
         builder.Services.AddSingleton(this);
+        builder.Services.AddSingleton(new PluginReport(
+            [.. _activePlugins.Select(active => active.Plugin)], [.. _skippedPlugins], [.. _verifications]));
     }
 
     /// <summary>
@@ -266,6 +270,7 @@ internal sealed class PluginSystem
             catch (Exception exception)
             {
                 PluginLog.PluginVerificationFailed(Logger, exception, name, folder, verifierName, exception.Message);
+                _verifications.Add(new PluginVerification(name, folder, verifierName, succeeded: false, exception.Message));
                 Fail(name, folder, $"Verification by {verifierName} failed: {exception.Message}", exception);
                 return null;
             }
@@ -273,11 +278,13 @@ internal sealed class PluginSystem
             if (!result.Succeeded)
             {
                 PluginLog.PluginVerificationFailed(Logger, exception: null, name, folder, verifierName, result.Message);
+                _verifications.Add(new PluginVerification(name, folder, verifierName, succeeded: false, result.Message));
                 Fail(name, folder, $"Verification by {verifierName} failed: {result.Message}", exception: null);
                 return null;
             }
 
             PluginLog.PluginVerified(Logger, name, folder, verifierName, result.Message);
+            _verifications.Add(new PluginVerification(name, folder, verifierName, succeeded: true, result.Message));
         }
 
         return verifiedFiles;
@@ -438,6 +445,7 @@ internal sealed class PluginSystem
         }
 
         PluginLog.PluginSkipped(Logger, exception, pluginId, source, reason);
+        _skippedPlugins.Add(new SkippedPlugin(pluginId, source, reason));
     }
 
     private sealed record ActivePlugin(PluginDescriptor Plugin, List<IPluginHandler> Handlers);

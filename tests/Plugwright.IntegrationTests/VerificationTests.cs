@@ -54,6 +54,29 @@ public sealed class VerificationTests(TestPluginsFixture testPlugins) : IDisposa
     }
 
     [Fact]
+    public void Verification_results_are_available_in_the_plugin_report()
+    {
+        testPlugins.Install(Greeter, PluginDirectory);
+        var loggingFolder = testPlugins.Install(Logging, PluginDirectory);
+        LockFileWriter.Write(LockFile, PluginDirectory);
+        File.WriteAllText(Path.Combine(loggingFolder, "Extra.txt"), "not listed");
+
+        var app = BuildApp(builder =>
+        {
+            builder.Plugins.Options.FailureMode = PluginFailureMode.SkipAndLog;
+            builder.PluginVerifiers.AddHashVerifier();
+        });
+
+        var report = app.Services.GetRequiredService<PluginReport>();
+        report.Verifications.Select(verification => (verification.PluginName, verification.Verifier, verification.Succeeded))
+            .ShouldBe([(GreeterId, "HashVerifier", true), (LoggingId, "HashVerifier", false)]);
+        report.Verifications[1].Message.ShouldBe("File 'Extra.txt' is not listed in the lock file.");
+        report.Verifications[1].Location.ShouldBe(loggingFolder);
+        report.SkippedPlugins.ShouldHaveSingleItem().PluginId.ShouldBe(LoggingId);
+        report.Plugins.Select(plugin => plugin.Metadata.Id).Distinct().ShouldBe([GreeterId]);
+    }
+
+    [Fact]
     public void Dependent_plugins_share_types_when_loaded_from_verified_bytes()
     {
         testPlugins.Install(Audit, PluginDirectory);
