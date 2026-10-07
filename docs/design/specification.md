@@ -231,6 +231,13 @@ public sealed class HeartbeatPlugin : IPlugin
 
 **Entschieden:** Jedes Plugin liegt in einem eigenen Unterordner, die Haupt-Assembly trägt den Namen des Ordners: `plugins/<Name>/<Name>.dll`. Der Ordner ist die Einheit für Hashes, Manifest und Ladekontext. DLLs direkt in `plugins/` werden ignoriert, mit Hinweis im Log.
 
+- Ein relativer Pfad bezieht sich auf `builder.Environment.ContentRootPath`, wie `appsettings.json`.
+- Fehlt das Verzeichnis, gibt es eine Warnung im Log und es werden keine Plugins daraus geladen.
+- Ein Unterordner ohne `<Name>.dll`, mit nicht ladbarer Assembly oder ohne Plugin-Typ ist ein Plugin-Fehler (Exception bzw. überspringen und loggen).
+- Plugin-Typen sind die öffentlichen, nicht abstrakten Klassen der Haupt-Assembly, die ein registrierter Handler verarbeiten kann.
+- Gemeinsame Assemblies (`Plugwright*`, `Microsoft.Extensions.*`) kommen aus dem Standard-Kontext in der Version des Hosts, auch wenn das Plugin eigene Kopien mitbringt. Hat der Host eine solche Assembly nicht, wird die Kopie des Plugins geladen.
+- Plugins werden in der Reihenfolge der Quellen verarbeitet, innerhalb eines Verzeichnisses alphabetisch nach Ordnername.
+
 ### Ladeweg
 
 **Entschieden:**
@@ -275,7 +282,7 @@ public sealed class HeartbeatPlugin : IPlugin { ... }
 - **Typen teilen:** Der Ladekontext eines Plugins reicht Assemblies seiner Abhängigkeiten an deren Ladekontext weiter, damit Typen kompatibel sind.
 - NuGet-Abhängigkeiten müssen im Ordner gefunden werden, entweder als Plugin-Paket oder als Bibliothekspaket.
 - Mehrere Plugin-Klassen in einer Assembly teilen Identität und Abhängigkeiten und werden gemeinsam geladen.
-- **Vorschlag:** Doppelte IDs, etwa dasselbe Plugin als DLL und als Paket, führen zu einer Exception.
+- Doppelte IDs, etwa dasselbe Plugin in zwei Verzeichnissen oder im Code und im Verzeichnis, führen immer zu einer Exception, die beide Quellen nennt; „überspringen und loggen“ gilt hier nicht. IDs werden ohne Beachtung der Groß-/Kleinschreibung verglichen, wie Konfigurationsschlüssel.
 - Bei „überspringen und loggen“ wird ein Plugin samt aller (transitiv) davon abhängigen Plugins übersprungen, jedes mit eigenem Log-Eintrag.
 - Optionale Abhängigkeiten kommen erst in v2.
 
@@ -459,7 +466,7 @@ docs/       Anwenderdokumentation
 - [x] Doku-Werkzeug und Doku-Sprache
 - [x] Testframework
 - [x] Offene Punkte vor Start der Umsetzung (CI, Paketschnitt, Phase-1-Logging, Plugin-Instanzen, Ordnerkonvention, Ladeweg u. a.)
-- [ ] Doppelte Plugin-IDs (vor Schritt Metadaten)
+- [x] Doppelte Plugin-IDs
 - [ ] Versionssemantik bei DLL-Plugins: `AssemblyVersion` oder SemVer; nur `MinVersion` oder Versionsbereiche in `[PluginDependency]`
 - [ ] Direkt hinzugefügte Plugins bei registrierten Prüfern: von der Regel „kein zuständiger Prüfer → Exception“ ausnehmen
 - [ ] NuGet-Ordner: Drittpaket-Abhängigkeiten, Entpack-Cache und Aufräumen
@@ -523,3 +530,10 @@ docs/       Anwenderdokumentation
 | 2026-10-07 | Fehler in IPluginHandler.Use (Phase 2) werfen immer eine PluginException, unabhängig von FailureMode | „Überspringen und loggen“ ist nur für Phase 1 festgelegt; nach Phase 1 lässt sich ein Plugin nicht mehr sauber entfernen |
 | 2026-10-07 | Fehlermeldungen als PluginException mit PluginId; Fehlbedienung der Phasen als InvalidOperationException | Gezielt abfangbar; Standard-Exception für falsche Aufrufreihenfolge |
 | 2026-10-07 | PluginDescriptor.Instance bleibt object; zusätzlich Basisklasse PluginHandler<TPlugin> mit typisierter Instanz | Plugins eigener Art sollen IPlugin nicht implementieren müssen; die Basisklasse erspart Casts und CanHandle im häufigsten Fall |
+| 2026-10-07 | Relativer Pfad in AddFromDirectory bezieht sich auf ContentRootPath | Gleiche Basis wie appsettings.json; Konvention des Generic Host |
+| 2026-10-07 | Fehlendes Plugin-Verzeichnis: Warnung im Log, keine Exception | Eine Neuinstallation ohne Plugins soll starten; Tippfehler sind im Log sichtbar |
+| 2026-10-07 | Doppelte Plugin-IDs: Exception mit beiden Quellen, auch bei SkipAndLog; Vergleich ohne Groß-/Kleinschreibung | Unklar, welche Quelle gewinnen soll; Konfigurationsschlüssel unterscheiden nicht nach Groß-/Kleinschreibung |
+| 2026-10-07 | Defekter Plugin-Ordner (fehlende oder nicht ladbare Haupt-Assembly, kein Plugin-Typ) ist ein Plugin-Fehler | Ein Unterordner ist eine bewusste Installation; sein Ausfall darf nicht still bleiben |
+| 2026-10-07 | Gemeinsame Assemblies kommen in der Version des Hosts; fehlt sie im Host, lädt das Plugin seine Kopie | Typgleichheit für Plugin-Vertrag und DI; Plugins dürfen zusätzliche Microsoft.Extensions-Pakete nutzen |
+| 2026-10-07 | Plugin-Typen im Verzeichnis: nur öffentliche Typen der Haupt-Assembly | Klare Regel ohne Reflection auf interne Typen |
+| 2026-10-07 | PluginCollection ist nicht mehr aufzählbar; Quelle des Plugins steht in Fehlermeldungen und Log-Events (PluginSource) | Mit Verzeichnissen wären nur die Typen aus dem Code aufzählbar; im Betrieb muss erkennbar sein, woher ein Plugin kommt |

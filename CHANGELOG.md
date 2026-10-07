@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `builder.Plugins`, `builder.PluginHandlers`, `builder.ApplyPlugins()` and `app.UsePlugins()` for every `IHostApplicationBuilder` and `IHost`.
 - Handler pipeline with `IPluginHandler` and the built-in handler for `IPlugin`.
 - `PluginHandler<TPlugin>` base class for handlers that process one plugin interface or base class.
+- `builder.Plugins.AddFromDirectory()`: loads plugins from `plugins/<Name>/<Name>.dll`, each into its own `AssemblyLoadContext`. `Plugwright` and `Microsoft.Extensions.*` are shared with the host.
+- Duplicate plugin IDs from different sources throw a `PluginException`.
 - Per-plugin settings section `Plugwright:Plugins:{PluginId}:Settings`.
 - `PluginFailureMode.SkipAndLog` to skip failing plugins instead of stopping the application.
-- Buffered logging in phase 1, log events `PluginLoaded` (1000) and `PluginSkipped` (1001).
+- Buffered logging in phase 1, log events `PluginLoaded` (1000), `PluginSkipped` (1001), `PluginDirectoryNotFound` (1002) and `AssemblyOutsidePluginFolder` (1003). Events name the plugin's source.

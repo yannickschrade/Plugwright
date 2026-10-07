@@ -11,7 +11,8 @@ It works with any `IHostApplicationBuilder` and `IHost`, so console apps, worker
 ```csharp
 var builder = Host.CreateApplicationBuilder(args);
 
-builder.Plugins.Add<HeartbeatPlugin>();
+builder.Plugins.Add<HeartbeatPlugin>();          // a plugin from your own code
+builder.Plugins.AddFromDirectory("plugins");     // plugins/<Name>/<Name>.dll, one load context each
 
 builder.ApplyPlugins();   // phase 1: plugins register their services
 var app = builder.Build();

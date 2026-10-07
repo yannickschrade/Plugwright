@@ -6,7 +6,7 @@ The full specification (German, with rationale and decision log) lives in `docs/
 
 ## Status
 
-Done: repo setup (central package management, CI, DocFX), plugin contract, extension members and handler pipeline. Next: directory loading.
+Done: repo setup (central package management, CI, DocFX), plugin contract, extension members and handler pipeline, directory loading. Next: metadata and dependencies.
 
 ## Baseline
 
@@ -73,9 +73,13 @@ docs/                        DocFX site; docs/design/specification.md
 ## Sources, identity, dependencies
 
 - v1 sources: direct (`Plugins.Add<T>()`), DLL directory (one `AssemblyLoadContext` per plugin), NuGet folder (`.nupkg`, in `Plugwright.NuGet`). Source API names are provisional.
-- DLL directory layout: `plugins/<Name>/<Name>.dll`. The folder is the unit for hashes, manifest and load context. DLLs directly in `plugins/` are ignored with a log notice.
+- DLL directory layout: `plugins/<Name>/<Name>.dll`. The folder is the unit for hashes, manifest and load context. DLLs directly in `plugins/` are ignored with a log warning.
+  - Relative paths resolve against `ContentRootPath`. A missing directory logs a warning.
+  - A folder without main assembly, with an unloadable assembly or without plugin types is a plugin failure.
+  - Plugin types: public, non-abstract classes of the main assembly that a handler can handle.
+- Duplicate plugin IDs (case-insensitive) always throw, naming both sources; skip-and-log does not apply.
 - Load path: without verifiers `LoadFromAssemblyPath`; with verifiers `LoadFromStream` from the verified bytes (`Assembly.Location` is empty, document it). Native libraries are hash-verified, then loaded from path.
-- Shared types (plugin contract, `Microsoft.Extensions.*`) always come from the default load context.
+- Shared types (plugin contract, `Microsoft.Extensions.*`) always come from the default load context, in the host's version. Only if the host lacks such an assembly, the plugin's copy is loaded.
 - Identity, version and dependencies live at assembly/package level. Plugin classes in one assembly share them and load together.
 - Metadata comes from `.nuspec` or the assembly. `[Plugin]` and `[PluginDependency]` attributes only fill gaps, never override. Conflicting version constraints must both be satisfied.
 - Read metadata without executing plugin code (`MetadataLoadContext`).
@@ -143,7 +147,6 @@ docs/                        DocFX site; docs/design/specification.md
   - CLI command names and package name
   - Manifest timestamping, revocation checking
   - NuGet folder: third-party package dependencies, extraction cache location and cleanup
-  - Duplicate plugin IDs
   - Version semantics for DLL plugins (`AssemblyVersion` vs. SemVer; `MinVersion` only or ranges)
   - Direct plugins when verifiers are registered (exempt from "no responsible verifier → exception"?)
 - When a decision changes, add a row to the decision log in the specification.
