@@ -4,9 +4,10 @@ namespace Plugwright;
 /// Identity and version of a plugin.
 /// </summary>
 /// <remarks>
-/// Identity and version belong to the plugin assembly (or package), not to a single plugin class.
+/// Metadata belongs to the plugin assembly (or package), not to a single plugin class.
 /// All plugin classes in one assembly share the same metadata. For plugins added in code or loaded from a
-/// directory, <see cref="Id"/> is the assembly name and <see cref="Version"/> is the assembly version.
+/// directory, <see cref="Id"/> is the assembly name and <see cref="Version"/> is the <c>&lt;Version&gt;</c> of the
+/// project, a semantic version such as <c>1.2.0</c> or <c>2.0.0-beta.1</c>.
 /// </remarks>
 public sealed class PluginMetadata
 {
@@ -30,9 +31,24 @@ public sealed class PluginMetadata
     public string Id { get; }
 
     /// <summary>
-    /// Gets the plugin version.
+    /// Gets the plugin version, a semantic version such as <c>1.2.0</c>.
     /// </summary>
     public string Version { get; }
+
+    /// <summary>
+    /// Gets the description of the plugin, or <see langword="null"/> if it has none.
+    /// </summary>
+    public string? Description { get; init; }
+
+    /// <summary>
+    /// Gets the authors of the plugin, or <see langword="null"/> if unknown.
+    /// </summary>
+    public string? Authors { get; init; }
+
+    /// <summary>
+    /// Gets the plugins this plugin depends on. Empty if it has no dependencies.
+    /// </summary>
+    public IReadOnlyList<PluginDependency> Dependencies { get; init; } = [];
 
     /// <summary>
     /// Returns the ID and version, for example <c>Acme.Heartbeat 1.2.0</c>.
