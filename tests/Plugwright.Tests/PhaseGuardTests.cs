@@ -46,6 +46,15 @@ public sealed class PhaseGuardTests
     }
 
     [Fact]
+    public void Adding_a_directory_after_ApplyPlugins_throws()
+    {
+        var builder = TestHost.CreateBuilder();
+        builder.ApplyPlugins();
+
+        Should.Throw<InvalidOperationException>(() => builder.Plugins.AddFromDirectory("plugins"));
+    }
+
+    [Fact]
     public void Adding_a_handler_after_ApplyPlugins_throws()
     {
         var builder = TestHost.CreateBuilder();

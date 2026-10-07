@@ -5,13 +5,22 @@ namespace Plugwright.Tests;
 public sealed class PluginCollectionTests
 {
     [Fact]
-    public void Add_records_plugin_types_in_order()
+    public void Add_returns_the_collection_for_chaining()
     {
         var builder = TestHost.CreateBuilder();
 
-        builder.Plugins.Add<SecondMarkerPlugin>().Add<MarkerPlugin>();
+        builder.Plugins.Add<MarkerPlugin>().ShouldBeSameAs(builder.Plugins);
+        builder.Plugins.AddFromDirectory("plugins").ShouldBeSameAs(builder.Plugins);
+    }
 
-        builder.Plugins.ShouldBe([typeof(SecondMarkerPlugin), typeof(MarkerPlugin)]);
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void AddFromDirectory_with_an_empty_path_throws(string path)
+    {
+        var builder = TestHost.CreateBuilder();
+
+        Should.Throw<ArgumentException>(() => builder.Plugins.AddFromDirectory(path));
     }
 
     [Fact]

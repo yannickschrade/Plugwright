@@ -5,11 +5,12 @@ namespace Plugwright;
 /// </summary>
 public sealed class PluginDescriptor
 {
-    internal PluginDescriptor(Type pluginType, object instance, PluginContext context)
+    internal PluginDescriptor(Type pluginType, object instance, PluginContext context, string source)
     {
         PluginType = pluginType;
         Instance = instance;
         Context = context;
+        Source = source;
     }
 
     /// <summary>
@@ -32,6 +33,11 @@ public sealed class PluginDescriptor
     /// Gets the plugin's metadata. Shortcut for <c>Context.Metadata</c>.
     /// </summary>
     public PluginMetadata Metadata => Context.Metadata;
+
+    /// <summary>
+    /// Gets where the plugin comes from, for messages and log entries.
+    /// </summary>
+    internal string Source { get; }
 
     /// <inheritdoc/>
     public override string ToString() => $"{PluginType.FullName} ({Metadata})";

@@ -13,6 +13,7 @@ namespace Plugwright;
 internal sealed class PluginSystem
 {
     private const string LoggerCategory = "Plugwright";
+    private const string CodeSource = "added in code";
 
     private readonly LogBuffer _logBuffer = new();
     private readonly List<ActivePlugin> _activePlugins = [];
@@ -28,6 +29,8 @@ internal sealed class PluginSystem
     public PluginCollection Plugins { get; }
 
     public PluginHandlerCollection Handlers { get; }
+
+    private ILogger Logger => _logBuffer.CreateLogger(LoggerCategory);
 
     public static PluginSystem GetOrCreate(IHostApplicationBuilder builder)
     {
@@ -51,7 +54,7 @@ internal sealed class PluginSystem
     }
 
     /// <summary>
-    /// Phase 1: creates every plugin once and lets all matching handlers apply it.
+    /// Phase 1: finds all plugins, creates every plugin once and lets all matching handlers apply it.
     /// </summary>
     public void Apply(IHostApplicationBuilder builder)
     {
@@ -64,9 +67,28 @@ internal sealed class PluginSystem
         _applied = true;
 
         var handlers = Handlers.CreateHandlers();
-        foreach (var pluginType in Plugins)
+        var candidates = new List<PluginCandidate>();
+        foreach (var source in Plugins.Sources)
         {
-            ApplyPlugin(builder, pluginType, handlers);
+            switch (source)
+            {
+                case TypePluginSource typeSource:
+                    var metadata = PluginMetadataReader.Read(typeSource.PluginType.Assembly);
+                    candidates.Add(new PluginCandidate(typeSource.PluginType, metadata, CodeSource));
+                    break;
+
+                case DirectoryPluginSource directorySource:
+                    var directory = Path.GetFullPath(directorySource.Path, builder.Environment.ContentRootPath);
+                    candidates.AddRange(DiscoverDirectory(directory, handlers));
+                    break;
+            }
+        }
+
+        ThrowOnDuplicateIds(candidates);
+
+        foreach (var candidate in candidates)
+        {
+            ApplyPlugin(builder, candidate, handlers);
         }
 
         builder.Services.AddSingleton(this);
@@ -98,7 +120,8 @@ internal sealed class PluginSystem
                 catch (Exception exception)
                 {
                     throw new PluginException(
-                        $"Plugin '{plugin.Metadata.Id}' ({plugin.PluginType}): Phase 2 failed in handler '{handler.GetType()}': {exception.Message}",
+                        $"Plugin '{plugin.Metadata.Id}' ({plugin.Source}): Phase 2 failed for plugin type '{plugin.PluginType}' "
+                        + $"in handler '{handler.GetType()}': {exception.Message}",
                         plugin.Metadata.Id,
                         exception);
                 }
@@ -108,22 +131,130 @@ internal sealed class PluginSystem
         var logger = loggerFactory.CreateLogger(LoggerCategory);
         foreach (var (plugin, _) in _activePlugins)
         {
-            PluginLog.PluginLoaded(logger, plugin.Metadata.Id, plugin.Metadata.Version, plugin.PluginType.FullName);
+            PluginLog.PluginLoaded(logger, plugin.Metadata.Id, plugin.Metadata.Version, plugin.PluginType.FullName, plugin.Source);
         }
     }
 
-    private void ApplyPlugin(IHostApplicationBuilder builder, Type pluginType, List<IPluginHandler> allHandlers)
+    private List<PluginCandidate> DiscoverDirectory(string directory, List<IPluginHandler> handlers)
     {
-        var metadata = PluginMetadataReader.Read(pluginType.Assembly);
+        if (!Directory.Exists(directory))
+        {
+            PluginLog.PluginDirectoryNotFound(Logger, directory);
+            return [];
+        }
+
+        foreach (var file in Directory.EnumerateFiles(directory, "*.dll").Order(StringComparer.Ordinal))
+        {
+            PluginLog.AssemblyOutsidePluginFolder(Logger, file, directory);
+        }
+
+        var candidates = new List<PluginCandidate>();
+        foreach (var folder in Directory.EnumerateDirectories(directory).Order(StringComparer.Ordinal))
+        {
+            candidates.AddRange(DiscoverFolder(folder, handlers));
+        }
+
+        return candidates;
+    }
+
+    /// <summary>
+    /// Loads the main assembly of one plugin folder into its own load context and finds its plugin types.
+    /// </summary>
+    private IEnumerable<PluginCandidate> DiscoverFolder(string folder, List<IPluginHandler> handlers)
+    {
+        var name = Path.GetFileName(folder);
+        var mainAssemblyFile = $"{name}.dll";
+        var mainAssemblyPath = Path.Combine(folder, mainAssemblyFile);
+        if (!File.Exists(mainAssemblyPath))
+        {
+            Fail(
+                name,
+                folder,
+                $"The folder contains no '{mainAssemblyFile}'. Each plugin folder must contain an assembly with the folder's name.",
+                exception: null);
+            return [];
+        }
+
+        Assembly assembly;
+        Type[] exportedTypes;
+        try
+        {
+            assembly = new PluginLoadContext(mainAssemblyPath).LoadFromAssemblyPath(mainAssemblyPath);
+            exportedTypes = assembly.GetExportedTypes();
+        }
+        catch (Exception exception)
+        {
+            Fail(name, folder, $"'{mainAssemblyFile}' could not be loaded: {exception.Message}", exception);
+            return [];
+        }
+
+        var metadata = PluginMetadataReader.Read(assembly);
+        var pluginTypes = exportedTypes
+            .Where(type => type.IsClass && !type.IsAbstract && !type.ContainsGenericParameters)
+            .Where(type => handlers.Any(handler => handler.CanHandle(type)))
+            .ToList();
+
+        if (pluginTypes.Count == 0)
+        {
+            Fail(
+                metadata.Id,
+                folder,
+                $"'{mainAssemblyFile}' contains no public plugin type that a registered handler can handle.",
+                exception: null);
+            return [];
+        }
+
+        return pluginTypes.Select(type => new PluginCandidate(type, metadata, folder));
+    }
+
+    /// <summary>
+    /// Throws if two different assemblies provide the same plugin ID. Plugin types from one assembly share its ID.
+    /// </summary>
+    private static void ThrowOnDuplicateIds(List<PluginCandidate> candidates)
+    {
+        var firstById = new Dictionary<string, PluginCandidate>(StringComparer.OrdinalIgnoreCase);
+        foreach (var candidate in candidates)
+        {
+            if (!firstById.TryAdd(candidate.Metadata.Id, candidate)
+                && firstById[candidate.Metadata.Id] is var first
+                && first.PluginType.Assembly != candidate.PluginType.Assembly)
+            {
+                throw new PluginException(
+                    $"Plugin ID '{candidate.Metadata.Id}' is provided twice: {Describe(first)} and {Describe(candidate)}. "
+                    + "Remove one of them.",
+                    candidate.Metadata.Id,
+                    innerException: null);
+            }
+        }
+
+        static string Describe(PluginCandidate candidate) => candidate.Source == CodeSource
+            ? $"by type '{candidate.PluginType}' added in code"
+            : $"by folder '{candidate.Source}'";
+    }
+
+    private void ApplyPlugin(IHostApplicationBuilder builder, PluginCandidate candidate, List<IPluginHandler> allHandlers)
+    {
+        var (pluginType, metadata, source) = candidate;
 
         var handlers = allHandlers.Where(handler => handler.CanHandle(pluginType)).ToList();
         if (handlers.Count == 0)
         {
             Fail(
-                metadata,
-                pluginType,
-                $"No plugin handler can handle this type. Implement {nameof(IPlugin)}, "
+                metadata.Id,
+                source,
+                $"No plugin handler can handle plugin type '{pluginType}'. Implement {nameof(IPlugin)}, "
                 + "or register a handler for it with builder.PluginHandlers.Add<T>().",
+                exception: null);
+            return;
+        }
+
+        if (pluginType.GetConstructor(Type.EmptyTypes) is null)
+        {
+            Fail(
+                metadata.Id,
+                source,
+                $"Plugin type '{pluginType}' has no public parameterless constructor. "
+                + "Plugins are created before the service container exists, so they cannot receive services through their constructor.",
                 exception: null);
             return;
         }
@@ -136,7 +267,7 @@ internal sealed class PluginSystem
         catch (TargetInvocationException exception)
         {
             var cause = exception.InnerException ?? exception;
-            Fail(metadata, pluginType, $"The plugin could not be created: {cause.Message}", cause);
+            Fail(metadata.Id, source, $"Plugin type '{pluginType}' could not be created: {cause.Message}", cause);
             return;
         }
 
@@ -145,7 +276,7 @@ internal sealed class PluginSystem
             builder.Configuration.GetSection(PluginConfiguration.SettingsSectionPath(metadata.Id)),
             metadata,
             _logBuffer.CreateLogger(pluginType.FullName ?? pluginType.Name));
-        var plugin = new PluginDescriptor(pluginType, instance, context);
+        var plugin = new PluginDescriptor(pluginType, instance, context, source);
 
         foreach (var handler in handlers)
         {
@@ -156,9 +287,9 @@ internal sealed class PluginSystem
             catch (Exception exception)
             {
                 Fail(
-                    metadata,
-                    pluginType,
-                    $"Phase 1 failed in handler '{handler.GetType()}': {exception.Message}",
+                    metadata.Id,
+                    source,
+                    $"Phase 1 failed for plugin type '{pluginType}' in handler '{handler.GetType()}': {exception.Message}",
                     exception);
                 return;
             }
@@ -167,15 +298,23 @@ internal sealed class PluginSystem
         _activePlugins.Add(new ActivePlugin(plugin, handlers));
     }
 
-    private void Fail(PluginMetadata metadata, Type pluginType, string reason, Exception? exception)
+    private void Fail(string pluginId, string source, string reason, Exception? exception)
     {
         if (Plugins.Options.FailureMode == PluginFailureMode.FailFast)
         {
-            throw new PluginException($"Plugin '{metadata.Id}' ({pluginType}): {reason}", metadata.Id, exception);
+            throw new PluginException($"Plugin '{pluginId}' ({source}): {reason}", pluginId, exception);
         }
 
-        PluginLog.PluginSkipped(_logBuffer.CreateLogger(LoggerCategory), exception, metadata.Id, pluginType.FullName, reason);
+        PluginLog.PluginSkipped(Logger, exception, pluginId, source, reason);
     }
+
+    /// <summary>
+    /// A plugin type found in a source, before it is created.
+    /// </summary>
+    /// <param name="PluginType">The plugin type.</param>
+    /// <param name="Metadata">The metadata of the plugin's assembly.</param>
+    /// <param name="Source">Where the plugin comes from: <see cref="CodeSource"/> or the plugin folder.</param>
+    private sealed record PluginCandidate(Type PluginType, PluginMetadata Metadata, string Source);
 
     private sealed record ActivePlugin(PluginDescriptor Plugin, List<IPluginHandler> Handlers);
 }
