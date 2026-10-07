@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Depends on the Logging plugin through an assembly reference and [PluginDependency].
+    The reference copies Logging's assembly into this folder; the load context must still use the Logging plugin's copy.
+  -->
+  <PropertyGroup>
+    <AssemblyName>Plugwright.TestPlugins.Audit</AssemblyName>
+    <RootNamespace>Plugwright.TestPlugins.Audit</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugwright.Abstractions\Plugwright.Abstractions.csproj" Private="false" ExcludeAssets="runtime" />
+    <ProjectReference Include="..\Logging\Logging.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -21,6 +21,11 @@
     <ProjectReference Include="..\TestPlugins\Greeter\Greeter.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="..\TestPlugins\Counter\Counter.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="..\TestPlugins\NoPlugins\NoPlugins.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\TestPlugins\Logging\Logging.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\TestPlugins\Audit\Audit.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\TestPlugins\NeedsNewLogging\NeedsNewLogging.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\TestPlugins\CycleA\CycleA.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\TestPlugins\CycleB\CycleB.csproj" ReferenceOutputAssembly="false" Private="false" />
   </ItemGroup>
 
   <ItemGroup>

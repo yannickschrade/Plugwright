@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- A plugin other plugins depend on. Authors is cleared to test the [Plugin] fallback. -->
+  <PropertyGroup>
+    <AssemblyName>Plugwright.TestPlugins.Logging</AssemblyName>
+    <RootNamespace>Plugwright.TestPlugins.Logging</RootNamespace>
+    <Version>1.5.0</Version>
+    <Authors></Authors>
+    <Description>Collects log entries for other test plugins.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugwright.Abstractions\Plugwright.Abstractions.csproj" Private="false" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+</Project>

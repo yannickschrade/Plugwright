@@ -13,16 +13,28 @@ public sealed class TestPluginsFixture
     public const string Greeter = "Greeter";
     public const string Counter = "Counter";
     public const string NoPlugins = "NoPlugins";
+    public const string Logging = "Logging";
+    public const string Audit = "Audit";
+    public const string NeedsNewLogging = "NeedsNewLogging";
+    public const string CycleA = "CycleA";
+    public const string CycleB = "CycleB";
 
     public const string GreeterId = "Plugwright.TestPlugins.Greeter";
     public const string CounterId = "Plugwright.TestPlugins.Counter";
     public const string NoPluginsId = "Plugwright.TestPlugins.NoPlugins";
+    public const string LoggingId = "Plugwright.TestPlugins.Logging";
+    public const string AuditId = "Plugwright.TestPlugins.Audit";
 
     private static readonly Dictionary<string, string> s_pluginIds = new()
     {
         [Greeter] = GreeterId,
         [Counter] = CounterId,
         [NoPlugins] = NoPluginsId,
+        [Logging] = LoggingId,
+        [Audit] = AuditId,
+        [NeedsNewLogging] = "Plugwright.TestPlugins.NeedsNewLogging",
+        [CycleA] = "Plugwright.TestPlugins.CycleA",
+        [CycleB] = "Plugwright.TestPlugins.CycleB",
     };
 
     public TestPluginsFixture()
