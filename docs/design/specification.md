@@ -230,6 +230,8 @@ public sealed class HeartbeatPlugin : IPlugin
 - Abhängigkeiten aus der `.nuspec`: Plugin-Pakete werden Plugin-Abhängigkeiten mit Versionsbereich; Bibliothekspakete kommen aus dem Ordner in der niedrigsten passenden Version; was der Host bereits hat (z. B. `Microsoft.Extensions.*`, `Plugwright.Abstractions`, .NET-Pakete), braucht kein Paket.
 - Optional ein Feed für fehlende Pakete (`NuGet.Protocol`, nur in `Plugwright.NuGet`): Downloads in ein Download-Verzeichnis, niedrigste passende Version; ohne Netz Plugin-Fehler (Exception bzw. überspringen und loggen).
 - Mit registrierten Prüfern werden alle Pakete geprüft, auch Bibliothekspakete und Downloads.
+- `HashVerifier` prüft jede Quelle außer Plugins aus dem Code. Ein Paket steht in der Lock-Datei unter seinem Dateinamen ohne `.nupkg`, mit der `.nupkg` als einziger Datei; `plugwright lock` nimmt `.nupkg`-Dateien auf.
+- `PackageSignatureVerifier` (in `Plugwright.NuGet`, `AddPackageSignatureVerifier`) prüft die primäre NuGet-Signatur (Autor oder Repository), die Integrität des Pakets und den Unterzeichner mit denselben Vertrauenseinstellungen wie der `CertificateVerifier`. Zeitstempel werden nicht ausgewertet; das Zertifikat muss zum Prüfzeitpunkt gültig sein.
 
 ### Aufbau des DLL-Verzeichnisses
 
@@ -582,3 +584,7 @@ docs/       Anwenderdokumentation
 | 2026-10-07 | Downloads aus dem Feed in ein Download-Verzeichnis, niedrigste passende Version | Nächster Start ohne Netz möglich; reproduzierbar und mit Lock-Datei vereinbar |
 | 2026-10-07 | Mit Prüfern werden alle Pakete geprüft, auch Bibliothekspakete | Auch Bibliotheken laufen als Code im Prozess |
 | 2026-10-07 | Plugwright.NuGet nutzt interne Typen des Kerns (InternalsVisibleTo) statt einer öffentlichen Quellen-API | Öffentliche API bleibt klein; beide Pakete werden gemeinsam versioniert |
+| 2026-10-07 | HashVerifier prüft alle Quellen außer Code-Plugins; Pakete stehen in der Lock-Datei unter ihrem Dateinamen | Ein Format für Ordner und Pakete; zwei Versionen einer Bibliothek kollidieren nicht |
+| 2026-10-07 | PackageSignatureVerifier prüft die primäre Signatur und nutzt die Vertrauenslogik des CertificateVerifier (CertificateTrust) | Gleiche Vertrauensregeln für Manifeste und Pakete; Kern bleibt ohne NuGet |
+| 2026-10-07 | Auch bei Paketsignaturen keine Auswertung von Zeitstempeln | Konsistent mit den Manifesten; für Pakete mit inzwischen abgelaufenem Zertifikat (z. B. ältere nuget.org-Pakete) die Lock-Datei verwenden |
+| 2026-10-07 | Beispiel SignedPackages signiert mit selbstsigniertem RSA-Zertifikat über die NuGet-API | NuGet akzeptiert nur Ketten zu einem Stamm, dem der signierende Rechner vertraut, oder selbstsignierte Zertifikate |

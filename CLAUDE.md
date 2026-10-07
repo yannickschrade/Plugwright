@@ -6,7 +6,7 @@ The full specification (German, with rationale and decision log) lives in `docs/
 
 ## Status
 
-Done: repo setup (central package management, CI, DocFX), plugin contract, extension members and handler pipeline, directory loading, metadata and dependencies, verification with `HashVerifier` and `CertificateVerifier`, `PluginReport`, CLI `lock` and `sign`, NuGet package source (loading). Next: verifying packages (lock file, package signatures), then the optional feed.
+Done: repo setup (central package management, CI, DocFX), plugin contract, extension members and handler pipeline, directory loading, metadata and dependencies, verification with `HashVerifier` and `CertificateVerifier`, `PluginReport`, CLI `lock` and `sign`, NuGet package source with verification (lock file, `PackageSignatureVerifier`). Next: the optional feed for missing packages.
 
 ## Baseline
 
@@ -95,7 +95,7 @@ docs/                        DocFX site; docs/design/specification.md
   - Plugin packages have package type `PlugwrightPlugin` and an assembly named like the package ID; all others are library packages.
   - Loaded in memory, no extraction; only native libraries go to a per-process temp folder, re-checked before loading.
   - Dependencies: plugin packages → plugin dependencies with version ranges; library packages from the folder (lowest matching version); packages the host provides need none; optional feed (`NuGet.Protocol`) downloads missing packages into a download directory (lowest matching), no network → plugin failure.
-  - With verifiers, all packages are verified, libraries and downloads included.
+  - With verifiers, all packages are verified, libraries and downloads included. `HashVerifier`: lock entry per package file name; `PackageSignatureVerifier`: primary NuGet signature, same trust as `CertificateVerifier` (shared `CertificateTrust`), no timestamps.
 
 ## Configuration
 

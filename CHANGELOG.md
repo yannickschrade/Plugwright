@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `CertificateVerifier` checks a signed manifest in each plugin folder; signers are trusted by thumbprint or as publisher (CA plus subject). Revocation checking is configurable.
 - `plugwright` command-line tool (`Plugwright.Cli`) with the `lock` and `sign` commands.
 - `Plugwright.NuGet`: `builder.Plugins.AddFromPackages()` loads plugin packages (package type `PlugwrightPlugin`) from a folder of `.nupkg` files in memory, with library packages and version ranges from the `.nuspec`.
+- Package verification: the `HashVerifier` and `plugwright lock` cover `.nupkg` files; `PackageSignatureVerifier` checks NuGet package signatures.
 - Dependencies between plugins: checked before loading, applied in dependency order, with shared types across load contexts. Dependents of skipped plugins are skipped.
 - Per-plugin settings section `Plugwright:Plugins:{PluginId}:Settings`.
 - `PluginFailureMode.SkipAndLog` to skip failing plugins instead of stopping the application.
