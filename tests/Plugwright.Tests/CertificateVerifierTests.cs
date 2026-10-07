@@ -50,6 +50,7 @@ public sealed class CertificateVerifierTests
 
         var result = Verify(ByThumbprint(certificate.Thumbprint), Request(certificate));
 
+        result.Succeeded.ShouldBeFalse();
         result.Message.ShouldContain("is not valid now");
     }
 
@@ -85,7 +86,10 @@ public sealed class CertificateVerifierTests
         using var authority = TestCertificates.CreateAuthority("CN=Acme Root CA");
         using var certificate = TestCertificates.CreateIssued(authority, "CN=Somebody Else");
 
-        Verify(ByPublisher(authority, Publisher), Request(certificate)).Message.ShouldContain("is not trusted");
+        var result = Verify(ByPublisher(authority, Publisher), Request(certificate));
+
+        result.Succeeded.ShouldBeFalse();
+        result.Message.ShouldContain("is not trusted");
     }
 
     [Fact]
