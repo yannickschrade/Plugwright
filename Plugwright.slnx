@@ -12,6 +12,9 @@
     <Project Path="samples/GettingStarted/Acme.Hello/Acme.Hello.csproj" />
     <Project Path="samples/GettingStarted/App/GettingStarted.App.csproj" />
   </Folder>
+  <Folder Name="/samples/PackageFeed/">
+    <Project Path="samples/PackageFeed/App/PackageFeed.App.csproj" />
+  </Folder>
   <Folder Name="/samples/PackagePlugins/">
     <Project Path="samples/PackagePlugins/Acme.Units/Acme.Units.csproj" />
     <Project Path="samples/PackagePlugins/Acme.Weather/Acme.Weather.csproj" />

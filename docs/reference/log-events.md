@@ -11,6 +11,7 @@ Plugwright logs with the category `Plugwright` and fixed event IDs. Use them to 
 | 1004 | `PluginVerificationDisabled` | Information | Plugins are loaded from a directory or a package folder, but no verifier is registered. |
 | 1005 | `PluginVerified` | Information | A plugin passed a verifier. One entry per plugin and verifier. |
 | 1006 | `PluginVerificationFailed` | Error | A plugin failed a verifier. Includes the exception if the verifier threw one. |
+| 1007 | `PackageDownloaded` | Information | A library package was downloaded from the feed of a package folder (Plugwright.NuGet). |
 
 ## Structured values
 
@@ -22,6 +23,7 @@ Plugwright logs with the category `Plugwright` and fixed event IDs. Use them to 
 | `AssemblyOutsidePluginFolder` | `AssemblyPath`, `PluginDirectory` |
 | `PluginVerificationDisabled` | – |
 | `PluginVerified`, `PluginVerificationFailed` | `PluginName`, `PluginLocation`, `Verifier`, `Result` |
+| `PackageDownloaded` | `PackageId`, `PackageVersion`, `Feed`, `PackagePath` |
 
 `PluginSource` is `added in code` for plugins added with `Add<T>()`, and the full path of the plugin folder for plugins loaded from a directory.
 

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging.Testing;
 using Plugwright.Cli;
 
 namespace Plugwright.IntegrationTests;
@@ -41,6 +42,8 @@ public sealed class PackageFeedTests(TestPluginsFixture testPlugins) : IDisposab
 
         app.Services.GetRequiredService<IConfiguration>()["TestPackages:Greeter:LibraryVersion"].ShouldBe("1");
         Directory.GetFiles(DownloadDirectory).Select(Path.GetFileName).ShouldBe([$"{LibraryV1}.nupkg"]);
+        app.Services.GetFakeLogCollector().GetSnapshot().Where(record => record.Id.Id == 1007).ShouldHaveSingleItem()
+            .Message.ShouldBe($"Package Plugwright.TestPackages.Library 1.0.0 downloaded from {FeedDirectory} to {Path.Combine(DownloadDirectory, $"{LibraryV1}.nupkg")}");
     }
 
     [Fact]

@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugwright\Plugwright.csproj" />
+    <ProjectReference Include="..\..\..\src\Plugwright.NuGet\Plugwright.NuGet.csproj" />
+  </ItemGroup>
+
+  <!--
+    For the sample only: take the packages of the PackagePlugins sample. The plugin package goes into packages/,
+    the library package it depends on only into feed/, a local folder that stands in for a feed such as nuget.org.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\PackagePlugins\Acme.Weather\Acme.Weather.csproj" ReferenceOutputAssembly="false" Private="false" />
+  </ItemGroup>
+
+  <Target Name="CopySamplePackages" AfterTargets="Build">
+    <RemoveDir Directories="$(OutDir)packages;$(OutDir)feed;$(OutDir)plugin-package-downloads" />
+    <Copy SourceFiles="..\..\PackagePlugins\bin\packages\Acme.Weather.1.0.0.nupkg" DestinationFolder="$(OutDir)packages" />
+    <Copy SourceFiles="..\..\PackagePlugins\bin\packages\Acme.Units.1.0.0.nupkg" DestinationFolder="$(OutDir)feed" />
+  </Target>
+
+</Project>

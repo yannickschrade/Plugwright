@@ -328,6 +328,9 @@ internal sealed class PackageDependencyResolver
             return $"The downloaded package could not be stored in '{_downloadDirectory}': {exception.Message}";
         }
 
+        var downloadedVersion = package.Version.ToNormalizedString();
+        PluginLog.PackageDownloaded(_context.Logger, package.Id, downloadedVersion, _feed.Name, path);
+
         if (!_libraries.TryGetValue(package.Id, out var versions))
         {
             _libraries[package.Id] = versions = [];

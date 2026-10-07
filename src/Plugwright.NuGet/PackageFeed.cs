@@ -12,6 +12,11 @@ namespace Plugwright;
 internal sealed class PackageFeed
 {
     private readonly string _feed;
+
+    /// <summary>
+    /// Gets the feed as configured, for messages.
+    /// </summary>
+    public string Name => _feed;
     private readonly TimeSpan _timeout;
     private readonly SourceRepository _repository;
 

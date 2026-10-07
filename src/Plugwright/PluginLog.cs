@@ -34,4 +34,8 @@ internal static partial class PluginLog
     [LoggerMessage(EventId = 1006, EventName = "PluginVerificationFailed", Level = LogLevel.Error,
         Message = "Plugin {PluginName} ({PluginLocation}) failed {Verifier}: {Result}")]
     public static partial void PluginVerificationFailed(ILogger logger, Exception? exception, string pluginName, string pluginLocation, string verifier, string result);
+
+    [LoggerMessage(EventId = 1007, EventName = "PackageDownloaded", Level = LogLevel.Information,
+        Message = "Package {PackageId} {PackageVersion} downloaded from {Feed} to {PackagePath}")]
+    public static partial void PackageDownloaded(ILogger logger, string packageId, string packageVersion, string feed, string packagePath);
 }
