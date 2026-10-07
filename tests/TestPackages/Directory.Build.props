@@ -10,7 +10,6 @@
     <IsPackable>true</IsPackable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageOutputPath>$(MSBuildThisFileDirectory)../../artifacts/test-packages/$(Configuration)/</PackageOutputPath>
-    <PackageReadmeFile></PackageReadmeFile>
     <Description>Test package for Plugwright.</Description>
   </PropertyGroup>
 

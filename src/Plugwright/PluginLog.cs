@@ -24,7 +24,7 @@ internal static partial class PluginLog
     public static partial void AssemblyOutsidePluginFolder(ILogger logger, string assemblyPath, string pluginDirectory);
 
     [LoggerMessage(EventId = 1004, EventName = "PluginVerificationDisabled", Level = LogLevel.Information,
-        Message = "No plugin verifiers are registered. Plugins from directories are loaded without verification.")]
+        Message = "No plugin verifiers are registered. Plugins from directories and packages are loaded without verification.")]
     public static partial void PluginVerificationDisabled(ILogger logger);
 
     [LoggerMessage(EventId = 1005, EventName = "PluginVerified", Level = LogLevel.Information,

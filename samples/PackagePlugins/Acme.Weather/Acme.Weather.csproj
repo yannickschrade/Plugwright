@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <!-- Marks the package as a plugin. Packages without it are library packages. -->
+    <PackageType>PlugwrightPlugin</PackageType>
+    <Version>1.0.0</Version>
+    <Description>Reports the weather.</Description>
+    <!-- For the sample only: create the package on every build. Usually you run 'dotnet pack'. -->
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)../bin/packages</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Becomes a package dependency on Plugwright.Abstractions, which the host provides. -->
+    <ProjectReference Include="..\..\..\src\Plugwright.Abstractions\Plugwright.Abstractions.csproj" />
+    <!-- Becomes a package dependency on Acme.Units, which must be in the package folder. -->
+    <ProjectReference Include="..\Acme.Units\Acme.Units.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -15,7 +15,6 @@
     <Copyright>Copyright (c) Yannick Schrade</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>plugins;plugin-system;generic-host;hosting;dependency-injection</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
     <VersionPrefix>0.1.0</VersionPrefix>
   </PropertyGroup>
 

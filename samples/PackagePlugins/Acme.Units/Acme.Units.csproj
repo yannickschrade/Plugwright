@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- An ordinary library, shipped as a library package next to the plugin package. -->
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Version>1.0.0</Version>
+    <Description>Converts units.</Description>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)../bin/packages</PackageOutputPath>
+  </PropertyGroup>
+
+</Project>

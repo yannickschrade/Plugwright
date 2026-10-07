@@ -12,6 +12,11 @@
     <Project Path="samples/GettingStarted/Acme.Hello/Acme.Hello.csproj" />
     <Project Path="samples/GettingStarted/App/GettingStarted.App.csproj" />
   </Folder>
+  <Folder Name="/samples/PackagePlugins/">
+    <Project Path="samples/PackagePlugins/Acme.Units/Acme.Units.csproj" />
+    <Project Path="samples/PackagePlugins/Acme.Weather/Acme.Weather.csproj" />
+    <Project Path="samples/PackagePlugins/App/PackagePlugins.App.csproj" />
+  </Folder>
   <Folder Name="/samples/PluginDependencies/">
     <Project Path="samples/PluginDependencies/Acme.Formatting/Acme.Formatting.csproj" />
     <Project Path="samples/PluginDependencies/Acme.Welcome/Acme.Welcome.csproj" />
