@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugwright\Plugwright.csproj" />
+  </ItemGroup>
+
+  <!--
+    For the sample only: after the build, copy the plugin to plugins/Acme.Hello/ and create the lock file with
+    the plugwright tool, as a deployment would:
+
+      dotnet publish Acme.Hello -o <app>/plugins/Acme.Hello
+      plugwright lock <app>/plugins -o <app>/plugins.lock.json
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Acme.Hello\Acme.Hello.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\..\..\src\Plugwright.Cli\Plugwright.Cli.csproj" ReferenceOutputAssembly="false" Private="false" />
+  </ItemGroup>
+
+  <Target Name="DeploySamplePlugin" AfterTargets="Build">
+    <ItemGroup>
+      <SamplePluginFile Include="..\Acme.Hello\bin\$(Configuration)\$(TargetFramework)\**\*" />
+    </ItemGroup>
+    <RemoveDir Directories="$(OutDir)plugins" />
+    <Copy SourceFiles="@(SamplePluginFile)" DestinationFiles="@(SamplePluginFile->'$(OutDir)plugins\Acme.Hello\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <PropertyGroup>
+      <PlugwrightCli>$(MSBuildThisFileDirectory)../../../src/Plugwright.Cli/bin/$(Configuration)/$(TargetFramework)/Plugwright.Cli.dll</PlugwrightCli>
+    </PropertyGroup>
+    <Exec Command="dotnet &quot;$(PlugwrightCli)&quot; lock &quot;$(OutDir)plugins&quot; --output &quot;$(OutDir)plugins.lock.json&quot;" />
+  </Target>
+
+</Project>
