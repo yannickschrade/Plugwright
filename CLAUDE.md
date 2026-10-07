@@ -6,7 +6,7 @@ The full specification (German, with rationale and decision log) lives in `docs/
 
 ## Status
 
-Done: repo setup (central package management, CI, DocFX), plugin contract, extension members and handler pipeline, directory loading, metadata and dependencies, verification with `HashVerifier` and `CertificateVerifier`, `PluginReport`, CLI `lock` and `sign`, NuGet package source with verification (lock file, `PackageSignatureVerifier`). Next: the optional feed for missing packages.
+Done: repo setup (central package management, CI, DocFX), plugin contract, extension members and handler pipeline, directory loading, metadata and dependencies, verification with `HashVerifier` and `CertificateVerifier`, `PluginReport`, CLI `lock` and `sign`, NuGet package source with verification (lock file, `PackageSignatureVerifier`) and optional feed. Next: CLI `verify` (step 7).
 
 ## Baseline
 
@@ -114,7 +114,7 @@ docs/                        DocFX site; docs/design/specification.md
 - Certificate mode: NuGet package signatures; for DLL directories a CMS-signed manifest with plugin ID, version and hashes of all files. Files not listed in the manifest fail verification. Trust by certificate thumbprint or by issuer plus subject. No timestamps in v1 (certificate must be valid at verification time). Revocation mode configurable (`NoCheck`/`Online`/`Offline`), default `NoCheck`, applies to publishers only.
   - Manifest: `plugwright.manifest.p7s` in the plugin folder, CMS with embedded JSON (version, plugin ID, plugin version, hashes of all other files).
   - Publisher trust: root certificate file plus subject DN; intermediates come from the signature.
-- CLI: package `Plugwright.Cli`, command `plugwright`. Commands: `lock` and `sign` (done), `verify`. No command-line parsing library.
+- CLI: package `Plugwright.Cli`, command `plugwright`. Commands: `lock` (several directories) and `sign` (done), `verify`. No command-line parsing library.
 - Verify before reading metadata. Load from the verified bytes (`LoadFromStream`). Re-verify or re-extract the NuGet cache on every start.
 - Verifier settings come from code by default; binding them to a configuration section requires an explicit call. Which verifiers exist is always decided in code.
 - Every check emits a structured log event with a fixed EventId; results are also available via API.

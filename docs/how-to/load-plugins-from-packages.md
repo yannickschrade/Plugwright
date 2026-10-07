@@ -50,9 +50,31 @@ Every dependency in the package's `.nuspec` must be satisfied by one of these:
 | A library package | A library package in the folder, in the lowest version that matches the range. Its own dependencies are resolved the same way. |
 | A package the host already provides | The host. Examples: `Plugwright.Abstractions`, `Microsoft.Extensions.*` and packages that are part of .NET, such as `System.Text.Json`. |
 
-A dependency that none of them satisfies makes the plugin fail, with a message that names the package and the version range.
+A dependency that none of them satisfies makes the plugin fail, with a message that names the package and the version range, unless a feed is configured.
 
 All other packages in the folder are ignored unless a plugin package depends on them.
+
+## Download missing packages
+
+Optionally, missing library packages can be downloaded from a NuGet feed. The complete, runnable project is in `samples/PackageFeed` in the repository:
+
+[!code-csharp[](../../samples/PackageFeed/App/Program.cs?name=host)]
+
+- `Feed` is a URL such as `https://api.nuget.org/v3/index.json`, a local folder, or the name of a package source in NuGet.Config. Credentials for private feeds come from NuGet.Config.
+- Only library packages are downloaded, in the lowest version that matches the dependency. Plugin packages are never downloaded; install them in the package folder.
+- Downloads are stored in `DownloadDirectory` (default `plugin-package-downloads` in the content root). The next start finds them there and needs no network.
+- Each download is logged with event ID 1007.
+
+If the feed cannot be reached, has no matching version, or the download takes longer than `DownloadTimeout` (default 30 seconds), the plugin fails: by default the application stops, with [`SkipAndLog`](handle-plugin-failures.md) the plugin is skipped.
+
+Downloaded packages are verified like all others before they are stored or used. With the lock file, create it after the first download, over both folders:
+
+```bash
+plugwright lock /srv/myapp/packages /srv/myapp/plugin-package-downloads --output /etc/myapp/plugins.lock.json
+```
+
+> [!IMPORTANT]
+> A feed means network access during startup and code that was not in your deployment. Protect the download directory like the package folder, and verify packages if you use a feed.
 
 ## Plugin metadata
 

@@ -11,12 +11,12 @@ dotnet tool install --global Plugwright.Cli
 Creates the lock file for the <xref:Plugwright.HashVerifier>.
 
 ```text
-plugwright lock <plugin-directory> [--output <file>]
+plugwright lock <plugin-directory>... [--output <file>]
 ```
 
 | Argument or option | Meaning |
 | --- | --- |
-| `<plugin-directory>` | The plugin directory with one subfolder per plugin, or a folder of NuGet packages. |
+| `<plugin-directory>` | The plugin directory with one subfolder per plugin, or a folder of NuGet packages. Several directories go into one lock file, for example a package folder and its download directory; a name that appears in two of them is an error. |
 | `-o`, `--output <file>` | The lock file to write. Default: `plugins.lock.json` in the current directory. |
 | `-h`, `--help` | Show help. |
 

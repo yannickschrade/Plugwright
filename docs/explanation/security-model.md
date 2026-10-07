@@ -32,6 +32,10 @@ Native libraries are the exception, because the operating system loads them from
 
 Manifest signatures carry no timestamp. A signing certificate must be valid when the plugin is verified, not only when it was signed. When it expires, plugins must be signed again. Revocation checking is off by default, so that machines without network access start; turn it on for publishers trusted through a certificate authority.
 
+## Downloads
+
+A package folder can download missing library packages from a feed. This is off by default. When it is on, the application accesses the network during startup and runs code that was not part of the deployment. Downloaded packages are verified like all other packages before they are stored or used, and the download directory needs the same protection as the package folder.
+
 ## What verification does not do
 
 - It does not judge what a plugin does. A verified plugin is a plugin you approved, not a safe one.
