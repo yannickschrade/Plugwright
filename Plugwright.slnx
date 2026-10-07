@@ -8,6 +8,11 @@
     <Project Path="samples/DirectoryPlugins/Acme.Greeter/Acme.Greeter.csproj" />
     <Project Path="samples/DirectoryPlugins/App/DirectoryPlugins.App.csproj" />
   </Folder>
+  <Folder Name="/samples/PluginDependencies/">
+    <Project Path="samples/PluginDependencies/Acme.Formatting/Acme.Formatting.csproj" />
+    <Project Path="samples/PluginDependencies/Acme.Welcome/Acme.Welcome.csproj" />
+    <Project Path="samples/PluginDependencies/App/PluginDependencies.App.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Plugwright.Abstractions/Plugwright.Abstractions.csproj" />
     <Project Path="src/Plugwright/Plugwright.csproj" />

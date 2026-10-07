@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugwright.Abstractions\Plugwright.Abstractions.csproj" Private="false" ExcludeAssets="runtime" />
+    <!-- Compile against the other plugin, but do not ship it: it is deployed as its own plugin. -->
+    <ProjectReference Include="..\Acme.Formatting\Acme.Formatting.csproj" Private="false" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+</Project>
