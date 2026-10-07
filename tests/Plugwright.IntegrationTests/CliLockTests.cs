@@ -86,6 +86,31 @@ public sealed class CliLockTests(TestPluginsFixture testPlugins) : IDisposable
     }
 
     [Fact]
+    public void Several_directories_go_into_one_lock_file()
+    {
+        testPlugins.Install(Greeter, PluginDirectory);
+        var packages = Path.Combine(_directory.Path, "packages");
+        testPlugins.InstallPackage("Plugwright.TestPackages.Library.1.0.0", packages);
+
+        Run("lock", PluginDirectory, packages, "-o", LockFile).ShouldBe(CliApp.Success);
+
+        _output.ToString().ShouldContain("with 2 plugins");
+        File.ReadAllText(LockFile).ShouldContain("\"Plugwright.TestPackages.Library.1.0.0\"");
+    }
+
+    [Fact]
+    public void Same_name_in_two_directories_fails()
+    {
+        testPlugins.Install(Greeter, PluginDirectory);
+        var second = Path.Combine(_directory.Path, "second");
+        testPlugins.Install(Greeter, second);
+
+        Run("lock", PluginDirectory, second, "-o", LockFile).ShouldBe(CliApp.Failure);
+
+        _error.ToString().ShouldContain("is in more than one of the directories");
+    }
+
+    [Fact]
     public void Missing_plugin_directory_fails()
     {
         Run("lock", PluginDirectory, "-o", LockFile).ShouldBe(CliApp.Failure);
@@ -98,7 +123,6 @@ public sealed class CliLockTests(TestPluginsFixture testPlugins) : IDisposable
     [InlineData]
     [InlineData("unknown")]
     [InlineData("lock")]
-    [InlineData("lock", "a", "b")]
     [InlineData("lock", "plugins", "--output")]
     [InlineData("lock", "plugins", "--force")]
     public void Invalid_usage_fails_with_exit_code_2(params string[] args)

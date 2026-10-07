@@ -24,7 +24,31 @@ internal sealed class PluginLockFile
     /// Creates a lock file for a plugin directory or package folder: the hash of every file in every subfolder,
     /// and of every .nupkg file. Other files directly in the directory are not part of any plugin and are left out.
     /// </summary>
-    public static PluginLockFile Create(string pluginDirectory)
+    public static PluginLockFile Create(string pluginDirectory) => Create([pluginDirectory]);
+
+    /// <summary>
+    /// Creates one lock file for several plugin directories or package folders, for example a package folder and the
+    /// folder that downloaded packages are stored in.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Two directories contain a plugin or package with the same name.</exception>
+    public static PluginLockFile Create(IEnumerable<string> pluginDirectories)
+    {
+        var plugins = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pluginDirectory in pluginDirectories)
+        {
+            foreach (var (name, files) in CreateEntries(pluginDirectory))
+            {
+                if (!plugins.TryAdd(name, files))
+                {
+                    throw new InvalidOperationException($"'{name}' is in more than one of the directories.");
+                }
+            }
+        }
+
+        return new PluginLockFile(plugins);
+    }
+
+    private static Dictionary<string, Dictionary<string, string>> CreateEntries(string pluginDirectory)
     {
         var plugins = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
         foreach (var package in Directory.EnumerateFiles(pluginDirectory, "*.nupkg").Order(StringComparer.Ordinal))
@@ -43,7 +67,7 @@ internal sealed class PluginLockFile
                 files.ToDictionary(file => file.Path, file => PluginFileHash.Compute(file.Content.Span), StringComparer.Ordinal));
         }
 
-        return new PluginLockFile(plugins);
+        return plugins;
     }
 
     /// <summary>

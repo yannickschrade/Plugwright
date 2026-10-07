@@ -8,7 +8,7 @@ internal static class LockCommand
     private const string DefaultOutput = "plugins.lock.json";
 
     private const string Usage = $"""
-        Usage: plugwright lock <plugin-directory> [--output <file>]
+        Usage: plugwright lock <plugin-directory>... [--output <file>]
 
         Creates a lock file with the sha256 hash of every file in every plugin folder of <plugin-directory>,
         and of every NuGet package (.nupkg) in it. The HashVerifier loads only plugins and packages whose files
@@ -16,6 +16,8 @@ internal static class LockCommand
 
         Arguments:
           <plugin-directory>       The plugin directory with one subfolder per plugin, or a folder of packages.
+                                   Several directories go into one lock file, for example a package folder
+                                   and its download folder.
 
         Options:
           -o, --output <file>      The lock file to write. Default: {DefaultOutput}
@@ -26,7 +28,7 @@ internal static class LockCommand
 
     public static int Run(string[] args, TextWriter output, TextWriter error)
     {
-        string? pluginDirectory = null;
+        List<string> pluginDirectories = [];
         var lockFile = DefaultOutput;
 
         for (var i = 0; i < args.Length; i++)
@@ -47,33 +49,44 @@ internal static class LockCommand
                 case var option when option.StartsWith('-'):
                     return CliApp.Fail(error, $"Unknown option '{option}'.\n\n{Usage}");
 
-                case var argument when pluginDirectory is null:
-                    pluginDirectory = argument;
-                    break;
-
                 default:
-                    return CliApp.Fail(error, $"Unexpected argument '{args[i]}'.\n\n{Usage}");
+                    pluginDirectories.Add(args[i]);
+                    break;
             }
         }
 
-        if (pluginDirectory is null)
+        if (pluginDirectories.Count == 0)
         {
             return CliApp.Fail(error, $"The plugin directory is missing.\n\n{Usage}");
         }
 
-        if (!Directory.Exists(pluginDirectory))
+        foreach (var pluginDirectory in pluginDirectories)
         {
-            error.WriteLine($"The plugin directory '{pluginDirectory}' does not exist.");
+            if (!Directory.Exists(pluginDirectory))
+            {
+                error.WriteLine($"The plugin directory '{pluginDirectory}' does not exist.");
+                return CliApp.Failure;
+            }
+
+            foreach (var file in Directory.EnumerateFiles(pluginDirectory).Where(file => !file.EndsWith(".nupkg", StringComparison.OrdinalIgnoreCase)).Order(StringComparer.Ordinal))
+            {
+                error.WriteLine($"Warning: '{file}' is neither in a plugin folder nor a package and is not part of the lock file.");
+            }
+        }
+
+        PluginLockFile lockFileContent;
+        try
+        {
+            lockFileContent = PluginLockFile.Create(pluginDirectories);
+        }
+        catch (InvalidOperationException exception)
+        {
+            error.WriteLine(exception.Message);
             return CliApp.Failure;
         }
 
-        foreach (var file in Directory.EnumerateFiles(pluginDirectory).Where(file => !file.EndsWith(".nupkg", StringComparison.OrdinalIgnoreCase)).Order(StringComparer.Ordinal))
-        {
-            error.WriteLine($"Warning: '{file}' is neither in a plugin folder nor a package and is not part of the lock file.");
-        }
-
-        var lockFileContent = PluginLockFile.Create(pluginDirectory);
         lockFileContent.Write(lockFile);
+
 
         var fileCount = lockFileContent.Plugins.Values.Sum(files => files.Count);
         output.WriteLine($"Wrote '{lockFile}' with {Count(lockFileContent.Plugins.Count, "plugin")} and {Count(fileCount, "file")}.");

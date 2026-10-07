@@ -4,26 +4,26 @@ using NuGet.Versioning;
 namespace Plugwright;
 
 /// <summary>
-/// A folder of NuGet packages added with <see cref="PluginPackageExtensions.AddFromPackages"/>.
+/// A folder of NuGet packages added with <see cref="PluginPackageExtensions.AddFromPackages(PluginCollection, string, Action{PluginPackageOptions})"/>.
 /// </summary>
 public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
 {
-    private static readonly Lazy<HashSet<string>> s_hostAssemblies = new(() =>
-        ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
-            .Split(System.IO.Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
-            .Select(System.IO.Path.GetFileNameWithoutExtension)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase)!);
-
-    internal PluginPackageSource(string path)
+    internal PluginPackageSource(string path, PluginPackageOptions options)
     {
         Path = path;
+        Options = options;
     }
 
     /// <summary>
-    /// Gets the path as it was passed to <see cref="PluginPackageExtensions.AddFromPackages"/>.
+    /// Gets the path as it was passed to <see cref="PluginPackageExtensions.AddFromPackages(PluginCollection, string, Action{PluginPackageOptions})"/>.
     /// A relative path is resolved against the content root when <c>builder.ApplyPlugins()</c> runs.
     /// </summary>
     public string Path { get; }
+
+    /// <summary>
+    /// Gets the options of the package folder, such as the feed for missing packages.
+    /// </summary>
+    public PluginPackageOptions Options { get; }
 
     /// <summary>
     /// Returns a description of the source, for example <c>Packages packages</c>.
@@ -41,13 +41,23 @@ public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
         }
 
         var packages = ReadPackages(directory, context);
-        var pluginIds = packages.Where(package => package.IsPlugin).Select(package => package.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var libraries = packages.Where(package => !package.IsPlugin).ToLookup(package => package.Id, StringComparer.OrdinalIgnoreCase);
+        var downloadDirectory = System.IO.Path.GetFullPath(Options.DownloadDirectory, context.ContentRoot);
+        var downloads = Directory.Exists(downloadDirectory)
+            ? ReadPackages(downloadDirectory, context).Where(package => !package.IsPlugin)
+            : [];
+
+        var resolver = new PackageDependencyResolver(
+            this,
+            context,
+            plugins: packages.Where(package => package.IsPlugin),
+            libraries: [.. packages.Where(package => !package.IsPlugin), .. downloads],
+            feed: Options.Feed is null ? null : new PackageFeed(Options.Feed, context.ContentRoot, Options.DownloadTimeout),
+            downloadDirectory);
 
         List<PluginUnit> units = [];
         foreach (var package in packages.Where(package => package.IsPlugin))
         {
-            if (CreateUnit(package, pluginIds, libraries, context) is { } unit)
+            if (CreateUnit(package, resolver, context) is { } unit)
             {
                 units.Add(unit);
             }
@@ -57,43 +67,62 @@ public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
     }
 
     /// <summary>
-    /// Reads every .nupkg file once into memory and verifies it. Packages that cannot be read or fail verification are left out.
+    /// Reads and verifies a package file, or reports why it cannot be used.
+    /// </summary>
+    /// <returns>The package, or <see langword="null"/> if it cannot be read or fails verification.</returns>
+    internal PluginPackage? ReadPackage(string path, byte[] content, PluginDiscoveryContext context)
+    {
+        var fileName = System.IO.Path.GetFileName(path);
+        PluginPackage package;
+        try
+        {
+            package = PluginPackage.Read(path, content);
+        }
+        catch (InvalidDataException exception)
+        {
+            context.Fail(fileName, path, exception.Message, exception);
+            return null;
+        }
+
+        // A package is verified under its file name without .nupkg, so that versions of a library do not collide.
+        if (context.VerificationEnabled
+            && !context.Verify(this, System.IO.Path.GetFileNameWithoutExtension(path), path, [PluginDiscoveryContext.CreateFile(fileName, content)]))
+        {
+            return null;
+        }
+
+        return package;
+    }
+
+    /// <summary>
+    /// Reads every .nupkg file of a folder once into memory and verifies it.
     /// </summary>
     private List<PluginPackage> ReadPackages(string directory, PluginDiscoveryContext context)
     {
         List<PluginPackage> packages = [];
         foreach (var path in Directory.EnumerateFiles(directory, "*.nupkg").Order(StringComparer.Ordinal))
         {
-            var fileName = System.IO.Path.GetFileName(path);
-            PluginPackage package;
+            byte[] content;
             try
             {
-                package = PluginPackage.Read(path, File.ReadAllBytes(path));
+                content = File.ReadAllBytes(path);
             }
-            catch (Exception exception) when (exception is InvalidDataException or IOException)
+            catch (IOException exception)
             {
-                context.Fail(fileName, path, exception.Message, exception);
+                context.Fail(System.IO.Path.GetFileName(path), path, $"The package could not be read: {exception.Message}", exception);
                 continue;
             }
 
-            // A package is verified under its file name without .nupkg, so that versions of a library do not collide.
-            if (context.VerificationEnabled
-                && !context.Verify(this, System.IO.Path.GetFileNameWithoutExtension(path), path, [PluginDiscoveryContext.CreateFile(fileName, package.Content)]))
+            if (ReadPackage(path, content, context) is { } package)
             {
-                continue;
+                packages.Add(package);
             }
-
-            packages.Add(package);
         }
 
         return packages;
     }
 
-    private static PluginUnit? CreateUnit(
-        PluginPackage package,
-        HashSet<string> pluginIds,
-        ILookup<string, PluginPackage> libraries,
-        PluginDiscoveryContext context)
+    private static PluginUnit? CreateUnit(PluginPackage package, PackageDependencyResolver resolver, PluginDiscoveryContext context)
     {
         if (!package.Assemblies.TryGetValue(package.Id, out var mainAssembly))
         {
@@ -109,7 +138,7 @@ public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
         var nativeLibraries = new Dictionary<string, byte[]>(package.NativeLibraries, StringComparer.Ordinal);
         List<PluginDependency> pluginDependencies = [];
 
-        var problem = AddDependencies(package, pluginIds, libraries, assemblies, nativeLibraries, pluginDependencies, [package.Id]);
+        var problem = resolver.Resolve(package, assemblies, nativeLibraries, pluginDependencies, visited: [package.Id]);
         if (problem is not null)
         {
             context.Fail(package.Id, package.Path, problem, exception: null);
@@ -140,16 +169,57 @@ public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
         return PluginUnit.FromSource(info, package.Path, "package", new PackageAssemblies(package.Id, assemblies, nativeLibraries));
     }
 
+    private static bool SatisfiesVersionRange(PluginDependency dependency, string version) =>
+        dependency.VersionRange is not null
+        && VersionRange.TryParse(dependency.VersionRange, out var range)
+        && NuGetVersion.TryParse(version, out var available)
+        && range.Satisfies(available);
+}
+
+/// <summary>
+/// Resolves the dependencies of plugin packages: plugin packages become plugin dependencies; library packages come from
+/// the package folder or the download folder in the lowest version that matches, or are downloaded from the feed;
+/// dependencies the host already provides need no package.
+/// </summary>
+internal sealed class PackageDependencyResolver
+{
+    private static readonly Lazy<HashSet<string>> s_hostAssemblies = new(() =>
+        ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Select(Path.GetFileNameWithoutExtension)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase)!);
+
+    private readonly PluginPackageSource _source;
+    private readonly PluginDiscoveryContext _context;
+    private readonly HashSet<string> _pluginIds;
+    private readonly Dictionary<string, List<PluginPackage>> _libraries;
+    private readonly PackageFeed? _feed;
+    private readonly string _downloadDirectory;
+
+    public PackageDependencyResolver(
+        PluginPackageSource source,
+        PluginDiscoveryContext context,
+        IEnumerable<PluginPackage> plugins,
+        IEnumerable<PluginPackage> libraries,
+        PackageFeed? feed,
+        string downloadDirectory)
+    {
+        _source = source;
+        _context = context;
+        _pluginIds = plugins.Select(package => package.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        _libraries = libraries
+            .GroupBy(package => package.Id, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.OrdinalIgnoreCase);
+        _feed = feed;
+        _downloadDirectory = downloadDirectory;
+    }
+
     /// <summary>
-    /// Resolves the dependencies of a package. Plugin packages become plugin dependencies; library packages are taken
-    /// from the folder, in the lowest version that matches, together with their own dependencies.
-    /// Dependencies the host already provides, such as Microsoft.Extensions.*, are satisfied by the host.
+    /// Adds the assemblies of all library packages a package needs, transitively, and collects its plugin dependencies.
     /// </summary>
     /// <returns>A description of the first problem, or <see langword="null"/>.</returns>
-    private static string? AddDependencies(
+    public string? Resolve(
         PluginPackage package,
-        HashSet<string> pluginIds,
-        ILookup<string, PluginPackage> libraries,
         Dictionary<string, byte[]> assemblies,
         Dictionary<string, byte[]> nativeLibraries,
         List<PluginDependency> pluginDependencies,
@@ -162,7 +232,7 @@ public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
                 continue;
             }
 
-            if (pluginIds.Contains(dependency.Id))
+            if (_pluginIds.Contains(dependency.Id))
             {
                 pluginDependencies.Add(new PluginDependency(dependency.Id, dependency.VersionRange.MinVersion?.ToNormalizedString())
                 {
@@ -171,7 +241,19 @@ public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
                 continue;
             }
 
-            if (libraries[dependency.Id].Where(library => dependency.VersionRange.Satisfies(library.Version)).MinBy(library => library.Version) is { } library)
+            var library = FindLibrary(dependency);
+            if (library is null && !s_hostAssemblies.Value.Contains(dependency.Id) && _feed is not null)
+            {
+                if (Download(dependency) is { } downloadProblem)
+                {
+                    return $"Package '{package}' depends on package '{dependency.Id}' {dependency.VersionRange.ToNormalizedString()}, "
+                        + $"which is not in the package folder. {downloadProblem}";
+                }
+
+                library = FindLibrary(dependency);
+            }
+
+            if (library is not null)
             {
                 foreach (var (name, content) in library.Assemblies)
                 {
@@ -183,7 +265,7 @@ public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
                     nativeLibraries.TryAdd(name, content);
                 }
 
-                if (AddDependencies(library, pluginIds, libraries, assemblies, nativeLibraries, pluginDependencies, visited) is { } problem)
+                if (Resolve(library, assemblies, nativeLibraries, pluginDependencies, visited) is { } problem)
                 {
                     return problem;
                 }
@@ -196,7 +278,7 @@ public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
                 continue;
             }
 
-            var available = libraries[dependency.Id].Select(library => library.Version.ToNormalizedString()).ToList();
+            var available = _libraries.GetValueOrDefault(dependency.Id, []).Select(other => other.Version.ToNormalizedString()).ToList();
             return available.Count == 0
                 ? $"Package '{package}' depends on package '{dependency.Id}' {dependency.VersionRange.ToNormalizedString()}, "
                     + "which is neither in the package folder nor provided by the host."
@@ -207,50 +289,56 @@ public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
         return null;
     }
 
-    private static bool SatisfiesVersionRange(PluginDependency dependency, string version) =>
-        dependency.VersionRange is not null
-        && VersionRange.TryParse(dependency.VersionRange, out var range)
-        && NuGetVersion.TryParse(version, out var available)
-        && range.Satisfies(available);
-}
-
-/// <summary>
-/// Adds NuGet package folders as a plugin source to <c>builder.Plugins</c>.
-/// </summary>
-public static class PluginPackageExtensions
-{
-    extension(PluginCollection plugins)
+    /// <summary>
+    /// Downloads the lowest matching version of a library package, verifies it, and stores it in the download folder,
+    /// so that the next start finds it without network.
+    /// </summary>
+    /// <returns>A description of the problem, or <see langword="null"/> if the package is now available.</returns>
+    private string? Download(PackageDependency dependency)
     {
-        /// <summary>
-        /// Adds all plugin packages from a folder of NuGet packages (.nupkg files).
-        /// </summary>
-        /// <remarks>
-        /// <para>
-        /// A package is a plugin if it has the package type <c>PlugwrightPlugin</c>. It must contain an assembly named like
-        /// the package ID for net10.0. All other packages in the folder are library packages: they are only loaded when a
-        /// plugin package depends on them, in the lowest version that matches. Dependencies that the host already provides,
-        /// such as Microsoft.Extensions.*, need no package.
-        /// </para>
-        /// <para>
-        /// Packages are read into memory and loaded from there; nothing is extracted, except native libraries, which go to
-        /// a temporary folder of the process. Each plugin package gets its own load context. A relative path is resolved
-        /// against the host's content root. If the folder does not exist, a warning is logged.
-        /// </para>
-        /// </remarks>
-        /// <param name="path">The package folder, absolute or relative to the content root.</param>
-        /// <returns>The collection, for chaining.</returns>
-        /// <exception cref="InvalidOperationException"><c>builder.ApplyPlugins()</c> has already been called.</exception>
-        /// <exception cref="ArgumentException">The path is empty.</exception>
-        /// <example>
-        /// <code language="csharp">
-        /// builder.Plugins.AddFromPackages("packages");
-        /// </code>
-        /// </example>
-        public PluginCollection AddFromPackages(string path)
+        NuGetVersion version;
+        byte[] content;
+        try
         {
-            ArgumentNullException.ThrowIfNull(plugins);
-            ArgumentException.ThrowIfNullOrWhiteSpace(path);
-            return plugins.AddSource(new PluginPackageSource(path));
+            (version, content) = _feed!.Download(dependency.Id, dependency.VersionRange);
         }
+        catch (InvalidOperationException exception)
+        {
+            return exception.Message;
+        }
+
+        var path = Path.Combine(_downloadDirectory, $"{dependency.Id}.{version.ToNormalizedString()}.nupkg");
+        if (_source.ReadPackage(path, content, _context) is not { } package)
+        {
+            return $"The downloaded package '{Path.GetFileName(path)}' cannot be used.";
+        }
+
+        if (package.IsPlugin)
+        {
+            return $"The feed provides it as a plugin package. Plugin packages are not downloaded; install it in the package folder.";
+        }
+
+        try
+        {
+            Directory.CreateDirectory(_downloadDirectory);
+            File.WriteAllBytes(path, content);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return $"The downloaded package could not be stored in '{_downloadDirectory}': {exception.Message}";
+        }
+
+        if (!_libraries.TryGetValue(package.Id, out var versions))
+        {
+            _libraries[package.Id] = versions = [];
+        }
+
+        versions.Add(package);
+        return null;
     }
+
+    private PluginPackage? FindLibrary(PackageDependency dependency) =>
+        _libraries.GetValueOrDefault(dependency.Id, [])
+            .Where(library => dependency.VersionRange.Satisfies(library.Version))
+            .MinBy(library => library.Version);
 }
