@@ -15,6 +15,7 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Plugwright.Abstractions/Plugwright.Abstractions.csproj" />
+    <Project Path="src/Plugwright.Cli/Plugwright.Cli.csproj" />
     <Project Path="src/Plugwright/Plugwright.csproj" />
   </Folder>
   <Folder Name="/tests/">

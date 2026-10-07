@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>plugwright</ToolCommandName>
+    <Description>Command-line tool for Plugwright: creates lock files for verifying plugin folders.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Plugwright\Plugwright.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Plugwright.IntegrationTests" />
+  </ItemGroup>
+
+</Project>

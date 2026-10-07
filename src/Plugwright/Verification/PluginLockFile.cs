@@ -1,3 +1,4 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
 
 namespace Plugwright;
@@ -18,6 +19,52 @@ internal sealed class PluginLockFile
     /// Gets the expected file hashes by plugin folder name (case-insensitive), then by relative file path.
     /// </summary>
     public IReadOnlyDictionary<string, Dictionary<string, string>> Plugins { get; }
+
+    /// <summary>
+    /// Creates a lock file for all plugin folders in a plugin directory: the hash of every file in every subfolder.
+    /// Files directly in the directory are not part of any plugin and are left out.
+    /// </summary>
+    public static PluginLockFile Create(string pluginDirectory)
+    {
+        var plugins = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var folder in Directory.EnumerateDirectories(pluginDirectory).Order(StringComparer.Ordinal))
+        {
+            var (_, files) = VerifiedFiles.Read(folder);
+            plugins.Add(
+                Path.GetFileName(folder),
+                files.ToDictionary(file => file.Path, file => PluginFileHash.Compute(file.Content.Span), StringComparer.Ordinal));
+        }
+
+        return new PluginLockFile(plugins);
+    }
+
+    /// <summary>
+    /// Writes the lock file as indented JSON, with plugins and files in ordinal order, so that it diffs well.
+    /// </summary>
+    public void Write(string path)
+    {
+        using var stream = File.Create(path);
+        using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+
+        writer.WriteStartObject();
+        writer.WriteNumber("version", CurrentVersion);
+        writer.WriteStartObject("plugins");
+        foreach (var (plugin, files) in Plugins.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+        {
+            writer.WriteStartObject(plugin);
+            writer.WriteStartObject("files");
+            foreach (var (file, hash) in files.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+            {
+                writer.WriteString(file, hash);
+            }
+
+            writer.WriteEndObject();
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndObject();
+        writer.WriteEndObject();
+    }
 
     public static PluginLockFile Read(string path)
     {
