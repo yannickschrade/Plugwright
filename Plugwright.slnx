@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/samples/">
+    <Project Path="samples/CustomHandler/CustomHandler.csproj" />
     <Project Path="samples/Heartbeat/Heartbeat.csproj" />
   </Folder>
   <Folder Name="/src/">
