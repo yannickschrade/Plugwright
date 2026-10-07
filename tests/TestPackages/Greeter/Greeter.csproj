@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- A plugin package. Depends on the library package (>= 1.0.0) and on Plugwright.Abstractions, which the host provides. -->
+  <PropertyGroup>
+    <PackageId>Plugwright.TestPackages.Greeter</PackageId>
+    <AssemblyName>Plugwright.TestPackages.Greeter</AssemblyName>
+    <RootNamespace>Plugwright.TestPackages.Greeter</RootNamespace>
+    <PackageType>PlugwrightPlugin</PackageType>
+    <Version>1.0.0</Version>
+    <Description>Greets from a plugin package.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugwright.Abstractions\Plugwright.Abstractions.csproj" />
+    <ProjectReference Include="..\LibraryV1\LibraryV1.csproj" />
+  </ItemGroup>
+
+</Project>

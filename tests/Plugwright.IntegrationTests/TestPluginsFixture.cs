@@ -57,6 +57,26 @@ public sealed class TestPluginsFixture
     public string BuildOutputPath { get; }
 
     /// <summary>
+    /// Gets the folder with the test packages (.nupkg) built from tests/TestPackages.
+    /// </summary>
+    public string PackagesPath { get; } = typeof(TestPluginsFixture).Assembly
+        .GetCustomAttributes<AssemblyMetadataAttribute>()
+        .Single(attribute => attribute.Key == "TestPackagesPath")
+        .Value!;
+
+    /// <summary>
+    /// Copies a test package, for example <c>Plugwright.TestPackages.Library.1.0.0</c>, into a package folder.
+    /// </summary>
+    /// <returns>The path of the copied package.</returns>
+    public string InstallPackage(string package, string packageDirectory)
+    {
+        Directory.CreateDirectory(packageDirectory);
+        var target = Path.Combine(packageDirectory, $"{package}.nupkg");
+        File.Copy(Path.Combine(PackagesPath, $"{package}.nupkg"), target);
+        return target;
+    }
+
+    /// <summary>
     /// Copies the build output of a test plugin project into its own folder in the plugin directory,
     /// as <c>{pluginDirectory}/{PluginId}/</c>.
     /// </summary>

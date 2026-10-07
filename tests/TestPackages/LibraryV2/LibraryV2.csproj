@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- A library package (no plugin package type). LibraryV1 and LibraryV2 are two versions of the same package. -->
+  <PropertyGroup>
+    <PackageId>Plugwright.TestPackages.Library</PackageId>
+    <AssemblyName>Plugwright.TestPackages.Library</AssemblyName>
+    <RootNamespace>Plugwright.TestPackages.Library</RootNamespace>
+    <Version>2.0.0</Version>
+  </PropertyGroup>
+
+</Project>

@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TestPluginsPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../artifacts/test-plugins/$(Configuration)/'))</TestPluginsPath>
+    <TestPackagesPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../artifacts/test-packages/$(Configuration)/'))</TestPackagesPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Plugwright\Plugwright.csproj" />
     <ProjectReference Include="..\..\src\Plugwright.Cli\Plugwright.Cli.csproj" />
+    <ProjectReference Include="..\..\src\Plugwright.NuGet\Plugwright.NuGet.csproj" />
   </ItemGroup>
 
   <!-- Build the test plugins first, but never reference them: the tests load them like real plugins. -->
@@ -27,12 +29,20 @@
     <ProjectReference Include="..\TestPlugins\NeedsNewLogging\NeedsNewLogging.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="..\TestPlugins\CycleA\CycleA.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="..\TestPlugins\CycleB\CycleB.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\TestPackages\LibraryV1\LibraryV1.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\TestPackages\LibraryV2\LibraryV2.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\TestPackages\Greeter\Greeter.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\TestPackages\Reports\Reports.csproj" ReferenceOutputAssembly="false" Private="false" />
   </ItemGroup>
 
   <ItemGroup>
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
       <_Parameter1>TestPluginsPath</_Parameter1>
       <_Parameter2>$(TestPluginsPath)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>TestPackagesPath</_Parameter1>
+      <_Parameter2>$(TestPackagesPath)</_Parameter2>
     </AssemblyAttribute>
   </ItemGroup>
 
