@@ -4,12 +4,10 @@ using System.Runtime.Loader;
 namespace Plugwright;
 
 /// <summary>
-/// The load context of one plugin folder. It resolves the plugin's own dependencies from the folder
+/// The load context of one plugin. It loads the plugin's own assemblies through <see cref="PluginAssemblies"/>
 /// and takes shared assemblies from the default load context, so that the plugin and the host use the same types.
 /// </summary>
 /// <remarks>
-/// When the plugin was verified, its assemblies are loaded from the verified bytes instead of from disk, and native
-/// libraries are only loaded if they still match the verified content.
 /// Assemblies of plugins this plugin depends on come from those plugins' load contexts, so both use the same types.
 /// Shared are the plugin contract (Plugwright) and Microsoft.Extensions.*. They come from the host whenever the host
 /// has them, regardless of the version the plugin ships. Everything else, including framework assemblies the plugin
@@ -17,19 +15,16 @@ namespace Plugwright;
 /// </remarks>
 internal sealed class PluginLoadContext : AssemblyLoadContext
 {
-    private readonly AssemblyDependencyResolver _resolver;
+    private readonly PluginAssemblies _assemblies;
     private readonly IReadOnlyDictionary<string, Assembly> _dependencies;
-    private readonly VerifiedFiles? _verifiedFiles;
 
-    /// <param name="mainAssemblyPath">The plugin's main assembly.</param>
+    /// <param name="assemblies">The plugin's own assemblies.</param>
     /// <param name="dependencies">The main assemblies of the plugins this plugin depends on, by assembly name.</param>
-    /// <param name="verifiedFiles">The verified files of the plugin folder, or <see langword="null"/> without verification.</param>
-    public PluginLoadContext(string mainAssemblyPath, IReadOnlyDictionary<string, Assembly> dependencies, VerifiedFiles? verifiedFiles)
-        : base(name: Path.GetFileNameWithoutExtension(mainAssemblyPath), isCollectible: false)
+    public PluginLoadContext(PluginAssemblies assemblies, IReadOnlyDictionary<string, Assembly> dependencies)
+        : base(name: assemblies.MainAssemblyName, isCollectible: false)
     {
-        _resolver = new AssemblyDependencyResolver(mainAssemblyPath);
+        _assemblies = assemblies;
         _dependencies = dependencies;
-        _verifiedFiles = verifiedFiles;
     }
 
     public static bool IsShared(AssemblyName assemblyName)
@@ -38,6 +33,8 @@ internal sealed class PluginLoadContext : AssemblyLoadContext
         return name is "Plugwright" or "Plugwright.Abstractions"
             || (name is not null && name.StartsWith("Microsoft.Extensions.", StringComparison.Ordinal));
     }
+
+    public Assembly LoadMainAssembly() => _assemblies.LoadMainAssembly(this);
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {
@@ -51,35 +48,13 @@ internal sealed class PluginLoadContext : AssemblyLoadContext
             return shared;
         }
 
-        var path = _resolver.ResolveAssemblyToPath(assemblyName);
-        return path is null ? null : LoadPluginAssembly(path);
-    }
-
-    /// <summary>
-    /// Loads an assembly of the plugin folder: from the verified bytes if the plugin was verified, otherwise from disk.
-    /// </summary>
-    public Assembly LoadPluginAssembly(string path)
-    {
-        if (_verifiedFiles is null)
-        {
-            return LoadFromAssemblyPath(path);
-        }
-
-        using var stream = new MemoryStream(_verifiedFiles.GetContent(path), writable: false);
-        return LoadFromStream(stream);
+        return _assemblies.LoadPrivateAssembly(this, assemblyName);
     }
 
     protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
     {
-        var path = _resolver.ResolveUnmanagedDllToPath(unmanagedDllName);
-        if (path is null)
-        {
-            return IntPtr.Zero;
-        }
-
-        // Native libraries can only be loaded from disk. Check right before loading that the file is still the verified one.
-        _verifiedFiles?.ThrowIfChanged(path);
-        return LoadUnmanagedDllFromPath(path);
+        var path = _assemblies.ResolveUnmanagedDll(unmanagedDllName);
+        return path is null ? IntPtr.Zero : LoadUnmanagedDllFromPath(path);
     }
 
     private static Assembly? TryLoadFromDefault(AssemblyName assemblyName)

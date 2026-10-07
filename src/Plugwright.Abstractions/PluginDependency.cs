@@ -28,8 +28,20 @@ public sealed class PluginDependency
     public string? MinVersion { get; }
 
     /// <summary>
-    /// Returns the dependency, for example <c>Acme.Logging &gt;= 1.2.0</c>.
+    /// Gets the allowed versions in NuGet notation, such as <c>[1.2.0, 2.0.0)</c>, for dependencies declared in a NuGet
+    /// package. <see langword="null"/> for dependencies declared with <see cref="PluginDependencyAttribute"/> or found
+    /// through assembly references.
     /// </summary>
-    /// <returns>The plugin ID and, if set, the minimum version.</returns>
-    public override string ToString() => MinVersion is null ? PluginId : $"{PluginId} >= {MinVersion}";
+    public string? VersionRange { get; init; }
+
+    /// <summary>
+    /// Returns the dependency, for example <c>Acme.Logging &gt;= 1.2.0</c> or <c>Acme.Logging [1.2.0, 2.0.0)</c>.
+    /// </summary>
+    /// <returns>The plugin ID and, if set, the allowed versions.</returns>
+    public override string ToString() => (VersionRange, MinVersion) switch
+    {
+        ({ } range, _) => $"{PluginId} {range}",
+        (null, { } minVersion) => $"{PluginId} >= {minVersion}",
+        _ => PluginId,
+    };
 }

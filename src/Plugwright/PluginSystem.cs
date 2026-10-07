@@ -133,10 +133,17 @@ internal sealed class PluginSystem
     /// </summary>
     private List<PluginUnit> DiscoverUnits(IHostApplicationBuilder builder)
     {
-        if (Verifiers.Count == 0 && Plugins.OfType<PluginDirectorySource>().Any())
+        if (Verifiers.Count == 0 && Plugins.Any(source => source is not PluginTypeSource))
         {
             PluginLog.PluginVerificationDisabled(Logger);
         }
+
+        var context = new PluginDiscoveryContext(
+            builder.Environment.ContentRootPath,
+            Verifiers.Count > 0,
+            Logger,
+            Verify,
+            (pluginId, location, reason, exception) => Fail(pluginId, location, reason, exception));
 
         List<PluginUnit> units = [];
         foreach (var source in Plugins)
@@ -158,6 +165,10 @@ internal sealed class PluginSystem
                 case PluginDirectorySource directorySource:
                     var directory = Path.GetFullPath(directorySource.Path, builder.Environment.ContentRootPath);
                     units.AddRange(DiscoverDirectory(directory, directorySource));
+                    break;
+
+                case IDiscoveringPluginSource discoveringSource:
+                    units.AddRange(discoveringSource.Discover(context));
                     break;
             }
         }
@@ -218,7 +229,7 @@ internal sealed class PluginSystem
         try
         {
             var info = PluginMetadataReader.ReadWithoutLoading(mainAssemblyPath, verifiedFiles?.GetContent(mainAssemblyPath));
-            return PluginUnit.FromFolder(info, folder, mainAssemblyPath, verifiedFiles);
+            return PluginUnit.FromFolder(info, folder, new FolderAssemblies(mainAssemblyPath, verifiedFiles));
         }
         catch (Exception exception)
         {
@@ -234,24 +245,12 @@ internal sealed class PluginSystem
     private VerifiedFiles? VerifyFolder(string folder, PluginDirectorySource source)
     {
         var name = Path.GetFileName(folder);
-        var verifiers = Verifiers.Where(verifier => verifier.CanVerify(source)).ToList();
-        if (verifiers.Count == 0)
-        {
-            Fail(
-                name,
-                folder,
-                "No registered plugin verifier can verify plugins from a directory. "
-                + "Register one with builder.PluginVerifiers, or remove all verifiers to load plugins without verification.",
-                exception: null);
-            return null;
-        }
 
         VerifiedFiles verifiedFiles;
-        PluginVerificationRequest request;
+        List<PluginFile> files;
         try
         {
-            (verifiedFiles, var files) = VerifiedFiles.Read(folder);
-            request = new PluginVerificationRequest(source, name, folder, files);
+            (verifiedFiles, files) = VerifiedFiles.Read(folder);
         }
         catch (IOException exception)
         {
@@ -259,6 +258,28 @@ internal sealed class PluginSystem
             return null;
         }
 
+        return Verify(source, name, folder, files) ? verifiedFiles : null;
+    }
+
+    /// <summary>
+    /// Lets every responsible verifier check a plugin's files. Logs and records every result, and reports a failure.
+    /// </summary>
+    /// <returns><see langword="true"/> if all responsible verifiers passed.</returns>
+    private bool Verify(PluginSource source, string name, string location, IReadOnlyList<PluginFile> files)
+    {
+        var verifiers = Verifiers.Where(verifier => verifier.CanVerify(source)).ToList();
+        if (verifiers.Count == 0)
+        {
+            Fail(
+                name,
+                location,
+                $"No registered plugin verifier can verify plugins from this source ({source}). "
+                + "Register one with builder.PluginVerifiers, or remove all verifiers to load plugins without verification.",
+                exception: null);
+            return false;
+        }
+
+        var request = new PluginVerificationRequest(source, name, location, files);
         foreach (var verifier in verifiers)
         {
             var verifierName = verifier.GetType().Name;
@@ -269,25 +290,25 @@ internal sealed class PluginSystem
             }
             catch (Exception exception)
             {
-                PluginLog.PluginVerificationFailed(Logger, exception, name, folder, verifierName, exception.Message);
-                _verifications.Add(new PluginVerification(name, folder, verifierName, succeeded: false, exception.Message));
-                Fail(name, folder, $"Verification by {verifierName} failed: {exception.Message}", exception);
-                return null;
+                PluginLog.PluginVerificationFailed(Logger, exception, name, location, verifierName, exception.Message);
+                _verifications.Add(new PluginVerification(name, location, verifierName, succeeded: false, exception.Message));
+                Fail(name, location, $"Verification by {verifierName} failed: {exception.Message}", exception);
+                return false;
             }
 
             if (!result.Succeeded)
             {
-                PluginLog.PluginVerificationFailed(Logger, exception: null, name, folder, verifierName, result.Message);
-                _verifications.Add(new PluginVerification(name, folder, verifierName, succeeded: false, result.Message));
-                Fail(name, folder, $"Verification by {verifierName} failed: {result.Message}", exception: null);
-                return null;
+                PluginLog.PluginVerificationFailed(Logger, exception: null, name, location, verifierName, result.Message);
+                _verifications.Add(new PluginVerification(name, location, verifierName, succeeded: false, result.Message));
+                Fail(name, location, $"Verification by {verifierName} failed: {result.Message}", exception: null);
+                return false;
             }
 
-            PluginLog.PluginVerified(Logger, name, folder, verifierName, result.Message);
-            _verifications.Add(new PluginVerification(name, folder, verifierName, succeeded: true, result.Message));
+            PluginLog.PluginVerified(Logger, name, location, verifierName, result.Message);
+            _verifications.Add(new PluginVerification(name, location, verifierName, succeeded: true, result.Message));
         }
 
-        return verifiedFiles;
+        return true;
     }
 
     /// <summary>
@@ -321,7 +342,7 @@ internal sealed class PluginSystem
             return;
         }
 
-        if (!unit.IsInCode && !LoadFolder(unit, handlers))
+        if (!unit.IsInCode && !LoadUnit(unit, handlers))
         {
             return;
         }
@@ -333,18 +354,17 @@ internal sealed class PluginSystem
     }
 
     /// <summary>
-    /// Loads the main assembly of a plugin folder into its own load context and finds its plugin types.
+    /// Loads the main assembly of a plugin into its own load context and finds its plugin types.
     /// </summary>
-    private bool LoadFolder(PluginUnit unit, List<IPluginHandler> handlers)
+    private bool LoadUnit(PluginUnit unit, List<IPluginHandler> handlers)
     {
-        var mainAssemblyPath = unit.MainAssemblyPath!;
-        var mainAssemblyFile = Path.GetFileName(mainAssemblyPath);
+        var mainAssemblyFile = $"{unit.Assemblies!.MainAssemblyName}.dll";
         var dependencies = unit.DependsOn.ToDictionary(dependency => dependency.Id, dependency => dependency.Assembly!);
 
         Type[] exportedTypes;
         try
         {
-            unit.Assembly = new PluginLoadContext(mainAssemblyPath, dependencies, unit.VerifiedFiles).LoadPluginAssembly(mainAssemblyPath);
+            unit.Assembly = new PluginLoadContext(unit.Assemblies, dependencies).LoadMainAssembly();
             exportedTypes = unit.Assembly.GetExportedTypes();
         }
         catch (Exception exception)

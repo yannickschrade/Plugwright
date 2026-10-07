@@ -10,10 +10,11 @@ internal sealed class PluginUnit
 {
     public const string CodeSource = "added in code";
 
-    private PluginUnit(PluginAssemblyInfo info, string source)
+    private PluginUnit(PluginAssemblyInfo info, string source, string kind)
     {
         Info = info;
         Source = source;
+        Kind = kind;
         Metadata = info.Metadata;
     }
 
@@ -25,21 +26,21 @@ internal sealed class PluginUnit
     public string Id => Info.Metadata.Id;
 
     /// <summary>
-    /// Gets where the unit comes from: <see cref="CodeSource"/> or the plugin folder.
+    /// Gets where the unit comes from: <see cref="CodeSource"/>, the plugin folder or the package file.
     /// </summary>
     public string Source { get; }
+
+    /// <summary>
+    /// Gets what kind of source the unit comes from, for messages: <c>folder</c> or <c>package</c>.
+    /// </summary>
+    public string Kind { get; }
 
     public bool IsInCode => Source == CodeSource;
 
     /// <summary>
-    /// Gets the main assembly path of a plugin folder; <see langword="null"/> for plugins added in code.
+    /// Gets the plugin's assemblies to load; <see langword="null"/> for plugins added in code, which are already loaded.
     /// </summary>
-    public string? MainAssemblyPath { get; private init; }
-
-    /// <summary>
-    /// Gets the verified files of a plugin folder; <see langword="null"/> without verification and for plugins added in code.
-    /// </summary>
-    public VerifiedFiles? VerifiedFiles { get; private init; }
+    public PluginAssemblies? Assemblies { get; private init; }
 
     /// <summary>
     /// Gets or sets the loaded assembly. Set from the start for plugins added in code, after loading for plugin folders.
@@ -67,10 +68,20 @@ internal sealed class PluginUnit
     public bool Failed { get; set; }
 
     public static PluginUnit FromCode(Assembly assembly) =>
-        new(PluginMetadataReader.Read(assembly), CodeSource) { Assembly = assembly };
+        new(PluginMetadataReader.Read(assembly), CodeSource, "code") { Assembly = assembly };
 
-    public static PluginUnit FromFolder(PluginAssemblyInfo info, string folder, string mainAssemblyPath, VerifiedFiles? verifiedFiles = null) =>
-        new(info, folder) { MainAssemblyPath = mainAssemblyPath, VerifiedFiles = verifiedFiles };
+    public static PluginUnit FromFolder(PluginAssemblyInfo info, string folder, PluginAssemblies assemblies) =>
+        new(info, folder, "folder") { Assemblies = assemblies };
 
-    public string Describe() => IsInCode ? $"by '{PluginTypes[0]}' added in code" : $"by folder '{Source}'";
+    /// <summary>
+    /// Creates a unit for a plugin from another source, such as a package.
+    /// </summary>
+    /// <param name="info">What the plugin declares about itself.</param>
+    /// <param name="source">Where the plugin comes from, for example the package file.</param>
+    /// <param name="kind">What kind of source it is, for messages, for example <c>package</c>.</param>
+    /// <param name="assemblies">The plugin's assemblies.</param>
+    public static PluginUnit FromSource(PluginAssemblyInfo info, string source, string kind, PluginAssemblies assemblies) =>
+        new(info, source, kind) { Assemblies = assemblies };
+
+    public string Describe() => IsInCode ? $"by '{PluginTypes[0]}' added in code" : $"by {Kind} '{Source}'";
 }

@@ -80,6 +80,27 @@ public sealed class PluginDependencyResolverTests
         }
     }
 
+    [Theory]
+    [InlineData("1.5.0", true)]
+    [InlineData("2.0.0", false)]
+    public void Version_range_is_checked_by_the_source(string availableVersion, bool satisfied)
+    {
+        var dependency = new PluginDependency("Logging", "1.2.0") { VersionRange = "[1.2.0, 2.0.0)" };
+        var reports = Unit("Reports", dependencies: [dependency], satisfiesVersionRange: (_, version) => version.StartsWith('1'));
+
+        Resolve(reports, Unit("Logging", version: availableVersion));
+
+        if (satisfied)
+        {
+            _failures.ShouldBeEmpty();
+            reports.Metadata.Dependencies.ShouldHaveSingleItem().ToString().ShouldBe("Logging [1.2.0, 2.0.0)");
+        }
+        else
+        {
+            _failures.ShouldBe([("Reports", $"It requires plugin 'Logging' version [1.2.0, 2.0.0), but version {availableVersion} is available.")]);
+        }
+    }
+
     [Fact]
     public void Invalid_minimum_version_is_reported()
     {
@@ -139,10 +160,28 @@ public sealed class PluginDependencyResolverTests
         string version = "1.0.0",
         Version? assemblyVersion = null,
         List<PluginDependency>? dependencies = null,
-        List<AssemblyName>? references = null)
+        List<AssemblyName>? references = null,
+        Func<PluginDependency, string, bool>? satisfiesVersionRange = null)
     {
         var metadata = new PluginMetadata(id, version) { Dependencies = dependencies ?? [] };
-        var info = new PluginAssemblyInfo(metadata, assemblyVersion ?? new Version(1, 0, 0, 0), references ?? []);
-        return PluginUnit.FromFolder(info, $"/plugins/{id}", $"/plugins/{id}/{id}.dll");
+        var info = new PluginAssemblyInfo(metadata, assemblyVersion ?? new Version(1, 0, 0, 0), references ?? [])
+        {
+            SatisfiesVersionRange = satisfiesVersionRange,
+        };
+        return PluginUnit.FromFolder(info, $"/plugins/{id}", new NoAssemblies(id));
+    }
+
+    /// <summary>
+    /// The resolver never loads anything, so the units need no real assemblies.
+    /// </summary>
+    private sealed class NoAssemblies(string name) : PluginAssemblies
+    {
+        public override string MainAssemblyName => name;
+
+        public override Assembly LoadMainAssembly(System.Runtime.Loader.AssemblyLoadContext context) => throw new NotSupportedException();
+
+        public override Assembly? LoadPrivateAssembly(System.Runtime.Loader.AssemblyLoadContext context, AssemblyName assemblyName) => null;
+
+        public override string? ResolveUnmanagedDll(string unmanagedDllName) => null;
     }
 }

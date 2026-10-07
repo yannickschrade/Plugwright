@@ -160,7 +160,7 @@ public sealed class VerificationTests(TestPluginsFixture testPlugins) : IDisposa
 
         var exception = Should.Throw<PluginException>(() => BuildApp(builder => builder.PluginVerifiers.Add<NothingVerifier>()));
 
-        exception.Message.ShouldContain("No registered plugin verifier can verify plugins from a directory.");
+        exception.Message.ShouldContain("No registered plugin verifier can verify plugins from this source (Directory ");
     }
 
     [Fact]

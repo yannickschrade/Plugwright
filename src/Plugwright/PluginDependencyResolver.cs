@@ -45,7 +45,15 @@ internal static class PluginDependencyResolver
                 return $"It depends on plugin '{dependency.PluginId}', which is not available.";
             }
 
-            if (dependency.MinVersion is not null)
+            if (dependency.VersionRange is not null)
+            {
+                if (unit.Info.SatisfiesVersionRange?.Invoke(dependency, other.Metadata.Version) is not true)
+                {
+                    return $"It requires plugin '{dependency.PluginId}' version {dependency.VersionRange}, "
+                        + $"but version {other.Metadata.Version} is available.";
+                }
+            }
+            else if (dependency.MinVersion is not null)
             {
                 if (!SemanticVersion.TryParse(dependency.MinVersion, out var minVersion))
                 {

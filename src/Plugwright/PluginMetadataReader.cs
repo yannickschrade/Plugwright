@@ -8,7 +8,14 @@ namespace Plugwright;
 /// <param name="Metadata">ID, version, description, authors and the dependencies declared with attributes.</param>
 /// <param name="AssemblyVersion">The assembly version, used to check references from other plugins.</param>
 /// <param name="References">The assemblies this assembly references.</param>
-internal sealed record PluginAssemblyInfo(PluginMetadata Metadata, Version AssemblyVersion, IReadOnlyList<AssemblyName> References);
+internal sealed record PluginAssemblyInfo(PluginMetadata Metadata, Version AssemblyVersion, IReadOnlyList<AssemblyName> References)
+{
+    /// <summary>
+    /// Gets whether an available version satisfies a dependency with a <see cref="PluginDependency.VersionRange"/>.
+    /// Set by sources whose dependencies have version ranges, such as NuGet packages.
+    /// </summary>
+    public Func<PluginDependency, string, bool>? SatisfiesVersionRange { get; init; }
+}
 
 /// <summary>
 /// Reads plugin metadata from an assembly. Works on assemblies loaded for execution and on assemblies
@@ -38,13 +45,26 @@ internal static class PluginMetadataReader
         return Read(verifiedContent is null ? context.LoadFromAssemblyPath(mainAssemblyPath) : context.LoadFromByteArray(verifiedContent));
     }
 
+    /// <summary>
+    /// Reads a plugin assembly from memory without loading it for execution. Only the host's assemblies are available
+    /// to resolve attribute types; attributes whose type cannot be resolved are ignored.
+    /// </summary>
+    public static PluginAssemblyInfo ReadWithoutLoading(byte[] mainAssembly)
+    {
+        var hostAssemblies = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+
+        using var context = new MetadataLoadContext(new PathAssemblyResolver(hostAssemblies));
+        return Read(context.LoadFromByteArray(mainAssembly));
+    }
+
     public static PluginAssemblyInfo Read(Assembly assembly)
     {
         var name = assembly.GetName();
         var id = name.Name!;
         var assemblyVersion = name.Version ?? new Version(0, 0, 0, 0);
-        var attributes = assembly.GetCustomAttributesData();
-        var pluginAttribute = attributes.FirstOrDefault(attribute => attribute.AttributeType.FullName == PluginAttributeName);
+        var attributes = assembly.GetCustomAttributesData().Where(attribute => AttributeName(attribute) is not null).ToList();
+        var pluginAttribute = attributes.FirstOrDefault(attribute => AttributeName(attribute) == PluginAttributeName);
 
         var version = WithoutBuildMetadata(ConstructorArgument(attributes, InformationalVersionAttribute))
             ?? (assemblyVersion.Revision == 0 ? assemblyVersion.ToString(3) : assemblyVersion.ToString());
@@ -57,7 +77,7 @@ internal static class PluginMetadataReader
         }
 
         var dependencies = attributes
-            .Where(attribute => attribute.AttributeType.FullName == PluginDependencyAttributeName)
+            .Where(attribute => AttributeName(attribute) == PluginDependencyAttributeName)
             .Select(attribute => new PluginDependency(
                 (string)attribute.ConstructorArguments[0].Value!,
                 NamedArgument(attribute, nameof(PluginDependencyAttribute.MinVersion))))
@@ -76,7 +96,7 @@ internal static class PluginMetadataReader
 
     private static string? ConstructorArgument(IEnumerable<CustomAttributeData> attributes, string attributeName)
     {
-        var attribute = attributes.FirstOrDefault(attribute => attribute.AttributeType.FullName == attributeName);
+        var attribute = attributes.FirstOrDefault(attribute => AttributeName(attribute) == attributeName);
         return NullIfEmpty(attribute?.ConstructorArguments.FirstOrDefault().Value as string);
     }
 
@@ -91,6 +111,22 @@ internal static class PluginMetadataReader
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Returns the full name of an attribute's type, or <see langword="null"/> if the type's assembly cannot be resolved,
+    /// which can happen in a <see cref="MetadataLoadContext"/>.
+    /// </summary>
+    private static string? AttributeName(CustomAttributeData attribute)
+    {
+        try
+        {
+            return attribute.AttributeType.FullName;
+        }
+        catch (FileNotFoundException)
+        {
+            return null;
+        }
     }
 
     private static string? WithoutBuildMetadata(string? version) => NullIfEmpty(version?.Split('+', 2)[0]);
