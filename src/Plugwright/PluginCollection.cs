@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+using System.Collections;
 
 namespace Plugwright;
 
@@ -8,10 +8,9 @@ namespace Plugwright;
 /// <remarks>
 /// Adding plugins only records types and directories. Nothing is loaded or run until <c>builder.ApplyPlugins()</c>;
 /// then the plugin handlers decide what happens with each plugin. Plugins cannot be added after that call.
+/// The collection enumerates the added sources in the order they were added.
 /// </remarks>
-[SuppressMessage("Naming", "CA1711:Identifiers should not have incorrect suffix",
-    Justification = "Collection of plugin sources, named like IServiceCollection.")]
-public sealed class PluginCollection
+public sealed class PluginCollection : IReadOnlyCollection<PluginSource>
 {
     private readonly PluginSystem _system;
     private readonly List<PluginSource> _sources = [];
@@ -26,7 +25,10 @@ public sealed class PluginCollection
     /// </summary>
     public PluginOptions Options { get; } = new();
 
-    internal IReadOnlyList<PluginSource> Sources => _sources;
+    /// <summary>
+    /// Gets the number of sources added.
+    /// </summary>
+    public int Count => _sources.Count;
 
     /// <summary>
     /// Adds a plugin type from the application itself or from a referenced assembly.
@@ -72,12 +74,12 @@ public sealed class PluginCollection
                 nameof(pluginType));
         }
 
-        if (_sources.OfType<TypePluginSource>().Any(source => source.PluginType == pluginType))
+        if (_sources.OfType<PluginTypeSource>().Any(source => source.PluginType == pluginType))
         {
             throw new ArgumentException($"Plugin type '{pluginType}' has already been added.", nameof(pluginType));
         }
 
-        _sources.Add(new TypePluginSource(pluginType));
+        _sources.Add(new PluginTypeSource(pluginType));
         return this;
     }
 
@@ -114,7 +116,15 @@ public sealed class PluginCollection
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         _system.ThrowIfApplied("Plugins cannot be added");
 
-        _sources.Add(new DirectoryPluginSource(path));
+        _sources.Add(new PluginDirectorySource(path));
         return this;
     }
+
+    /// <summary>
+    /// Returns the added sources in the order they were added.
+    /// </summary>
+    /// <returns>An enumerator over the sources.</returns>
+    public IEnumerator<PluginSource> GetEnumerator() => _sources.GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

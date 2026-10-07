@@ -5,6 +5,25 @@ namespace Plugwright.Tests;
 public sealed class PluginCollectionTests
 {
     [Fact]
+    public void Enumerates_added_sources_in_order()
+    {
+        var builder = TestHost.CreateBuilder();
+
+        builder.Plugins.Add<SecondMarkerPlugin>().AddFromDirectory("plugins").Add<MarkerPlugin>();
+
+        builder.Plugins.Count.ShouldBe(3);
+        builder.Plugins.Select(source => source.ToString()).ShouldBe(
+        [
+            $"Type {typeof(SecondMarkerPlugin).FullName}",
+            "Directory plugins",
+            $"Type {typeof(MarkerPlugin).FullName}",
+        ]);
+        builder.Plugins.OfType<PluginTypeSource>().Select(source => source.PluginType)
+            .ShouldBe([typeof(SecondMarkerPlugin), typeof(MarkerPlugin)]);
+        builder.Plugins.OfType<PluginDirectorySource>().ShouldHaveSingleItem().Path.ShouldBe("plugins");
+    }
+
+    [Fact]
     public void Add_returns_the_collection_for_chaining()
     {
         var builder = TestHost.CreateBuilder();

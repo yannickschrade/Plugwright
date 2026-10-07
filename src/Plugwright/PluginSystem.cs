@@ -68,16 +68,16 @@ internal sealed class PluginSystem
 
         var handlers = Handlers.CreateHandlers();
         var candidates = new List<PluginCandidate>();
-        foreach (var source in Plugins.Sources)
+        foreach (var source in Plugins)
         {
             switch (source)
             {
-                case TypePluginSource typeSource:
+                case PluginTypeSource typeSource:
                     var metadata = PluginMetadataReader.Read(typeSource.PluginType.Assembly);
                     candidates.Add(new PluginCandidate(typeSource.PluginType, metadata, CodeSource));
                     break;
 
-                case DirectoryPluginSource directorySource:
+                case PluginDirectorySource directorySource:
                     var directory = Path.GetFullPath(directorySource.Path, builder.Environment.ContentRootPath);
                     candidates.AddRange(DiscoverDirectory(directory, handlers));
                     break;
