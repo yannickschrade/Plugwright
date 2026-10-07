@@ -22,6 +22,9 @@
     <Project Path="samples/PluginDependencies/Acme.Welcome/Acme.Welcome.csproj" />
     <Project Path="samples/PluginDependencies/App/PluginDependencies.App.csproj" />
   </Folder>
+  <Folder Name="/samples/SignedPackages/">
+    <Project Path="samples/SignedPackages/App/SignedPackages.App.csproj" />
+  </Folder>
   <Folder Name="/samples/SignedPlugins/">
     <Project Path="samples/SignedPlugins/Acme.Reports/Acme.Reports.csproj" />
     <Project Path="samples/SignedPlugins/App/SignedPlugins.App.csproj" />

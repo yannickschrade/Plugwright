@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugwright\Plugwright.csproj" />
+    <ProjectReference Include="..\..\..\src\Plugwright.NuGet\Plugwright.NuGet.csproj" />
+  </ItemGroup>
+
+  <!--
+    For the sample only: take the packages of the PackagePlugins sample and sign them with the sample certificate,
+    as their publisher would with 'dotnet nuget sign'. The host only needs the certificate, without its private key.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\PackagePlugins\Acme.Weather\Acme.Weather.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\..\SignedPlugins\SampleCertificates\SampleCertificates.csproj" ReferenceOutputAssembly="false" Private="false" />
+  </ItemGroup>
+
+  <Target Name="SignSamplePackages" AfterTargets="Build">
+    <PropertyGroup>
+      <SampleCertificates>$(MSBuildThisFileDirectory)../../SignedPlugins/SampleCertificates/bin/$(Configuration)/$(TargetFramework)/SampleCertificates.dll</SampleCertificates>
+      <SampleCertificateDirectory>$(BaseIntermediateOutputPath)sample-certificates</SampleCertificateDirectory>
+    </PropertyGroup>
+    <ItemGroup>
+      <SamplePackage Include="..\..\PackagePlugins\bin\packages\*.nupkg" />
+    </ItemGroup>
+    <RemoveDir Directories="$(OutDir)packages" />
+    <Copy SourceFiles="@(SamplePackage)" DestinationFolder="$(OutDir)packages" />
+    <Exec Command="dotnet &quot;$(SampleCertificates)&quot; &quot;$(SampleCertificateDirectory)&quot; sign-packages &quot;$(OutDir)packages&quot;" />
+    <Copy SourceFiles="$(SampleCertificateDirectory)/acme-packages.crt" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

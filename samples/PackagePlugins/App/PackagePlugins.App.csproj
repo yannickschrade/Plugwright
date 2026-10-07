@@ -19,13 +19,20 @@
   -->
   <ItemGroup>
     <ProjectReference Include="..\Acme.Weather\Acme.Weather.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\..\..\src\Plugwright.Cli\Plugwright.Cli.csproj" ReferenceOutputAssembly="false" Private="false" />
   </ItemGroup>
 
+  <!-- Then create the lock file for all packages, as a deployment would: plugwright lock <app>/packages -o <app>/plugins.lock.json -->
   <Target Name="CopySamplePackages" AfterTargets="Build">
+    <PropertyGroup>
+      <PlugwrightCli>$(MSBuildThisFileDirectory)../../../src/Plugwright.Cli/bin/$(Configuration)/$(TargetFramework)/Plugwright.Cli.dll</PlugwrightCli>
+    </PropertyGroup>
     <ItemGroup>
       <SamplePackage Include="..\bin\packages\*.nupkg" />
     </ItemGroup>
-    <Copy SourceFiles="@(SamplePackage)" DestinationFolder="$(OutDir)packages" SkipUnchangedFiles="true" />
+    <RemoveDir Directories="$(OutDir)packages" />
+    <Copy SourceFiles="@(SamplePackage)" DestinationFolder="$(OutDir)packages" />
+    <Exec Command="dotnet &quot;$(PlugwrightCli)&quot; lock &quot;$(OutDir)packages&quot; --output &quot;$(OutDir)plugins.lock.json&quot;" />
   </Target>
 
 </Project>

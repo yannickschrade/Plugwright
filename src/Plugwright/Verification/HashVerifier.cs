@@ -85,7 +85,9 @@ public sealed class HashVerifier : IPluginVerifier
             return PluginVerificationResult.Failure($"File '{missing}' is listed in the lock file but missing.");
         }
 
-        return PluginVerificationResult.Success($"The hashes of all {request.Files.Count} files match the lock file '{_lockFilePath}'.");
+        return PluginVerificationResult.Success(request.Files.Count == 1
+            ? $"The hash of '{request.Files[0].Path}' matches the lock file '{_lockFilePath}'."
+            : $"The hashes of all {request.Files.Count} files match the lock file '{_lockFilePath}'.");
     }
 }
 
