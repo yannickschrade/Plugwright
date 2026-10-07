@@ -10,11 +10,12 @@ internal static class LockCommand
     private const string Usage = $"""
         Usage: plugwright lock <plugin-directory> [--output <file>]
 
-        Creates a lock file with the sha256 hash of every file in every plugin folder of <plugin-directory>.
-        The HashVerifier loads only plugins whose files match the lock file exactly.
+        Creates a lock file with the sha256 hash of every file in every plugin folder of <plugin-directory>,
+        and of every NuGet package (.nupkg) in it. The HashVerifier loads only plugins and packages whose files
+        match the lock file exactly.
 
         Arguments:
-          <plugin-directory>       The plugin directory, with one subfolder per plugin.
+          <plugin-directory>       The plugin directory with one subfolder per plugin, or a folder of packages.
 
         Options:
           -o, --output <file>      The lock file to write. Default: {DefaultOutput}
@@ -66,9 +67,9 @@ internal static class LockCommand
             return CliApp.Failure;
         }
 
-        foreach (var file in Directory.EnumerateFiles(pluginDirectory).Order(StringComparer.Ordinal))
+        foreach (var file in Directory.EnumerateFiles(pluginDirectory).Where(file => !file.EndsWith(".nupkg", StringComparison.OrdinalIgnoreCase)).Order(StringComparer.Ordinal))
         {
-            error.WriteLine($"Warning: '{file}' is not in a plugin folder and is not part of the lock file.");
+            error.WriteLine($"Warning: '{file}' is neither in a plugin folder nor a package and is not part of the lock file.");
         }
 
         var lockFileContent = PluginLockFile.Create(pluginDirectory);

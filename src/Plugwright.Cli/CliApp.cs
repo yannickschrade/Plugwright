@@ -13,7 +13,7 @@ internal static class CliApp
         Usage: plugwright <command> [options]
 
         Commands:
-          lock <plugin-directory>    Create a lock file with the hashes of all plugin files.
+          lock <plugin-directory>    Create a lock file with the hashes of all plugin files and packages.
           sign <plugin-folder>       Sign the manifest of a plugin folder with a certificate.
 
         Options:

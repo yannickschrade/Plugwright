@@ -82,7 +82,7 @@ public sealed class CliLockTests(TestPluginsFixture testPlugins) : IDisposable
 
         Run("lock", PluginDirectory, "-o", LockFile).ShouldBe(CliApp.Success);
 
-        _error.ToString().ShouldContain("Loose.dll' is not in a plugin folder");
+        _error.ToString().ShouldContain("Loose.dll' is neither in a plugin folder nor a package");
     }
 
     [Fact]

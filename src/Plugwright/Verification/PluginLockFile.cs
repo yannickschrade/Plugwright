@@ -21,12 +21,20 @@ internal sealed class PluginLockFile
     public IReadOnlyDictionary<string, Dictionary<string, string>> Plugins { get; }
 
     /// <summary>
-    /// Creates a lock file for all plugin folders in a plugin directory: the hash of every file in every subfolder.
-    /// Files directly in the directory are not part of any plugin and are left out.
+    /// Creates a lock file for a plugin directory or package folder: the hash of every file in every subfolder,
+    /// and of every .nupkg file. Other files directly in the directory are not part of any plugin and are left out.
     /// </summary>
     public static PluginLockFile Create(string pluginDirectory)
     {
         var plugins = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var package in Directory.EnumerateFiles(pluginDirectory, "*.nupkg").Order(StringComparer.Ordinal))
+        {
+            var fileName = Path.GetFileName(package);
+            plugins.Add(
+                Path.GetFileNameWithoutExtension(package),
+                new Dictionary<string, string>(StringComparer.Ordinal) { [fileName] = PluginFileHash.Compute(File.ReadAllBytes(package)) });
+        }
+
         foreach (var folder in Directory.EnumerateDirectories(pluginDirectory).Order(StringComparer.Ordinal))
         {
             var (_, files) = VerifiedFiles.Read(folder);

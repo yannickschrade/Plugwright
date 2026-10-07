@@ -108,7 +108,7 @@ public sealed class HashVerifierTests : IDisposable
     }
 
     [Fact]
-    public void Verifies_only_plugin_directories()
+    public void Verifies_everything_except_plugins_added_in_code()
     {
         var verifier = new HashVerifier(LockFilePath);
 

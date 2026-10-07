@@ -76,8 +76,9 @@ public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
                 continue;
             }
 
+            // A package is verified under its file name without .nupkg, so that versions of a library do not collide.
             if (context.VerificationEnabled
-                && !context.Verify(this, package.Id, path, [PluginDiscoveryContext.CreateFile(fileName, package.Content)]))
+                && !context.Verify(this, System.IO.Path.GetFileNameWithoutExtension(path), path, [PluginDiscoveryContext.CreateFile(fileName, package.Content)]))
             {
                 continue;
             }

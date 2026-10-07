@@ -3,13 +3,15 @@ using System.Security.Cryptography;
 namespace Plugwright;
 
 /// <summary>
-/// Verifies plugin folders against a lock file on the host side that lists the hash of every file of every plugin.
+/// Verifies plugin folders and packages against a lock file on the host side that lists the hash of every file.
 /// </summary>
 /// <remarks>
 /// <para>
-/// A plugin passes when the lock file has an entry for its folder, the folder contains exactly the files listed there,
-/// and every file matches its hash. A file that is missing, added or changed fails the plugin.
-/// The lock file must be regenerated whenever a plugin is installed or updated.
+/// A plugin folder passes when the lock file has an entry for the folder, the folder contains exactly the files listed
+/// there, and every file matches its hash. A file that is missing, added or changed fails the plugin.
+/// A package (with Plugwright.NuGet) passes when the lock file has an entry for its file name without <c>.nupkg</c>,
+/// and the package file matches its hash. This applies to plugin packages and library packages alike.
+/// The lock file must be regenerated whenever a plugin or package is installed or updated.
 /// </para>
 /// <para>
 /// Register it with <see cref="PluginVerifierCollection.AddHashVerifier(Action{HashVerifierOptions})"/>.
@@ -43,11 +45,11 @@ public sealed class HashVerifier : IPluginVerifier
     }
 
     /// <summary>
-    /// Returns <see langword="true"/> for plugin directories.
+    /// Returns <see langword="true"/> for every source that loads plugins from files: plugin directories and packages.
     /// </summary>
     /// <param name="source">The source the plugin comes from.</param>
-    /// <returns>Whether the source is a <see cref="PluginDirectorySource"/>.</returns>
-    public bool CanVerify(PluginSource source) => source is PluginDirectorySource;
+    /// <returns>Whether the source is not a <see cref="PluginTypeSource"/>.</returns>
+    public bool CanVerify(PluginSource source) => source is not PluginTypeSource;
 
     /// <summary>
     /// Compares the plugin's files with the lock file.
