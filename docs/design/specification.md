@@ -136,6 +136,7 @@ public interface IPluginHandler
 - In v1 kommen Handler nur aus der Host-Anwendung, nicht aus Plugin-Assemblies. Sonst würde ein geladenes Plugin bestimmen, wie andere Plugins behandelt werden.
 - Die Pipeline erzeugt genau eine Instanz je Plugin-Typ (parameterloser Konstruktor) und hält sie in `PluginDescriptor.Instance`. Alle Handler nutzen diese Instanz in beiden Phasen.
 - `IPluginHandler` und `PluginDescriptor` liegen im Hauptpaket, nicht in Abstractions, da Handler nur aus der Host-Anwendung kommen.
+- `PluginDescriptor.Instance` ist vom Typ `object`, da Plugins nicht `IPlugin` implementieren müssen. Für Handler, die ein bestimmtes Interface verarbeiten, gibt es die Basisklasse `PluginHandler<TPlugin>`: Sie implementiert `CanHandle` und übergibt die Instanz typisiert.
 
 ### Logging in Phase 1
 
@@ -521,3 +522,4 @@ docs/       Anwenderdokumentation
 | 2026-10-07 | Derselbe Plugin- oder Handler-Typ zweimal hinzugefügt: ArgumentException | Fast immer ein Fehler; betrifft nicht die offene Frage doppelter Plugin-IDs |
 | 2026-10-07 | Fehler in IPluginHandler.Use (Phase 2) werfen immer eine PluginException, unabhängig von FailureMode | „Überspringen und loggen“ ist nur für Phase 1 festgelegt; nach Phase 1 lässt sich ein Plugin nicht mehr sauber entfernen |
 | 2026-10-07 | Fehlermeldungen als PluginException mit PluginId; Fehlbedienung der Phasen als InvalidOperationException | Gezielt abfangbar; Standard-Exception für falsche Aufrufreihenfolge |
+| 2026-10-07 | PluginDescriptor.Instance bleibt object; zusätzlich Basisklasse PluginHandler<TPlugin> mit typisierter Instanz | Plugins eigener Art sollen IPlugin nicht implementieren müssen; die Basisklasse erspart Casts und CanHandle im häufigsten Fall |
