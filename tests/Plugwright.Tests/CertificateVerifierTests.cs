@@ -186,15 +186,15 @@ public sealed class CertificateVerifierTests
     [InlineData("XYZ0000000000000000000000000000000000000")]
     public void Invalid_thumbprints_are_rejected(string thumbprint)
     {
-        Should.Throw<ArgumentException>(() => CertificateVerifier.NormalizeThumbprint(thumbprint));
+        Should.Throw<ArgumentException>(() => CertificateTrust.NormalizeThumbprint(thumbprint));
     }
 
     private static PluginVerificationResult Verify(CertificateVerifier verifier, PluginVerificationRequest request) => verifier.Verify(request);
 
-    private static CertificateVerifier ByThumbprint(string thumbprint) => new([thumbprint], [], X509RevocationMode.NoCheck);
+    private static CertificateVerifier ByThumbprint(string thumbprint) => new(new CertificateTrust([thumbprint], [], X509RevocationMode.NoCheck));
 
     private static CertificateVerifier ByPublisher(X509Certificate2 issuer, string subject, X509RevocationMode revocationMode = X509RevocationMode.NoCheck) =>
-        new([], [(X509CertificateLoader.LoadCertificate(issuer.RawData), subject)], revocationMode);
+        new(new CertificateTrust([], [(X509CertificateLoader.LoadCertificate(issuer.RawData), subject)], revocationMode));
 
     private static PluginVerificationRequest Request(X509Certificate2 signer, IEnumerable<X509Certificate2>? extraCertificates = null) =>
         Request("Acme.Greeter", TestCertificates.SignManifest(signer, "Acme.Greeter", s_files, extraCertificates), s_files);

@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.Configuration;
 
 namespace Plugwright;
@@ -28,6 +27,11 @@ public sealed class PluginVerifierCollection : IReadOnlyCollection<IPluginVerifi
     private readonly PluginSystem _system;
     private readonly string _contentRoot;
     private readonly List<IPluginVerifier> _verifiers = [];
+
+    /// <summary>
+    /// Gets the host's content root, for resolving relative paths in verifier settings.
+    /// </summary>
+    internal string ContentRoot => _contentRoot;
 
     internal PluginVerifierCollection(PluginSystem system, string contentRoot)
     {
@@ -189,33 +193,8 @@ public sealed class PluginVerifierCollection : IReadOnlyCollection<IPluginVerifi
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    private PluginVerifierCollection AddCertificateVerifier(CertificateVerifierOptions options)
-    {
-        if (options.TrustedThumbprints.Count == 0 && options.TrustedPublishers.Count == 0)
-        {
-            throw new ArgumentException(
-                "The certificate verifier trusts no certificate. Add at least one trusted thumbprint or trusted publisher.", nameof(options));
-        }
-
-        List<(X509Certificate2 Issuer, string Subject)> publishers = [];
-        foreach (var publisher in options.TrustedPublishers)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(publisher.IssuerCertificate, nameof(publisher.IssuerCertificate));
-            ArgumentException.ThrowIfNullOrWhiteSpace(publisher.Subject, nameof(publisher.Subject));
-
-            var path = Path.GetFullPath(publisher.IssuerCertificate, _contentRoot);
-            try
-            {
-                publishers.Add((X509CertificateLoader.LoadCertificateFromFile(path), publisher.Subject));
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException)
-            {
-                throw new InvalidOperationException($"The issuer certificate '{path}' of a trusted publisher cannot be loaded: {exception.Message}", exception);
-            }
-        }
-
-        return Add(new CertificateVerifier(options.TrustedThumbprints, publishers, options.RevocationMode));
-    }
+    private PluginVerifierCollection AddCertificateVerifier(CertificateVerifierOptions options) =>
+        Add(new CertificateVerifier(CertificateTrust.Create(options, _contentRoot)));
 
     private PluginVerifierCollection AddHashVerifier(HashVerifierOptions options)
     {
