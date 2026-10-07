@@ -12,6 +12,14 @@ This isolates plugins from each other. Two plugins can ship different versions o
 
 When a plugin depends on another plugin, its load context takes the other plugin's assembly from the other plugin's load context. Both use the same types, so services registered by one plugin can be injected into the services of the other. This also holds when the dependent plugin's folder contains its own copy of the other plugin's assembly; that copy is ignored. See [Declare plugin dependencies](../how-to/declare-plugin-dependencies.md).
 
+## Plugins from packages
+
+Plugin packages get their own load context as well, named after the package ID. Plugwright reads each `.nupkg` file into memory once and loads the assemblies of the plugin and of its library packages from there; nothing is extracted to disk. The assemblies come from the `lib` folder that fits .NET 10, and assemblies for the current runtime (`runtimes/<rid>/lib/`) take precedence.
+
+Native libraries (`runtimes/<rid>/native/`) are the exception, because the operating system loads them from disk. They are written to a temporary folder of the process when a plugin first needs them, checked against the package content right before loading, and the folder is deleted when the process exits.
+
+Library packages are loaded into the load context of every plugin package that depends on them. Two plugin packages can therefore use different versions of the same library.
+
 ## Shared assemblies come from the host
 
 Some types must be the same for the host and all plugins. If a plugin loaded its own copy of `IPlugin` or `IServiceCollection`, the host would not recognize the plugin, and services registered by the plugin would not match the host's container.

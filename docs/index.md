@@ -15,6 +15,7 @@ Plugwright works with any <xref:Microsoft.Extensions.Hosting.IHostApplicationBui
 - [Getting started](tutorials/getting-started.md): load a verified plugin in ten minutes
 - [Add a plugin to your application](how-to/add-a-plugin.md)
 - [Load plugins from a directory](how-to/load-plugins-from-a-directory.md)
+- [Load plugins from NuGet packages](how-to/load-plugins-from-packages.md)
 - [Declare dependencies between plugins](how-to/declare-plugin-dependencies.md)
 - [Support your own kind of plugin with a handler](how-to/write-a-plugin-handler.md)
 - [Keep running when a plugin fails](how-to/handle-plugin-failures.md)
