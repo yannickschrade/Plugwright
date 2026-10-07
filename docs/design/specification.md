@@ -222,10 +222,14 @@ public sealed class HeartbeatPlugin : IPlugin
 | DLL-Verzeichnis | `Plugins.AddFromDirectory("plugins")` | Eigener `AssemblyLoadContext` je Plugin-Ordner | Erweiterung ohne Neukompilieren |
 | NuGet-Ordner | `Plugins.AddFromPackages("packages")` | `.nupkg` wird entpackt, dann wie DLL geladen | Plugins mit Version und Paketmetadaten ausliefern |
 
-### Offen zum NuGet-Ordner
+### NuGet-Ordner
 
-- Paketabhängigkeiten auf Drittpakete: müssen sie im Ordner liegen, oder darf aus einem Feed nachgeladen werden?
-- Wohin wird entpackt, und wann wird der Cache aufgeräumt?
+- API: `builder.Plugins.AddFromPackages(path)` in `Plugwright.NuGet`.
+- Plugin-Pakete tragen den Package-Type `PlugwrightPlugin`; alle anderen Pakete im Ordner sind Bibliothekspakete. Ein Plugin-Paket enthält eine Assembly mit der Paket-ID.
+- Kein Entpacken: Pakete werden einmal in den Speicher gelesen (und geprüft), Assemblies daraus geladen. Nur native Bibliotheken kommen in einen temporären Ordner je Prozess, werden vor dem Laden gegen den Paketinhalt geprüft und beim Beenden gelöscht.
+- Abhängigkeiten aus der `.nuspec`: Plugin-Pakete werden Plugin-Abhängigkeiten mit Versionsbereich; Bibliothekspakete kommen aus dem Ordner in der niedrigsten passenden Version; was der Host bereits hat (z. B. `Microsoft.Extensions.*`, `Plugwright.Abstractions`, .NET-Pakete), braucht kein Paket.
+- Optional ein Feed für fehlende Pakete (`NuGet.Protocol`, nur in `Plugwright.NuGet`): Downloads in ein Download-Verzeichnis, niedrigste passende Version; ohne Netz Plugin-Fehler (Exception bzw. überspringen und loggen).
+- Mit registrierten Prüfern werden alle Pakete geprüft, auch Bibliothekspakete und Downloads.
 
 ### Aufbau des DLL-Verzeichnisses
 
@@ -481,7 +485,7 @@ docs/       Anwenderdokumentation
 - [x] Doppelte Plugin-IDs
 - [x] Versionssemantik bei DLL-Plugins
 - [x] Direkt hinzugefügte Plugins bei registrierten Prüfern
-- [ ] NuGet-Ordner: Drittpaket-Abhängigkeiten, Entpack-Cache und Aufräumen
+- [x] NuGet-Ordner: Drittpaket-Abhängigkeiten, Entpack-Cache und Aufräumen
 - [x] Zertifikate: Zeitstempel, Sperrlistenprüfung
 - [x] CLI: Befehls- und Paketname
 - [ ] Scope v1 und v2 (Aktivieren/Deaktivieren) bestätigen
@@ -571,3 +575,10 @@ docs/       Anwenderdokumentation
 | 2026-10-07 | Sperrlistenprüfung nur für Herausgeber, nicht für Fingerabdrücke | Selbstsignierte Zertifikate haben keine Sperrliste; bei Fingerabdrücken entfernt man den Eintrag |
 | 2026-10-07 | plugwright sign mit PKCS#12-Datei, Passwort auch aus PLUGWRIGHT_CERTIFICATE_PASSWORD | Gängiges Format für Signaturzertifikate; Passwort muss nicht im Shell-Verlauf landen |
 | 2026-10-07 | Beispiel SignedPlugins erzeugt eine Beispiel-CA beim Build; keine Schlüssel im Repository | Private Schlüssel gehören nicht ins Repository; Doku-Ausschnitt bleibt rechnerunabhängig |
+| 2026-10-07 | Drittpaket-Abhängigkeiten: aus dem Ordner, vom Host oder optional aus einem Feed; NuGet.Protocol in Plugwright.NuGet erlaubt | Bequem, wenn gewünscht; ohne Feed keine Netzwerkzugriffe zur Laufzeit |
+| 2026-10-07 | Pakete werden im Speicher geladen; nur native Bibliotheken in einen temporären Ordner je Prozess | Kein Cache, der geprüft, geschützt und aufgeräumt werden muss |
+| 2026-10-07 | Plugin-Pakete per Package-Type PlugwrightPlugin erkennen | Aus Metadaten erkennbar, ohne Code zu laden; Bibliothekspakete bleiben eindeutig |
+| 2026-10-07 | Paketsignaturen über eigenen Prüfer in Plugwright.NuGet mit den Vertrauenseinstellungen des CertificateVerifier | Kern bleibt frei von NuGet-Abhängigkeiten |
+| 2026-10-07 | Downloads aus dem Feed in ein Download-Verzeichnis, niedrigste passende Version | Nächster Start ohne Netz möglich; reproduzierbar und mit Lock-Datei vereinbar |
+| 2026-10-07 | Mit Prüfern werden alle Pakete geprüft, auch Bibliothekspakete | Auch Bibliotheken laufen als Code im Prozess |
+| 2026-10-07 | Plugwright.NuGet nutzt interne Typen des Kerns (InternalsVisibleTo) statt einer öffentlichen Quellen-API | Öffentliche API bleibt klein; beide Pakete werden gemeinsam versioniert |

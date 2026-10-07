@@ -6,14 +6,14 @@ The full specification (German, with rationale and decision log) lives in `docs/
 
 ## Status
 
-Done: repo setup (central package management, CI, DocFX), plugin contract, extension members and handler pipeline, directory loading, metadata and dependencies, verification with `HashVerifier` and `CertificateVerifier`, `PluginReport`, CLI `lock` and `sign`. Next: NuGet source.
+Done: repo setup (central package management, CI, DocFX), plugin contract, extension members and handler pipeline, directory loading, metadata and dependencies, verification with `HashVerifier` and `CertificateVerifier`, `PluginReport`, CLI `lock` and `sign`, NuGet package source (loading). Next: verifying packages (lock file, package signatures), then the optional feed.
 
 ## Baseline
 
 - Target `net10.0` only, C# 14 (extension members). No multi-targeting.
 - License: MIT.
 - Code, comments, XML docs, docs site, commit messages: English.
-- Allowed dependencies: `Microsoft.Extensions.*`, `NuGet.Packaging` (only in `Plugwright.NuGet`), `System.Security.Cryptography.Pkcs`, `System.Reflection.MetadataLoadContext`. Ask before adding anything else.
+- Allowed dependencies: `Microsoft.Extensions.*`, `NuGet.Packaging` and `NuGet.Protocol` (only in `Plugwright.NuGet`), `System.Security.Cryptography.Pkcs`, `System.Reflection.MetadataLoadContext`. Ask before adding anything else.
 - CI: GitHub Actions with build, tests and DocFX build on every push and PR.
 
 ## Intended repository layout
@@ -91,7 +91,11 @@ docs/                        DocFX site; docs/design/specification.md
   - Dependencies are processed before dependents in both phases.
   - A plugin's load context forwards its dependencies' assemblies to their load contexts.
 - No optional dependencies in v1.
-- NuGet dependencies must be found in the folder, as plugin or library package.
+- NuGet folder (`AddFromPackages`, in `Plugwright.NuGet`, uses core internals via `InternalsVisibleTo`):
+  - Plugin packages have package type `PlugwrightPlugin` and an assembly named like the package ID; all others are library packages.
+  - Loaded in memory, no extraction; only native libraries go to a per-process temp folder, re-checked before loading.
+  - Dependencies: plugin packages → plugin dependencies with version ranges; library packages from the folder (lowest matching version); packages the host provides need none; optional feed (`NuGet.Protocol`) downloads missing packages into a download directory (lowest matching), no network → plugin failure.
+  - With verifiers, all packages are verified, libraries and downloads included.
 
 ## Configuration
 
@@ -151,5 +155,4 @@ docs/                        DocFX site; docs/design/specification.md
 - Small steps: every feature ships with tests, docs and a sample.
 - Order: plugin contract → extension members and handler pipeline → directory loading → metadata and dependencies → verification → NuGet source → CLI.
 - Anything marked "Vorschlag" or "Offen" in the specification is not decided yet. Ask before implementing it. Currently open:
-  - NuGet folder: third-party package dependencies, extraction cache location and cleanup
 - When a decision changes, add a row to the decision log in the specification.
