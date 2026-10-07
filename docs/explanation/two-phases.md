@@ -7,7 +7,7 @@ Every application that uses Plugwright calls the plugin system at two fixed plac
 | Call | When | What happens |
 | --- | --- | --- |
 | `builder.Plugins.Add…()` | Before phase 1 | Records plugin types and directories. Nothing is loaded, created or run yet. |
-| `builder.ApplyPlugins()` | Phase 1, before `Build()` | Loads plugin assemblies, creates each plugin once and lets the handlers register services. |
+| `builder.ApplyPlugins()` | Phase 1, before `Build()` | Reads plugin metadata, checks dependencies, loads plugin assemblies in dependency order, creates each plugin once and lets the handlers register services. |
 | `app.UsePlugins()` | Phase 2, after `Build()` | Writes the log entries from phase 1 and lets the handlers work with the built host. |
 
 ## Why two explicit calls

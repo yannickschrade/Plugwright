@@ -1,4 +1,6 @@
 - name: Configuration
   href: configuration.md
+- name: Plugin metadata
+  href: plugin-metadata.md
 - name: Log events
   href: log-events.md

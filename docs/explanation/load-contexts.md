@@ -8,6 +8,10 @@ Every plugin folder gets its own load context, named after the plugin ID. The pl
 
 This isolates plugins from each other. Two plugins can ship different versions of the same library, and each one gets its own copy, side by side in the same process.
 
+## Plugins that depend on each other
+
+When a plugin depends on another plugin, its load context takes the other plugin's assembly from the other plugin's load context. Both use the same types, so services registered by one plugin can be injected into the services of the other. This also holds when the dependent plugin's folder contains its own copy of the other plugin's assembly; that copy is ignored. See [Declare plugin dependencies](../how-to/declare-plugin-dependencies.md).
+
 ## Shared assemblies come from the host
 
 Some types must be the same for the host and all plugins. If a plugin loaded its own copy of `IPlugin` or `IServiceCollection`, the host would not recognize the plugin, and services registered by the plugin would not match the host's container.
@@ -34,4 +38,6 @@ Unloading would rarely work in a dependency injection application anyway. The co
 
 ## Loading runs no plugin code
 
-Loading a plugin assembly and finding its plugin types does not call into the plugin. Plugin code first runs when Plugwright creates the plugin in phase 1.
+Plugwright reads the metadata of a plugin folder, including its dependencies, with a <xref:System.Reflection.MetadataLoadContext>. That only reads the assembly file; nothing is loaded for execution. A plugin with a missing dependency is therefore rejected before any of its code is loaded.
+
+Loading a plugin assembly and finding its plugin types does not call into the plugin either. Plugin code first runs when Plugwright creates the plugin in phase 1.

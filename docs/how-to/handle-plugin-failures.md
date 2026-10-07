@@ -30,6 +30,9 @@ info: Plugwright[1000]
 - An exception in <xref:Plugwright.IPlugin.Configure(Plugwright.PluginContext)> or in a handler's `Apply`.
 - A plugin type that no handler can handle.
 - A plugin folder that is broken: its main assembly is missing or cannot be loaded, or it contains no plugin type. See [Load plugins from a directory](load-plugins-from-a-directory.md).
+- A dependency that is missing, too old or part of a cycle. See [Declare plugin dependencies](declare-plugin-dependencies.md).
+
+Plugins that depend on a skipped plugin are skipped as well, each with its own log entry.
 
 Two kinds of errors always throw:
 

@@ -50,7 +50,7 @@ Add the directory with `builder.Plugins.AddFromDirectory()`:
 
 A relative path, such as `AddFromDirectory("plugins")`, is resolved against the host's content root (`builder.Environment.ContentRootPath`), the same folder `appsettings.json` is read from. The sample uses the application's own folder instead, so it finds the plugins no matter which directory it is started from.
 
-You can call `AddFromDirectory()` several times and combine it with `Add<T>()`. Plugins are processed in the order you add them; within a directory, in the alphabetical order of their folders.
+You can call `AddFromDirectory()` several times and combine it with `Add<T>()`. Plugins are processed in the order you add them; within a directory, in the alphabetical order of their folders. [Dependencies](declare-plugin-dependencies.md) come first.
 
 ## Configure the plugin
 
