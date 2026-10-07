@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Plugwright</RootNamespace>
+    <Description>NuGet package source for Plugwright: loads plugins from a folder of .nupkg files, with their dependencies.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NuGet.Packaging" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Plugwright\Plugwright.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Plugwright.Tests" />
+    <InternalsVisibleTo Include="Plugwright.IntegrationTests" />
+  </ItemGroup>
+
+</Project>

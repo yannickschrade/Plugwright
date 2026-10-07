@@ -121,6 +121,16 @@ public sealed class PluginCollection : IReadOnlyCollection<PluginSource>
     }
 
     /// <summary>
+    /// Adds a source of another package, such as the package source of Plugwright.NuGet.
+    /// </summary>
+    internal PluginCollection AddSource(PluginSource source)
+    {
+        _system.ThrowIfApplied("Plugins cannot be added");
+        _sources.Add(source);
+        return this;
+    }
+
+    /// <summary>
     /// Returns the added sources in the order they were added.
     /// </summary>
     /// <returns>An enumerator over the sources.</returns>

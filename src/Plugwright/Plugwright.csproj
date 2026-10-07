@@ -13,6 +13,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Plugwright.Tests" />
     <InternalsVisibleTo Include="Plugwright.Cli" />
+    <InternalsVisibleTo Include="Plugwright.NuGet" />
   </ItemGroup>
 
   <ItemGroup>

@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Plugwright\Plugwright.csproj" />
+    <ProjectReference Include="..\..\src\Plugwright.NuGet\Plugwright.NuGet.csproj" />
   </ItemGroup>
 
   <ItemGroup>

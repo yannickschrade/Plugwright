@@ -25,11 +25,18 @@
   <Folder Name="/src/">
     <Project Path="src/Plugwright.Abstractions/Plugwright.Abstractions.csproj" />
     <Project Path="src/Plugwright.Cli/Plugwright.Cli.csproj" />
+    <Project Path="src/Plugwright.NuGet/Plugwright.NuGet.csproj" />
     <Project Path="src/Plugwright/Plugwright.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Plugwright.IntegrationTests/Plugwright.IntegrationTests.csproj" />
     <Project Path="tests/Plugwright.Tests/Plugwright.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/TestPackages/">
+    <Project Path="tests/TestPackages/Greeter/Greeter.csproj" />
+    <Project Path="tests/TestPackages/LibraryV1/LibraryV1.csproj" />
+    <Project Path="tests/TestPackages/LibraryV2/LibraryV2.csproj" />
+    <Project Path="tests/TestPackages/Reports/Reports.csproj" />
   </Folder>
   <Folder Name="/tests/TestPlugins/">
     <Project Path="tests/TestPlugins/Audit/Audit.csproj" />
