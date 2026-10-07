@@ -1,0 +1,4 @@
+[*.cs]
+# Samples favor readable logger calls over source-generated logging.
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.CA1873.severity = none

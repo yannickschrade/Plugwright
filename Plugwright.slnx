@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/Heartbeat/Heartbeat.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Plugwright.Abstractions/Plugwright.Abstractions.csproj" />
     <Project Path="src/Plugwright/Plugwright.csproj" />
