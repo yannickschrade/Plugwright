@@ -38,7 +38,7 @@ When the application starts, Plugwright logs every loaded plugin:
 
 ```text
 info: Plugwright[1000]
-      Plugin Heartbeat 0.1.0.0 loaded (Heartbeat.HeartbeatPlugin)
+      Plugin Heartbeat 0.1.0.0 loaded (Heartbeat.HeartbeatPlugin, added in code)
 ```
 
 ## See also

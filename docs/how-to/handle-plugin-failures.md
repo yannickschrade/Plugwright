@@ -16,10 +16,10 @@ With these plugins, `BrokenPlugin` is skipped and `WorkingPlugin` still runs:
 
 ```text
 fail: Plugwright[1001]
-      Plugin FailureHandling (FailureHandling.BrokenPlugin) skipped: Phase 1 failed in handler 'Plugwright.DefaultPluginHandler': The database connection string is missing.
+      Plugin FailureHandling (added in code) skipped: Phase 1 failed for plugin type 'FailureHandling.BrokenPlugin' in handler 'Plugwright.DefaultPluginHandler': The database connection string is missing.
       System.InvalidOperationException: The database connection string is missing.
 info: Plugwright[1000]
-      Plugin FailureHandling 0.1.0.0 loaded (FailureHandling.WorkingPlugin)
+      Plugin FailureHandling 0.1.0.0 loaded (FailureHandling.WorkingPlugin, added in code)
 ```
 
 ## What counts as a failure
@@ -29,8 +29,12 @@ info: Plugwright[1000]
 - An exception in the plugin's constructor.
 - An exception in <xref:Plugwright.IPlugin.Configure(Plugwright.PluginContext)> or in a handler's `Apply`.
 - A plugin type that no handler can handle.
+- A plugin folder that is broken: its main assembly is missing or cannot be loaded, or it contains no plugin type. See [Load plugins from a directory](load-plugins-from-a-directory.md).
 
-Exceptions in a handler's `Use` (phase 2) always throw.
+Two kinds of errors always throw:
+
+- Exceptions in a handler's `Use` (phase 2).
+- The same plugin ID from two sources. Plugwright cannot know which one you want.
 
 > [!WARNING]
 > Services that a plugin registered before it failed stay registered. A plugin that fails halfway through `Configure` can leave an incomplete set of services behind. Register services at the end of `Configure`, after everything that can fail.

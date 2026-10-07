@@ -13,6 +13,7 @@ Plugwright works with any <xref:Microsoft.Extensions.Hosting.IHostApplicationBui
 ## Where to go next
 
 - [Add a plugin to your application](how-to/add-a-plugin.md)
+- [Load plugins from a directory](how-to/load-plugins-from-a-directory.md)
 - [Support your own kind of plugin with a handler](how-to/write-a-plugin-handler.md)
 - [Keep running when a plugin fails](how-to/handle-plugin-failures.md)
 - [Understand the two phases](explanation/two-phases.md)

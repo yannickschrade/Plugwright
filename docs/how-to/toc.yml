@@ -1,5 +1,7 @@
 - name: Add a plugin
   href: add-a-plugin.md
+- name: Load plugins from a directory
+  href: load-plugins-from-a-directory.md
 - name: Write a plugin handler
   href: write-a-plugin-handler.md
 - name: Handle plugin failures

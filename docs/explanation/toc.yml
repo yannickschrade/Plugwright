@@ -1,2 +1,4 @@
 - name: The two phases
   href: two-phases.md
+- name: Load contexts and shared assemblies
+  href: load-contexts.md
