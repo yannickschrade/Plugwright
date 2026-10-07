@@ -45,7 +45,7 @@ public sealed class DefaultHandlerTests
         var context = ContextCapturingPlugin.GetContext(builder);
         context.Builder.ShouldBeSameAs(builder);
         context.Metadata.Id.ShouldBe("Plugwright.Tests");
-        context.Metadata.Version.ShouldBe(typeof(ContextCapturingPlugin).Assembly.GetName().Version!.ToString());
+        context.Metadata.Version.ShouldBe("0.1.0");
         context.Configuration["Interval"].ShouldBe("00:00:10");
         context.Configuration["Enabled"].ShouldBeNull();
     }

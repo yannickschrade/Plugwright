@@ -13,7 +13,6 @@ namespace Plugwright;
 internal sealed class PluginSystem
 {
     private const string LoggerCategory = "Plugwright";
-    private const string CodeSource = "added in code";
 
     private readonly LogBuffer _logBuffer = new();
     private readonly List<ActivePlugin> _activePlugins = [];
@@ -54,7 +53,8 @@ internal sealed class PluginSystem
     }
 
     /// <summary>
-    /// Phase 1: finds all plugins, creates every plugin once and lets all matching handlers apply it.
+    /// Phase 1: reads the metadata of all plugins, resolves their dependencies, then loads and applies them
+    /// in dependency order.
     /// </summary>
     public void Apply(IHostApplicationBuilder builder)
     {
@@ -67,28 +67,13 @@ internal sealed class PluginSystem
         _applied = true;
 
         var handlers = Handlers.CreateHandlers();
-        var candidates = new List<PluginCandidate>();
-        foreach (var source in Plugins)
+        var units = DiscoverUnits(builder);
+
+        ThrowOnDuplicateIds(units);
+
+        foreach (var unit in PluginDependencyResolver.Resolve(units, (unit, reason) => Fail(unit, reason, exception: null)))
         {
-            switch (source)
-            {
-                case PluginTypeSource typeSource:
-                    var metadata = PluginMetadataReader.Read(typeSource.PluginType.Assembly);
-                    candidates.Add(new PluginCandidate(typeSource.PluginType, metadata, CodeSource));
-                    break;
-
-                case PluginDirectorySource directorySource:
-                    var directory = Path.GetFullPath(directorySource.Path, builder.Environment.ContentRootPath);
-                    candidates.AddRange(DiscoverDirectory(directory, handlers));
-                    break;
-            }
-        }
-
-        ThrowOnDuplicateIds(candidates);
-
-        foreach (var candidate in candidates)
-        {
-            ApplyPlugin(builder, candidate, handlers);
+            ApplyUnit(builder, unit, handlers);
         }
 
         builder.Services.AddSingleton(this);
@@ -135,7 +120,40 @@ internal sealed class PluginSystem
         }
     }
 
-    private List<PluginCandidate> DiscoverDirectory(string directory, List<IPluginHandler> handlers)
+    /// <summary>
+    /// Creates one unit per plugin assembly, in the order the sources were added. Plugin folders are only read,
+    /// not loaded for execution.
+    /// </summary>
+    private List<PluginUnit> DiscoverUnits(IHostApplicationBuilder builder)
+    {
+        List<PluginUnit> units = [];
+        foreach (var source in Plugins)
+        {
+            switch (source)
+            {
+                case PluginTypeSource typeSource:
+                    var assembly = typeSource.PluginType.Assembly;
+                    var unit = units.FirstOrDefault(unit => unit.Assembly == assembly);
+                    if (unit is null)
+                    {
+                        unit = PluginUnit.FromCode(assembly);
+                        units.Add(unit);
+                    }
+
+                    unit.PluginTypes.Add(typeSource.PluginType);
+                    break;
+
+                case PluginDirectorySource directorySource:
+                    var directory = Path.GetFullPath(directorySource.Path, builder.Environment.ContentRootPath);
+                    units.AddRange(DiscoverDirectory(directory));
+                    break;
+            }
+        }
+
+        return units;
+    }
+
+    private List<PluginUnit> DiscoverDirectory(string directory)
     {
         if (!Directory.Exists(directory))
         {
@@ -148,19 +166,19 @@ internal sealed class PluginSystem
             PluginLog.AssemblyOutsidePluginFolder(Logger, file, directory);
         }
 
-        var candidates = new List<PluginCandidate>();
+        List<PluginUnit> units = [];
         foreach (var folder in Directory.EnumerateDirectories(directory).Order(StringComparer.Ordinal))
         {
-            candidates.AddRange(DiscoverFolder(folder, handlers));
+            if (DiscoverFolder(folder) is { } unit)
+            {
+                units.Add(unit);
+            }
         }
 
-        return candidates;
+        return units;
     }
 
-    /// <summary>
-    /// Loads the main assembly of one plugin folder into its own load context and finds its plugin types.
-    /// </summary>
-    private IEnumerable<PluginCandidate> DiscoverFolder(string folder, List<IPluginHandler> handlers)
+    private PluginUnit? DiscoverFolder(string folder)
     {
         var name = Path.GetFileName(folder);
         var mainAssemblyFile = $"{name}.dll";
@@ -172,76 +190,103 @@ internal sealed class PluginSystem
                 folder,
                 $"The folder contains no '{mainAssemblyFile}'. Each plugin folder must contain an assembly with the folder's name.",
                 exception: null);
-            return [];
+            return null;
         }
 
-        Assembly assembly;
-        Type[] exportedTypes;
         try
         {
-            assembly = new PluginLoadContext(mainAssemblyPath).LoadFromAssemblyPath(mainAssemblyPath);
-            exportedTypes = assembly.GetExportedTypes();
+            return PluginUnit.FromFolder(PluginMetadataReader.ReadWithoutLoading(mainAssemblyPath), folder, mainAssemblyPath);
         }
         catch (Exception exception)
         {
-            Fail(name, folder, $"'{mainAssemblyFile}' could not be loaded: {exception.Message}", exception);
-            return [];
+            Fail(name, folder, $"'{mainAssemblyFile}' could not be read: {exception.Message}", exception);
+            return null;
         }
-
-        var metadata = PluginMetadataReader.Read(assembly);
-        var pluginTypes = exportedTypes
-            .Where(type => type.IsClass && !type.IsAbstract && !type.ContainsGenericParameters)
-            .Where(type => handlers.Any(handler => handler.CanHandle(type)))
-            .ToList();
-
-        if (pluginTypes.Count == 0)
-        {
-            Fail(
-                metadata.Id,
-                folder,
-                $"'{mainAssemblyFile}' contains no public plugin type that a registered handler can handle.",
-                exception: null);
-            return [];
-        }
-
-        return pluginTypes.Select(type => new PluginCandidate(type, metadata, folder));
     }
 
     /// <summary>
-    /// Throws if two different assemblies provide the same plugin ID. Plugin types from one assembly share its ID.
+    /// Throws if two different assemblies provide the same plugin ID.
     /// </summary>
-    private static void ThrowOnDuplicateIds(List<PluginCandidate> candidates)
+    private static void ThrowOnDuplicateIds(List<PluginUnit> units)
     {
-        var firstById = new Dictionary<string, PluginCandidate>(StringComparer.OrdinalIgnoreCase);
-        foreach (var candidate in candidates)
+        var firstById = new Dictionary<string, PluginUnit>(StringComparer.OrdinalIgnoreCase);
+        foreach (var unit in units)
         {
-            if (!firstById.TryAdd(candidate.Metadata.Id, candidate)
-                && firstById[candidate.Metadata.Id] is var first
-                && first.PluginType.Assembly != candidate.PluginType.Assembly)
+            if (!firstById.TryAdd(unit.Id, unit))
             {
                 throw new PluginException(
-                    $"Plugin ID '{candidate.Metadata.Id}' is provided twice: {Describe(first)} and {Describe(candidate)}. "
-                    + "Remove one of them.",
-                    candidate.Metadata.Id,
+                    $"Plugin ID '{unit.Id}' is provided twice: {firstById[unit.Id].Describe()} and {unit.Describe()}. Remove one of them.",
+                    unit.Id,
                     innerException: null);
             }
         }
-
-        static string Describe(PluginCandidate candidate) => candidate.Source == CodeSource
-            ? $"by type '{candidate.PluginType}' added in code"
-            : $"by folder '{candidate.Source}'";
     }
 
-    private void ApplyPlugin(IHostApplicationBuilder builder, PluginCandidate candidate, List<IPluginHandler> allHandlers)
+    private void ApplyUnit(IHostApplicationBuilder builder, PluginUnit unit, List<IPluginHandler> handlers)
     {
-        var (pluginType, metadata, source) = candidate;
+        if (unit.Failed)
+        {
+            return;
+        }
 
+        if (unit.DependsOn.FirstOrDefault(dependency => dependency.Failed) is { } failedDependency)
+        {
+            Fail(unit, $"It depends on plugin '{failedDependency.Id}', which was skipped.", exception: null);
+            return;
+        }
+
+        if (!unit.IsInCode && !LoadFolder(unit, handlers))
+        {
+            return;
+        }
+
+        foreach (var pluginType in unit.PluginTypes)
+        {
+            ApplyPlugin(builder, unit, pluginType, handlers);
+        }
+    }
+
+    /// <summary>
+    /// Loads the main assembly of a plugin folder into its own load context and finds its plugin types.
+    /// </summary>
+    private bool LoadFolder(PluginUnit unit, List<IPluginHandler> handlers)
+    {
+        var mainAssemblyPath = unit.MainAssemblyPath!;
+        var mainAssemblyFile = Path.GetFileName(mainAssemblyPath);
+        var dependencies = unit.DependsOn.ToDictionary(dependency => dependency.Id, dependency => dependency.Assembly!);
+
+        Type[] exportedTypes;
+        try
+        {
+            unit.Assembly = new PluginLoadContext(mainAssemblyPath, dependencies).LoadFromAssemblyPath(mainAssemblyPath);
+            exportedTypes = unit.Assembly.GetExportedTypes();
+        }
+        catch (Exception exception)
+        {
+            Fail(unit, $"'{mainAssemblyFile}' could not be loaded: {exception.Message}", exception);
+            return false;
+        }
+
+        unit.PluginTypes.AddRange(exportedTypes
+            .Where(type => type.IsClass && !type.IsAbstract && !type.ContainsGenericParameters)
+            .Where(type => handlers.Any(handler => handler.CanHandle(type))));
+
+        if (unit.PluginTypes.Count == 0)
+        {
+            Fail(unit, $"'{mainAssemblyFile}' contains no public plugin type that a registered handler can handle.", exception: null);
+            return false;
+        }
+
+        return true;
+    }
+
+    private void ApplyPlugin(IHostApplicationBuilder builder, PluginUnit unit, Type pluginType, List<IPluginHandler> allHandlers)
+    {
         var handlers = allHandlers.Where(handler => handler.CanHandle(pluginType)).ToList();
         if (handlers.Count == 0)
         {
             Fail(
-                metadata.Id,
-                source,
+                unit,
                 $"No plugin handler can handle plugin type '{pluginType}'. Implement {nameof(IPlugin)}, "
                 + "or register a handler for it with builder.PluginHandlers.Add<T>().",
                 exception: null);
@@ -251,8 +296,7 @@ internal sealed class PluginSystem
         if (pluginType.GetConstructor(Type.EmptyTypes) is null)
         {
             Fail(
-                metadata.Id,
-                source,
+                unit,
                 $"Plugin type '{pluginType}' has no public parameterless constructor. "
                 + "Plugins are created before the service container exists, so they cannot receive services through their constructor.",
                 exception: null);
@@ -267,16 +311,16 @@ internal sealed class PluginSystem
         catch (TargetInvocationException exception)
         {
             var cause = exception.InnerException ?? exception;
-            Fail(metadata.Id, source, $"Plugin type '{pluginType}' could not be created: {cause.Message}", cause);
+            Fail(unit, $"Plugin type '{pluginType}' could not be created: {cause.Message}", cause);
             return;
         }
 
         var context = new PluginContext(
             builder,
-            builder.Configuration.GetSection(PluginConfiguration.SettingsSectionPath(metadata.Id)),
-            metadata,
+            builder.Configuration.GetSection(PluginConfiguration.SettingsSectionPath(unit.Id)),
+            unit.Metadata,
             _logBuffer.CreateLogger(pluginType.FullName ?? pluginType.Name));
-        var plugin = new PluginDescriptor(pluginType, instance, context, source);
+        var plugin = new PluginDescriptor(pluginType, instance, context, unit.Source);
 
         foreach (var handler in handlers)
         {
@@ -287,8 +331,7 @@ internal sealed class PluginSystem
             catch (Exception exception)
             {
                 Fail(
-                    metadata.Id,
-                    source,
+                    unit,
                     $"Phase 1 failed for plugin type '{pluginType}' in handler '{handler.GetType()}': {exception.Message}",
                     exception);
                 return;
@@ -296,6 +339,16 @@ internal sealed class PluginSystem
         }
 
         _activePlugins.Add(new ActivePlugin(plugin, handlers));
+    }
+
+    /// <summary>
+    /// Reports a failed unit: throws in fail-fast mode, otherwise logs it and marks it as failed,
+    /// so that units depending on it are skipped.
+    /// </summary>
+    private void Fail(PluginUnit unit, string reason, Exception? exception)
+    {
+        unit.Failed = true;
+        Fail(unit.Id, unit.Source, reason, exception);
     }
 
     private void Fail(string pluginId, string source, string reason, Exception? exception)
@@ -307,14 +360,6 @@ internal sealed class PluginSystem
 
         PluginLog.PluginSkipped(Logger, exception, pluginId, source, reason);
     }
-
-    /// <summary>
-    /// A plugin type found in a source, before it is created.
-    /// </summary>
-    /// <param name="PluginType">The plugin type.</param>
-    /// <param name="Metadata">The metadata of the plugin's assembly.</param>
-    /// <param name="Source">Where the plugin comes from: <see cref="CodeSource"/> or the plugin folder.</param>
-    private sealed record PluginCandidate(Type PluginType, PluginMetadata Metadata, string Source);
 
     private sealed record ActivePlugin(PluginDescriptor Plugin, List<IPluginHandler> Handlers);
 }

@@ -165,7 +165,7 @@ public sealed class DirectoryLoadingTests(TestPluginsFixture testPlugins) : IDis
         var exception = Should.Throw<PluginException>(() => BuildApp(builder => builder.Plugins.AddFromDirectory(PluginDirectory)));
 
         exception.PluginId.ShouldBe("Broken");
-        exception.Message.ShouldContain("could not be loaded");
+        exception.Message.ShouldContain("could not be read");
         exception.InnerException.ShouldBeOfType<BadImageFormatException>();
     }
 

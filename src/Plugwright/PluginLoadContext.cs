@@ -8,6 +8,7 @@ namespace Plugwright;
 /// and takes shared assemblies from the default load context, so that the plugin and the host use the same types.
 /// </summary>
 /// <remarks>
+/// Assemblies of plugins this plugin depends on come from those plugins' load contexts, so both use the same types.
 /// Shared are the plugin contract (Plugwright) and Microsoft.Extensions.*. They come from the host whenever the host
 /// has them, regardless of the version the plugin ships. Everything else, including framework assemblies the plugin
 /// does not ship, follows the usual rules: the plugin's own copy first, then the default context.
@@ -15,11 +16,15 @@ namespace Plugwright;
 internal sealed class PluginLoadContext : AssemblyLoadContext
 {
     private readonly AssemblyDependencyResolver _resolver;
+    private readonly IReadOnlyDictionary<string, Assembly> _dependencies;
 
-    public PluginLoadContext(string mainAssemblyPath)
+    /// <param name="mainAssemblyPath">The plugin's main assembly.</param>
+    /// <param name="dependencies">The main assemblies of the plugins this plugin depends on, by assembly name.</param>
+    public PluginLoadContext(string mainAssemblyPath, IReadOnlyDictionary<string, Assembly> dependencies)
         : base(name: Path.GetFileNameWithoutExtension(mainAssemblyPath), isCollectible: false)
     {
         _resolver = new AssemblyDependencyResolver(mainAssemblyPath);
+        _dependencies = dependencies;
     }
 
     public static bool IsShared(AssemblyName assemblyName)
@@ -31,6 +36,11 @@ internal sealed class PluginLoadContext : AssemblyLoadContext
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {
+        if (assemblyName.Name is not null && _dependencies.TryGetValue(assemblyName.Name, out var dependency))
+        {
+            return dependency;
+        }
+
         if (IsShared(assemblyName) && TryLoadFromDefault(assemblyName) is { } shared)
         {
             return shared;
