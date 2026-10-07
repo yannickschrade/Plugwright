@@ -6,7 +6,7 @@ The full specification (German, with rationale and decision log) lives in `docs/
 
 ## Status
 
-Done: repo setup (central package management, CI, DocFX), plugin contract, extension members and handler pipeline, directory loading, metadata and dependencies. Next: verification.
+Done: repo setup (central package management, CI, DocFX), plugin contract, extension members and handler pipeline, directory loading, metadata and dependencies, verification infrastructure with `HashVerifier`, `PluginReport`, CLI `lock`. Next: `CertificateVerifier` with signed manifests (CLI `sign`), then NuGet source.
 
 ## Baseline
 
@@ -47,7 +47,7 @@ docs/                        DocFX site; docs/design/specification.md
    var builder = Host.CreateApplicationBuilder(args);
    builder.Plugins.Add<MyPlugin>();
    builder.Plugins.AddFromDirectory("plugins");
-   builder.PluginVerifiers.Add<HashVerifier>();   // optional
+   builder.PluginVerifiers.AddHashVerifier();      // optional
 
    builder.ApplyPlugins();   // phase 1, before Build()
    var app = builder.Build();
@@ -103,10 +103,12 @@ docs/                        DocFX site; docs/design/specification.md
 
 ## Integrity verification
 
-- Optional. Verifiers are registered explicitly via `builder.PluginVerifiers.Add<T>()`, including the built-in `HashVerifier` and `CertificateVerifier`. No verifiers → no verification, only a log notice.
-- All verifiers implement `IPluginVerifier` and declare supported sources via `CanVerify`. All responsible verifiers must pass. Verifiers registered but none responsible for a plugin → exception.
+- Optional. Verifiers are registered explicitly via `builder.PluginVerifiers`: built-in ones with `AddHashVerifier(...)` / `AddCertificateVerifier(...)` (delegate or explicit configuration section), custom ones with `Add(instance)` or `Add<T>()`. No verifiers → no verification, only a log notice (EventId 1004).
+- All verifiers implement `IPluginVerifier` and declare supported sources via `CanVerify`. All responsible verifiers must pass. Verifiers registered but none responsible for a plugin → plugin failure. Plugins added in code are never verified.
+- Verification failures of any kind are plugin failures (skip-and-log applies). Results: log events 1005/1006 and `PluginReport`.
 - Hash mode: host-side lock file covering all plugin files; hashes carry an algorithm prefix (`sha256-…`).
-- Certificate mode: NuGet package signatures; for DLL directories a CMS-signed manifest with plugin ID, version and hashes of all files. Files not listed in the manifest fail verification. Trust by certificate thumbprint or by issuer plus subject.
+- Certificate mode: NuGet package signatures; for DLL directories a CMS-signed manifest with plugin ID, version and hashes of all files. Files not listed in the manifest fail verification. Trust by certificate thumbprint or by issuer plus subject. No timestamps in v1 (certificate must be valid at verification time). Revocation mode configurable (`NoCheck`/`Online`/`Offline`), default `NoCheck`.
+- CLI: package `Plugwright.Cli`, command `plugwright`. Commands: `lock` (done), `sign`, `verify`. No command-line parsing library.
 - Verify before reading metadata. Load from the verified bytes (`LoadFromStream`). Re-verify or re-extract the NuGet cache on every start.
 - Verifier settings come from code by default; binding them to a configuration section requires an explicit call. Which verifiers exist is always decided in code.
 - Every check emits a structured log event with a fixed EventId; results are also available via API.
@@ -147,8 +149,5 @@ docs/                        DocFX site; docs/design/specification.md
 - Small steps: every feature ships with tests, docs and a sample.
 - Order: plugin contract → extension members and handler pipeline → directory loading → metadata and dependencies → verification → NuGet source → CLI.
 - Anything marked "Vorschlag" or "Offen" in the specification is not decided yet. Ask before implementing it. Currently open:
-  - CLI command names and package name
-  - Manifest timestamping, revocation checking
   - NuGet folder: third-party package dependencies, extraction cache location and cleanup
-  - Direct plugins when verifiers are registered (exempt from "no responsible verifier → exception"?)
 - When a decision changes, add a row to the decision log in the specification.

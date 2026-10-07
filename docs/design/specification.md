@@ -301,9 +301,9 @@ Metadaten und Referenzen werden gelesen, ohne Plugin-Code auszuführen, über `M
 **Entschieden:** Integritätsprüfung ist optional. Der Anwender registriert Prüfer explizit, auch die mitgelieferten Hash- und Zertifikatsprüfer. Ist kein Prüfer registriert, findet keine Prüfung statt; beim Start erscheint ein Hinweis im Log.
 
 ```csharp
-builder.PluginVerifiers.Add<HashVerifier>();
-builder.PluginVerifiers.Add<CertificateVerifier>();
-builder.PluginVerifiers.Add<MyCompanyVerifier>();   // eigener Prüfer
+builder.PluginVerifiers.AddHashVerifier(options => options.LockFile = "/etc/myapp/plugins.lock.json");
+builder.PluginVerifiers.AddCertificateVerifier(options => ...);
+builder.PluginVerifiers.Add(new MyCompanyVerifier());   // eigener Prüfer
 ```
 
 | Modus | NuGet-Ordner | DLL-Verzeichnis | Pflege bei Updates |
@@ -338,11 +338,15 @@ v1 enthält ein CLI-Tool als `dotnet tool` mit drei Aufgaben:
 2. Manifest eines Plugin-Ordners signieren.
 3. `verify`: Plugin-Ordner gegen die Prüfkonfiguration prüfen, ohne die App zu starten, z. B. in CI oder beim Deployment.
 
-### Offen
+### Weitere Festlegungen
 
-- Befehlsnamen und Paketname des CLI-Tools.
-- Zertifikatsablauf: Manifeste mit Zeitstempel signieren, damit Plugins nach Ablauf des Zertifikats gültig bleiben?
-- Sperrlistenprüfung: online, offline oder abschaltbar, z. B. für Rechner ohne Internet.
+- Mitgelieferte Prüfer haben eigene Registrierungsmethoden (`AddHashVerifier`, `AddCertificateVerifier`) mit Einstellungen per Delegate oder per ausdrücklich übergebenem Konfigurationsabschnitt. Eigene Prüfer über `Add(instance)` oder `Add<T>()`. Je Typ ein Prüfer.
+- Plugins aus dem Code werden nie geprüft; die Regel „kein zuständiger Prüfer → Fehler“ gilt nur für Plugin-Ordner (und später NuGet).
+- Prüffehler, fehlender zuständiger Prüfer, Ausnahmen eines Prüfers und eine fehlende oder ungültige Lock-Datei sind Plugin-Fehler (Exception bzw. überspringen und loggen).
+- Lock-Datei: JSON mit `version` und je Plugin-Ordner (Name ohne Beachtung der Groß-/Kleinschreibung) allen Dateien mit `sha256-{base64}`. Standardpfad `plugins.lock.json` im Content Root.
+- Ergebnisse per API: `PluginReport` im DI-Container mit aktiven, übersprungenen Plugins und allen Prüfergebnissen.
+- Zertifikate: in v1 keine Zeitstempel; das Zertifikat muss zum Prüfzeitpunkt gültig sein. Sperrlistenprüfung einstellbar (`NoCheck`, `Online`, `Offline`), Standard `NoCheck`.
+- CLI: Paket `Plugwright.Cli`, Befehl `plugwright`. `lock` wurde vorgezogen, damit Doku und Beispiele zur Prüfung ein echtes Werkzeug nutzen. Argumente werden ohne zusätzliche Bibliothek ausgewertet.
 
 ## Scope v1 und Roadmap
 
@@ -473,10 +477,10 @@ docs/       Anwenderdokumentation
 - [x] Offene Punkte vor Start der Umsetzung (CI, Paketschnitt, Phase-1-Logging, Plugin-Instanzen, Ordnerkonvention, Ladeweg u. a.)
 - [x] Doppelte Plugin-IDs
 - [x] Versionssemantik bei DLL-Plugins
-- [ ] Direkt hinzugefügte Plugins bei registrierten Prüfern: von der Regel „kein zuständiger Prüfer → Exception“ ausnehmen
+- [x] Direkt hinzugefügte Plugins bei registrierten Prüfern
 - [ ] NuGet-Ordner: Drittpaket-Abhängigkeiten, Entpack-Cache und Aufräumen
-- [ ] Zertifikate: Zeitstempel, Sperrlistenprüfung
-- [ ] CLI: Befehls- und Paketname
+- [x] Zertifikate: Zeitstempel, Sperrlistenprüfung
+- [x] CLI: Befehls- und Paketname
 - [ ] Scope v1 und v2 (Aktivieren/Deaktivieren) bestätigen
 
 ### Entscheidungslog
@@ -551,3 +555,11 @@ docs/       Anwenderdokumentation
 | 2026-10-07 | Plugins aus dem Code können nicht von Plugins aus einem Verzeichnis abhängen | Sie liegen im Standard-Kontext und würden eine eigene Kopie der Assembly laden; Typgleichheit wäre nicht möglich |
 | 2026-10-07 | Metadaten von Plugin-Ordnern per MetadataLoadContext mit den Host-Assemblies (TPA) und den Dateien des Ordners | Abhängigkeiten werden geprüft, bevor Plugin-Code geladen wird |
 | 2026-10-07 | InternalsVisibleTo für Plugwright.Tests | Unit-Tests für SemVer-Vergleich und Abhängigkeitsauflösung ohne öffentliche API dafür |
+| 2026-10-07 | Mitgelieferte Prüfer über eigene Methoden (AddHashVerifier, AddCertificateVerifier) mit Delegate oder Konfigurationsabschnitt; eigene über Add(instance)/Add<T>() | Prüfer brauchen Einstellungen; auffindbar und typgeprüft, Bindung an Konfiguration bleibt ein ausdrücklicher Aufruf |
+| 2026-10-07 | Plugins aus dem Code werden nicht geprüft | Sie sind Teil der Host-Anwendung; sonst bräuchte jede App einen Prüfer für den eigenen Code |
+| 2026-10-07 | Keine Zeitstempel für Manifest-Signaturen in v1 | Deutlich weniger Aufwand; nach Zertifikatsablauf wird neu signiert |
+| 2026-10-07 | Sperrlistenprüfung einstellbar, Standard NoCheck | Rechner ohne Netzzugang sollen starten; die Doku empfiehlt Online beim Vertrauen über Aussteller |
+| 2026-10-07 | CLI Plugwright.Cli / plugwright; lock-Befehl vor die übrigen Schritte gezogen | Doku und Beispiele zur Prüfung brauchen ein echtes Werkzeug für die Lock-Datei |
+| 2026-10-07 | Prüffehler aller Art sind Plugin-Fehler und lassen sich mit SkipAndLog überspringen | Konsistent mit den übrigen Ladefehlern |
+| 2026-10-07 | PluginReport im DI-Container mit aktiven und übersprungenen Plugins und Prüfergebnissen | Erfüllt „Ergebnisse per API“ und die früher besprochene Abfrage geladener Plugins |
+| 2026-10-07 | Hinweis „keine Prüfer registriert“ auf Ebene Information, nur wenn Plugin-Verzeichnisse hinzugefügt wurden | Ohne Verzeichnisse gibt es nichts zu prüfen; Information statt Warnung, da ungeprüftes Laden eine zulässige Wahl ist |

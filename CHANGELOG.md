@@ -15,6 +15,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Duplicate plugin IDs from different sources throw a `PluginException`.
 - `builder.Plugins` enumerates the added sources as `PluginTypeSource` and `PluginDirectorySource`.
 - Plugin metadata: semantic version, description, authors and dependencies, read without running plugin code. `[assembly: Plugin]` and `[assembly: PluginDependency]` fill gaps.
+- Optional plugin verification with `builder.PluginVerifiers`. `HashVerifier` checks plugin folders against a lock file; verified plugins are loaded from the verified bytes. Log events 1004–1006.
+- `PluginReport` in the service container: active and skipped plugins and verification results.
+- `plugwright` command-line tool (`Plugwright.Cli`) with the `lock` command.
 - Dependencies between plugins: checked before loading, applied in dependency order, with shared types across load contexts. Dependents of skipped plugins are skipped.
 - Per-plugin settings section `Plugwright:Plugins:{PluginId}:Settings`.
 - `PluginFailureMode.SkipAndLog` to skip failing plugins instead of stopping the application.

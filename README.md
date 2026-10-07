@@ -13,6 +13,7 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder.Plugins.Add<HeartbeatPlugin>();          // a plugin from your own code
 builder.Plugins.AddFromDirectory("plugins");     // plugins/<Name>/<Name>.dll, one load context each
+builder.PluginVerifiers.AddHashVerifier();        // optional: only load plugins matching plugins.lock.json
 
 builder.ApplyPlugins();   // phase 1: plugins register their services
 var app = builder.Build();
@@ -37,7 +38,7 @@ public sealed class HeartbeatPlugin : IPlugin
 }
 ```
 
-Plugins run with full trust inside your process. Only load plugins you trust.
+Plugins run with full trust inside your process. Only load plugins you trust, and verify plugins loaded from a directory. Verification is optional and off by default.
 
 ## Packages
 
@@ -45,6 +46,7 @@ Plugins run with full trust inside your process. Only load plugins you trust.
 | --- | --- |
 | `Plugwright.Abstractions` | Plugin contract. Reference it from plugin projects. |
 | `Plugwright` | The plugin system. Reference it from the host application. |
+| `Plugwright.Cli` | The `plugwright` tool. Creates lock files for verifying plugins. |
 
 ## Documentation
 
