@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Plugin system for the .NET Generic Host. Adds builder.Plugins, builder.ApplyPlugins() and app.UsePlugins() to any IHostApplicationBuilder and IHost.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Plugwright.Abstractions\Plugwright.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>
