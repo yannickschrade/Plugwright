@@ -3,7 +3,7 @@
 This guide shows how to build a plugin as its own project and load it from a plugin directory, without referencing it from the host application. The complete, runnable project is in `samples/DirectoryPlugins` in the repository.
 
 > [!IMPORTANT]
-> Plugins run with full trust inside your process. Whoever can write to the plugin directory can run code in your application. Protect the directory accordingly. Integrity verification of plugins is planned for a later version.
+> Plugins run with full trust inside your process. Whoever can write to the plugin directory can run code in your application. Protect the directory, and [verify plugins](verify-plugins-with-a-lock-file.md) before they are loaded. Without a verifier, Plugwright loads whatever is in the directory.
 
 ## Create the plugin project
 

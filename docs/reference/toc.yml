@@ -4,3 +4,5 @@
   href: plugin-metadata.md
 - name: Log events
   href: log-events.md
+- name: Command-line tool
+  href: cli.md

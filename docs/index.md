@@ -12,6 +12,7 @@ Plugwright works with any <xref:Microsoft.Extensions.Hosting.IHostApplicationBui
 
 ## Where to go next
 
+- [Getting started](tutorials/getting-started.md): load a verified plugin in ten minutes
 - [Add a plugin to your application](how-to/add-a-plugin.md)
 - [Load plugins from a directory](how-to/load-plugins-from-a-directory.md)
 - [Declare dependencies between plugins](how-to/declare-plugin-dependencies.md)
@@ -20,4 +21,4 @@ Plugwright works with any <xref:Microsoft.Extensions.Hosting.IHostApplicationBui
 - [Understand the two phases](explanation/two-phases.md)
 
 > [!IMPORTANT]
-> Plugins run with full trust inside your process. A plugin can do anything your application can do. Only load plugins you trust.
+> Plugins run with full trust inside your process. A plugin can do anything your application can do. Only load plugins you trust, and [verify plugins](how-to/verify-plugins-with-a-lock-file.md) loaded from a directory. Verification is optional and off by default.

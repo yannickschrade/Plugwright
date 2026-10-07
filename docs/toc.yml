@@ -1,3 +1,5 @@
+- name: Tutorials
+  href: tutorials/
 - name: How-to guides
   href: how-to/
 - name: Explanation

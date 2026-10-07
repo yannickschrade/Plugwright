@@ -30,6 +30,7 @@ info: Plugwright[1000]
 - An exception in <xref:Plugwright.IPlugin.Configure(Plugwright.PluginContext)> or in a handler's `Apply`.
 - A plugin type that no handler can handle.
 - A plugin folder that is broken: its main assembly is missing or cannot be loaded, or it contains no plugin type. See [Load plugins from a directory](load-plugins-from-a-directory.md).
+- A plugin that fails [verification](verify-plugins-with-a-lock-file.md), or that no registered verifier can verify.
 - A dependency that is missing, too old or part of a cycle. See [Declare plugin dependencies](declare-plugin-dependencies.md).
 
 Plugins that depend on a skipped plugin are skipped as well, each with its own log entry.
@@ -42,6 +43,10 @@ Two kinds of errors always throw:
 > [!WARNING]
 > Services that a plugin registered before it failed stay registered. A plugin that fails halfway through `Configure` can leave an incomplete set of services behind. Register services at the end of `Configure`, after everything that can fail.
 
-## Find skipped plugins in the logs
+## See what was skipped
 
 Every skipped plugin produces a log entry with event ID 1001 and level `Error`. See [Log events](../reference/log-events.md).
+
+The <xref:Plugwright.PluginReport> in the service container lists the active and the skipped plugins, and the results of verification, for example for a status page:
+
+[!code-csharp[](../../samples/FailureHandling/Program.cs?name=report)]

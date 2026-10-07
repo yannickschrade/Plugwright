@@ -2,6 +2,8 @@
   href: add-a-plugin.md
 - name: Load plugins from a directory
   href: load-plugins-from-a-directory.md
+- name: Verify plugins with a lock file
+  href: verify-plugins-with-a-lock-file.md
 - name: Declare plugin dependencies
   href: declare-plugin-dependencies.md
 - name: Write a plugin handler
