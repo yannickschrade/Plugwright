@@ -14,10 +14,10 @@ internal sealed class PluginSystem
 {
     private const string LoggerCategory = "Plugwright";
 
-    private readonly LogBuffer logBuffer = new();
-    private readonly List<ActivePlugin> activePlugins = [];
-    private bool applied;
-    private bool used;
+    private readonly LogBuffer _logBuffer = new();
+    private readonly List<ActivePlugin> _activePlugins = [];
+    private bool _applied;
+    private bool _used;
 
     private PluginSystem()
     {
@@ -43,7 +43,7 @@ internal sealed class PluginSystem
 
     public void ThrowIfApplied(string action)
     {
-        if (applied)
+        if (_applied)
         {
             throw new InvalidOperationException(
                 $"{action} after builder.ApplyPlugins() has been called. Add plugins and handlers before calling ApplyPlugins().");
@@ -55,13 +55,13 @@ internal sealed class PluginSystem
     /// </summary>
     public void Apply(IHostApplicationBuilder builder)
     {
-        if (applied)
+        if (_applied)
         {
             throw new InvalidOperationException(
                 "builder.ApplyPlugins() has already been called. Call it exactly once, before builder.Build().");
         }
 
-        applied = true;
+        _applied = true;
 
         var handlers = Handlers.CreateHandlers();
         foreach (var pluginType in Plugins)
@@ -77,17 +77,17 @@ internal sealed class PluginSystem
     /// </summary>
     public void Use(IHost app)
     {
-        if (used)
+        if (_used)
         {
             throw new InvalidOperationException("app.UsePlugins() has already been called. Call it exactly once, after builder.Build().");
         }
 
-        used = true;
+        _used = true;
 
         var loggerFactory = app.Services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
-        logBuffer.Flush(loggerFactory);
+        _logBuffer.Flush(loggerFactory);
 
-        foreach (var (plugin, handlers) in activePlugins)
+        foreach (var (plugin, handlers) in _activePlugins)
         {
             foreach (var handler in handlers)
             {
@@ -106,7 +106,7 @@ internal sealed class PluginSystem
         }
 
         var logger = loggerFactory.CreateLogger(LoggerCategory);
-        foreach (var (plugin, _) in activePlugins)
+        foreach (var (plugin, _) in _activePlugins)
         {
             PluginLog.PluginLoaded(logger, plugin.Metadata.Id, plugin.Metadata.Version, plugin.PluginType.FullName);
         }
@@ -144,7 +144,7 @@ internal sealed class PluginSystem
             builder,
             builder.Configuration.GetSection(PluginConfiguration.SettingsSectionPath(metadata.Id)),
             metadata,
-            logBuffer.CreateLogger(pluginType.FullName ?? pluginType.Name));
+            _logBuffer.CreateLogger(pluginType.FullName ?? pluginType.Name));
         var plugin = new PluginDescriptor(pluginType, instance, context);
 
         foreach (var handler in handlers)
@@ -164,7 +164,7 @@ internal sealed class PluginSystem
             }
         }
 
-        activePlugins.Add(new ActivePlugin(plugin, handlers));
+        _activePlugins.Add(new ActivePlugin(plugin, handlers));
     }
 
     private void Fail(PluginMetadata metadata, Type pluginType, string reason, Exception? exception)
@@ -174,7 +174,7 @@ internal sealed class PluginSystem
             throw new PluginException($"Plugin '{metadata.Id}' ({pluginType}): {reason}", metadata.Id, exception);
         }
 
-        PluginLog.PluginSkipped(logBuffer.CreateLogger(LoggerCategory), exception, metadata.Id, pluginType.FullName, reason);
+        PluginLog.PluginSkipped(_logBuffer.CreateLogger(LoggerCategory), exception, metadata.Id, pluginType.FullName, reason);
     }
 
     private sealed record ActivePlugin(PluginDescriptor Plugin, List<IPluginHandler> Handlers);

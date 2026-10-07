@@ -9,29 +9,29 @@ namespace Plugwright;
 /// </summary>
 internal sealed class LogBuffer
 {
-    private readonly Lock syncRoot = new();
-    private readonly List<(string Category, Action<ILogger> Write)> entries = [];
-    private ILoggerFactory? loggerFactory;
+    private readonly Lock _syncRoot = new();
+    private readonly List<(string Category, Action<ILogger> Write)> _entries = [];
+    private ILoggerFactory? _loggerFactory;
 
     public ILogger CreateLogger(string category) => new BufferedLogger(this, category);
 
     public void Flush(ILoggerFactory factory)
     {
-        lock (syncRoot)
+        lock (_syncRoot)
         {
-            loggerFactory = factory;
-            foreach (var (category, write) in entries)
+            _loggerFactory = factory;
+            foreach (var (category, write) in _entries)
             {
                 write(factory.CreateLogger(category));
             }
 
-            entries.Clear();
+            _entries.Clear();
         }
     }
 
     private sealed class BufferedLogger(LogBuffer buffer, string category) : ILogger
     {
-        private ILogger? target;
+        private ILogger? _target;
 
         public IDisposable? BeginScope<TState>(TState state)
             where TState : notnull
@@ -45,12 +45,12 @@ internal sealed class LogBuffer
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
-            lock (buffer.syncRoot)
+            lock (buffer._syncRoot)
             {
                 var logger = GetTarget();
                 if (logger is null)
                 {
-                    buffer.entries.Add((category, logger => logger.Log(logLevel, eventId, state, exception, formatter)));
+                    buffer._entries.Add((category, logger => logger.Log(logLevel, eventId, state, exception, formatter)));
                     return;
                 }
 
@@ -60,12 +60,12 @@ internal sealed class LogBuffer
 
         private ILogger? GetTarget()
         {
-            if (target is null && buffer.loggerFactory is not null)
+            if (_target is null && buffer._loggerFactory is not null)
             {
-                target = buffer.loggerFactory.CreateLogger(category);
+                _target = buffer._loggerFactory.CreateLogger(category);
             }
 
-            return target;
+            return _target;
         }
     }
 }

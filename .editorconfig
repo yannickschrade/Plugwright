@@ -18,3 +18,69 @@ trim_trailing_whitespace = false
 csharp_style_namespace_declarations = file_scoped:warning
 csharp_prefer_braces = true:warning
 dotnet_style_qualification_for_field = false:warning
+
+# Naming conventions (dotnet/runtime style), enforced in the build.
+dotnet_diagnostic.IDE1006.severity = warning
+
+# Constants: PascalCase
+dotnet_naming_rule.constants_should_be_pascal_case.severity = warning
+dotnet_naming_rule.constants_should_be_pascal_case.symbols = constants
+dotnet_naming_rule.constants_should_be_pascal_case.style = pascal_case
+dotnet_naming_symbols.constants.applicable_kinds = field, local
+dotnet_naming_symbols.constants.required_modifiers = const
+
+# Static private/internal fields: s_camelCase
+dotnet_naming_rule.static_fields_should_have_s_prefix.severity = warning
+dotnet_naming_rule.static_fields_should_have_s_prefix.symbols = static_fields
+dotnet_naming_rule.static_fields_should_have_s_prefix.style = s_camel_case
+dotnet_naming_symbols.static_fields.applicable_kinds = field
+dotnet_naming_symbols.static_fields.applicable_accessibilities = private, internal, private_protected
+dotnet_naming_symbols.static_fields.required_modifiers = static
+
+# Instance private/internal fields: _camelCase
+dotnet_naming_rule.instance_fields_should_have_underscore_prefix.severity = warning
+dotnet_naming_rule.instance_fields_should_have_underscore_prefix.symbols = instance_fields
+dotnet_naming_rule.instance_fields_should_have_underscore_prefix.style = underscore_camel_case
+dotnet_naming_symbols.instance_fields.applicable_kinds = field
+dotnet_naming_symbols.instance_fields.applicable_accessibilities = private, internal, private_protected
+
+# Interfaces: IPascalCase
+dotnet_naming_rule.interfaces_should_begin_with_i.severity = warning
+dotnet_naming_rule.interfaces_should_begin_with_i.symbols = interfaces
+dotnet_naming_rule.interfaces_should_begin_with_i.style = i_pascal_case
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+
+# Type parameters: TPascalCase
+dotnet_naming_rule.type_parameters_should_begin_with_t.severity = warning
+dotnet_naming_rule.type_parameters_should_begin_with_t.symbols = type_parameters
+dotnet_naming_rule.type_parameters_should_begin_with_t.style = t_pascal_case
+dotnet_naming_symbols.type_parameters.applicable_kinds = type_parameter
+
+# Types, members, properties, events, methods, non-private fields: PascalCase
+dotnet_naming_rule.types_and_members_should_be_pascal_case.severity = warning
+dotnet_naming_rule.types_and_members_should_be_pascal_case.symbols = types_and_members
+dotnet_naming_rule.types_and_members_should_be_pascal_case.style = pascal_case
+dotnet_naming_symbols.types_and_members.applicable_kinds = namespace, class, struct, enum, delegate, property, method, event, local_function, field
+dotnet_naming_symbols.types_and_members.applicable_accessibilities = public, protected, protected_internal
+
+# Parameters and locals: camelCase
+dotnet_naming_rule.parameters_and_locals_should_be_camel_case.severity = warning
+dotnet_naming_rule.parameters_and_locals_should_be_camel_case.symbols = parameters_and_locals
+dotnet_naming_rule.parameters_and_locals_should_be_camel_case.style = camel_case
+dotnet_naming_symbols.parameters_and_locals.applicable_kinds = parameter, local
+
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+dotnet_naming_style.camel_case.capitalization = camel_case
+dotnet_naming_style.underscore_camel_case.capitalization = camel_case
+dotnet_naming_style.underscore_camel_case.required_prefix = _
+dotnet_naming_style.s_camel_case.capitalization = camel_case
+dotnet_naming_style.s_camel_case.required_prefix = s_
+dotnet_naming_style.i_pascal_case.capitalization = pascal_case
+dotnet_naming_style.i_pascal_case.required_prefix = I
+dotnet_naming_style.t_pascal_case.capitalization = pascal_case
+dotnet_naming_style.t_pascal_case.required_prefix = T
+
+# Do not use 'this.' for members.
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning

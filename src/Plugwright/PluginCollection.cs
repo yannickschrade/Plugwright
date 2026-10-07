@@ -11,12 +11,12 @@ namespace Plugwright;
 /// </remarks>
 public sealed class PluginCollection : IReadOnlyCollection<Type>
 {
-    private readonly PluginSystem system;
-    private readonly List<Type> pluginTypes = [];
+    private readonly PluginSystem _system;
+    private readonly List<Type> _pluginTypes = [];
 
     internal PluginCollection(PluginSystem system)
     {
-        this.system = system;
+        _system = system;
     }
 
     /// <summary>
@@ -27,7 +27,7 @@ public sealed class PluginCollection : IReadOnlyCollection<Type>
     /// <summary>
     /// Gets the number of plugin types added.
     /// </summary>
-    public int Count => pluginTypes.Count;
+    public int Count => _pluginTypes.Count;
 
     /// <summary>
     /// Adds a plugin type from the application itself or from a referenced assembly.
@@ -57,7 +57,7 @@ public sealed class PluginCollection : IReadOnlyCollection<Type>
     public PluginCollection Add(Type pluginType)
     {
         ArgumentNullException.ThrowIfNull(pluginType);
-        system.ThrowIfApplied("Plugins cannot be added");
+        _system.ThrowIfApplied("Plugins cannot be added");
 
         if (!pluginType.IsClass || pluginType.IsAbstract || pluginType.ContainsGenericParameters)
         {
@@ -73,12 +73,12 @@ public sealed class PluginCollection : IReadOnlyCollection<Type>
                 nameof(pluginType));
         }
 
-        if (pluginTypes.Contains(pluginType))
+        if (_pluginTypes.Contains(pluginType))
         {
             throw new ArgumentException($"Plugin type '{pluginType}' has already been added.", nameof(pluginType));
         }
 
-        pluginTypes.Add(pluginType);
+        _pluginTypes.Add(pluginType);
         return this;
     }
 
@@ -86,7 +86,7 @@ public sealed class PluginCollection : IReadOnlyCollection<Type>
     /// Returns the added plugin types in the order they were added.
     /// </summary>
     /// <returns>An enumerator over the plugin types.</returns>
-    public IEnumerator<Type> GetEnumerator() => pluginTypes.GetEnumerator();
+    public IEnumerator<Type> GetEnumerator() => _pluginTypes.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
