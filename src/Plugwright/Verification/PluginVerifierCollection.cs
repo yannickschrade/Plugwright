@@ -186,6 +186,68 @@ public sealed class PluginVerifierCollection : IReadOnlyCollection<IPluginVerifi
     }
 
     /// <summary>
+    /// Adds the verifiers that the configuration turns on. Use it when the configuration, not the code, should decide
+    /// how plugins are verified, or whether they are verified at all.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Every key of the section turns on one verifier: <c>Hash</c> (<see cref="HashVerifier"/>), <c>Certificate</c>
+    /// (<see cref="CertificateVerifier"/>) and, with Plugwright.NuGet and <c>builder.Plugins.AddNuGetSupport()</c>,
+    /// <c>PackageSignature</c>. Its settings are those of the verifier's own <c>Add…</c> method. A verifier is on when its
+    /// section has settings or is <c>true</c>; <c>false</c> turns it off. Without any verifier, plugins are not verified.
+    /// Any other key is an error.
+    /// </para>
+    /// <para>
+    /// Whoever can change this configuration decides whether plugins are verified. Protect it, for example
+    /// <c>appsettings.json</c>, from whoever can write to the plugin directory. The application-managed plugin settings
+    /// can never change it.
+    /// </para>
+    /// </remarks>
+    /// <param name="section">The section, usually <c>builder.Configuration.GetSection("Plugwright:Verification")</c>.</param>
+    /// <returns>This collection, for chaining.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// <c>builder.ApplyPlugins()</c> has already been called, or the configuration has an unknown key or an invalid value.
+    /// </exception>
+    /// <example>
+    /// <code language="csharp">
+    /// builder.PluginVerifiers.AddFromConfiguration(builder.Configuration.GetSection("Plugwright:Verification"));
+    /// </code>
+    /// <code language="json">
+    /// {
+    ///   "Plugwright": {
+    ///     "Verification": {
+    ///       "Hash": { "LockFile": "/etc/myapp/plugins.lock.json" },
+    ///       "Certificate": {
+    ///         "TrustedPublishers": [ { "IssuerCertificate": "/etc/myapp/acme-ca.crt", "Subject": "CN=Acme Plugins, O=Acme" } ]
+    ///       }
+    ///     }
+    ///   }
+    /// }
+    /// </code>
+    /// </example>
+    public PluginVerifierCollection AddFromConfiguration(IConfigurationSection section)
+    {
+        ArgumentNullException.ThrowIfNull(section);
+        _system.ThrowIfApplied("Plugin verifiers cannot be added");
+
+        var readers = _system.ConfigurationReaders.Verifiers;
+        foreach (var child in section.GetChildren())
+        {
+            if (!readers.TryGetValue(child.Key, out var read))
+            {
+                throw PluginConfigurationReaders.UnknownKey(child, readers.Keys);
+            }
+
+            if (PluginConfigurationReaders.IsEnabled(child))
+            {
+                read(this, child);
+            }
+        }
+
+        return this;
+    }
+
+    /// <summary>
     /// Returns the registered verifiers in the order they were added.
     /// </summary>
     /// <returns>An enumerator over the verifiers.</returns>

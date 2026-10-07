@@ -34,6 +34,8 @@ internal sealed class PluginSystem
 
     public PluginVerifierCollection Verifiers { get; }
 
+    public PluginConfigurationReaders ConfigurationReaders { get; } = new();
+
     private ILogger Logger => _logBuffer.CreateLogger(LoggerCategory);
 
     public static PluginSystem GetOrCreate(IHostApplicationBuilder builder)

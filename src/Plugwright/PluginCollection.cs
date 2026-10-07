@@ -1,4 +1,5 @@
 using System.Collections;
+using Microsoft.Extensions.Configuration;
 
 namespace Plugwright;
 
@@ -119,6 +120,88 @@ public sealed class PluginCollection : IReadOnlyCollection<PluginSource>
         _sources.Add(new PluginDirectorySource(path));
         return this;
     }
+
+    /// <summary>
+    /// Sets up the plugin system from configuration: the failure mode and the plugin sources.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The section has these keys, all optional:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description><c>FailureMode</c>: <c>FailFast</c> or <c>SkipAndLog</c>, see <see cref="PluginOptions.FailureMode"/>.</description></item>
+    /// <item><description><c>Directories</c>: plugin directories, see <see cref="AddFromDirectory"/>.</description></item>
+    /// <item><description><c>Packages</c>: package folders; needs Plugwright.NuGet and <c>builder.Plugins.AddNuGetSupport()</c>.</description></item>
+    /// <item><description><c>Plugins</c> and <c>Verification</c>: read elsewhere and ignored here.</description></item>
+    /// </list>
+    /// <para>
+    /// Any other key is an error, so that a typo does not go unnoticed. Plugins added in code and sources from configuration
+    /// can be combined. Protect the configuration like the plugin directory: whoever can change it decides which plugins run.
+    /// </para>
+    /// </remarks>
+    /// <param name="section">The section, usually <c>builder.Configuration.GetSection("Plugwright")</c>.</param>
+    /// <returns>This collection, for chaining.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// <c>builder.ApplyPlugins()</c> has already been called, or the configuration has an unknown key or an invalid value.
+    /// </exception>
+    /// <example>
+    /// <code language="csharp">
+    /// builder.Plugins.AddFromConfiguration(builder.Configuration.GetSection("Plugwright"));
+    /// </code>
+    /// <code language="json">
+    /// {
+    ///   "Plugwright": {
+    ///     "FailureMode": "SkipAndLog",
+    ///     "Directories": [ "plugins" ]
+    ///   }
+    /// }
+    /// </code>
+    /// </example>
+    public PluginCollection AddFromConfiguration(IConfigurationSection section)
+    {
+        ArgumentNullException.ThrowIfNull(section);
+        _system.ThrowIfApplied("Plugins cannot be added");
+
+        var readers = _system.ConfigurationReaders.Sources;
+        string[] ownKeys = ["FailureMode", "Directories", "Plugins", "Verification"];
+        foreach (var child in section.GetChildren())
+        {
+            if (!ownKeys.Contains(child.Key, StringComparer.OrdinalIgnoreCase) && !readers.ContainsKey(child.Key))
+            {
+                throw PluginConfigurationReaders.UnknownKey(child, [.. ownKeys, .. readers.Keys]);
+            }
+        }
+
+        if (section["FailureMode"] is { } failureMode)
+        {
+            Options.FailureMode = Enum.TryParse<PluginFailureMode>(failureMode, ignoreCase: true, out var mode) && Enum.IsDefined(mode)
+                ? mode
+                : throw new InvalidOperationException(
+                    $"The configuration '{section.Path}:FailureMode' has the invalid value '{failureMode}'. "
+                    + $"Valid values are: {string.Join(", ", Enum.GetNames<PluginFailureMode>())}.");
+        }
+
+        foreach (var directory in section.GetSection("Directories").GetChildren())
+        {
+            AddFromDirectory(directory.Value
+                ?? throw new InvalidOperationException($"The configuration '{directory.Path}' must be the path of a plugin directory."));
+        }
+
+        foreach (var (key, read) in readers)
+        {
+            if (section.GetSection(key) is { } sourceSection && sourceSection.Exists())
+            {
+                read(this, sourceSection);
+            }
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Gets the configuration readers, so that packages such as Plugwright.NuGet can register theirs.
+    /// </summary>
+    internal PluginConfigurationReaders ConfigurationReaders => _system.ConfigurationReaders;
 
     /// <summary>
     /// Adds a source of another package, such as the package source of Plugwright.NuGet.
