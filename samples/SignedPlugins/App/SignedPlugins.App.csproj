@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugwright\Plugwright.csproj" />
+  </ItemGroup>
+
+  <!--
+    For the sample only: after the build, create sample certificates, copy the plugin to plugins/Acme.Reports/
+    and sign it, as the plugin's publisher would:
+
+      dotnet publish Acme.Reports -o <app>/plugins/Acme.Reports
+      plugwright sign <app>/plugins/Acme.Reports -c acme-plugins.pfx
+
+    The host only needs the CA certificate. The signing certificate with its private key stays with the publisher;
+    here it is kept in obj/, outside the application.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Acme.Reports\Acme.Reports.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\SampleCertificates\SampleCertificates.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\..\..\src\Plugwright.Cli\Plugwright.Cli.csproj" ReferenceOutputAssembly="false" Private="false" />
+  </ItemGroup>
+
+  <Target Name="DeploySignedSamplePlugin" AfterTargets="Build">
+    <PropertyGroup>
+      <SampleTools>$(MSBuildThisFileDirectory)../../../src/Plugwright.Cli/bin/$(Configuration)/$(TargetFramework)</SampleTools>
+      <SampleCertificates>$(MSBuildThisFileDirectory)../SampleCertificates/bin/$(Configuration)/$(TargetFramework)/SampleCertificates.dll</SampleCertificates>
+      <SampleCertificateDirectory>$(BaseIntermediateOutputPath)sample-certificates</SampleCertificateDirectory>
+    </PropertyGroup>
+    <ItemGroup>
+      <SamplePluginFile Include="..\Acme.Reports\bin\$(Configuration)\$(TargetFramework)\**\*" />
+    </ItemGroup>
+    <Exec Command="dotnet &quot;$(SampleCertificates)&quot; &quot;$(SampleCertificateDirectory)&quot;" />
+    <Copy SourceFiles="$(SampleCertificateDirectory)/acme-ca.crt" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    <RemoveDir Directories="$(OutDir)plugins" />
+    <Copy SourceFiles="@(SamplePluginFile)" DestinationFiles="@(SamplePluginFile->'$(OutDir)plugins\Acme.Reports\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Exec Command="dotnet &quot;$(SampleTools)/Plugwright.Cli.dll&quot; sign &quot;$(OutDir)plugins/Acme.Reports&quot; --certificate &quot;$(SampleCertificateDirectory)/acme-plugins.pfx&quot; --password sample" />
+  </Target>
+
+</Project>

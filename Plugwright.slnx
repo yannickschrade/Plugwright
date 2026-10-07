@@ -17,6 +17,11 @@
     <Project Path="samples/PluginDependencies/Acme.Welcome/Acme.Welcome.csproj" />
     <Project Path="samples/PluginDependencies/App/PluginDependencies.App.csproj" />
   </Folder>
+  <Folder Name="/samples/SignedPlugins/">
+    <Project Path="samples/SignedPlugins/Acme.Reports/Acme.Reports.csproj" />
+    <Project Path="samples/SignedPlugins/App/SignedPlugins.App.csproj" />
+    <Project Path="samples/SignedPlugins/SampleCertificates/SampleCertificates.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Plugwright.Abstractions/Plugwright.Abstractions.csproj" />
     <Project Path="src/Plugwright.Cli/Plugwright.Cli.csproj" />
