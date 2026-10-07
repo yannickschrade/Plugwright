@@ -25,7 +25,7 @@ namespace Plugwright;
 public sealed class CertificateVerifier : IPluginVerifier
 {
     private readonly HashSet<string> _trustedThumbprints;
-    private readonly List<(X509Certificate2 Issuer, string Subject)> _trustedPublishers;
+    private readonly List<(X509Certificate2 Issuer, string Subject, string NormalizedSubject)> _trustedPublishers;
     private readonly X509RevocationMode _revocationMode;
 
     internal CertificateVerifier(
@@ -34,7 +34,7 @@ public sealed class CertificateVerifier : IPluginVerifier
         X509RevocationMode revocationMode)
     {
         _trustedThumbprints = trustedThumbprints.Select(NormalizeThumbprint).ToHashSet(StringComparer.Ordinal);
-        _trustedPublishers = [.. trustedPublishers.Select(publisher => (publisher.Issuer, NormalizeName(publisher.Subject)))];
+        _trustedPublishers = [.. trustedPublishers.Select(publisher => (publisher.Issuer, publisher.Subject, NormalizeName(publisher.Subject)))];
         _revocationMode = revocationMode;
     }
 
@@ -140,7 +140,7 @@ public sealed class CertificateVerifier : IPluginVerifier
 
         var subject = NormalizeName(certificate.Subject);
         string? chainProblem = null;
-        foreach (var (issuer, trustedSubject) in _trustedPublishers.Where(publisher => publisher.Subject == subject))
+        foreach (var (issuer, trustedSubject, _) in _trustedPublishers.Where(publisher => publisher.NormalizedSubject == subject))
         {
             using var chain = new X509Chain();
             chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
