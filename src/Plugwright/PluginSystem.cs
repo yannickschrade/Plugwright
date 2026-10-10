@@ -73,6 +73,8 @@ internal sealed class PluginSystem
 
         _applied = true;
 
+        var settingsSource = AddSettingsFile(builder);
+
         var handlers = Handlers.CreateHandlers();
         foreach (var handler in handlers.OfType<IPluginHandlerSetup>())
         {
@@ -88,9 +90,41 @@ internal sealed class PluginSystem
             ApplyUnit(builder, unit, handlers);
         }
 
+        MoveToEnd(builder, settingsSource);
+
         builder.Services.AddSingleton(this);
         builder.Services.AddSingleton(new PluginReport(
             [.. _activePlugins.Select(active => active.Plugin)], [.. _skippedPlugins], [.. _verifications]));
+    }
+
+    /// <summary>
+    /// Adds the plugin settings file as the last configuration source and registers the store that writes it.
+    /// </summary>
+    private PluginSettingsConfigurationSource? AddSettingsFile(IHostApplicationBuilder builder)
+    {
+        if (Plugins.Options.SettingsFile is not { } settingsFile)
+        {
+            return null;
+        }
+
+        var path = Path.GetFullPath(settingsFile, builder.Environment.ContentRootPath);
+        var source = new PluginSettingsConfigurationSource(path);
+        builder.Configuration.Sources.Add(source);
+        builder.Services.AddSingleton<IPluginSettingsStore>(_ => new PluginSettingsStore(path));
+        return source;
+    }
+
+    /// <summary>
+    /// Keeps the plugin settings file the last configuration source, even if plugins added sources in phase 1.
+    /// </summary>
+    private static void MoveToEnd(IHostApplicationBuilder builder, PluginSettingsConfigurationSource? source)
+    {
+        var sources = builder.Configuration.Sources;
+        if (source is not null && sources[^1] != source)
+        {
+            sources.Remove(source);
+            sources.Add(source);
+        }
     }
 
     /// <summary>

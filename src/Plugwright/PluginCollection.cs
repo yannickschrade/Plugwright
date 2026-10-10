@@ -130,6 +130,7 @@ public sealed class PluginCollection : IReadOnlyCollection<PluginSource>
     /// </para>
     /// <list type="bullet">
     /// <item><description><c>FailureMode</c>: <c>FailFast</c> or <c>SkipAndLog</c>, see <see cref="PluginOptions.FailureMode"/>.</description></item>
+    /// <item><description><c>SettingsFile</c>: the plugin settings file, empty to turn it off, see <see cref="PluginOptions.SettingsFile"/>.</description></item>
     /// <item><description><c>Directories</c>: plugin directories, see <see cref="AddFromDirectory"/>.</description></item>
     /// <item><description><c>Packages</c>: package folders; needs Plugwright.NuGet and <c>builder.Plugins.AddNuGetSupport()</c>.</description></item>
     /// <item><description><c>Plugins</c> and <c>Verification</c>: read elsewhere and ignored here.</description></item>
@@ -163,7 +164,7 @@ public sealed class PluginCollection : IReadOnlyCollection<PluginSource>
         _system.ThrowIfApplied("Plugins cannot be added");
 
         var readers = _system.ConfigurationReaders.Sources;
-        string[] ownKeys = ["FailureMode", "Directories", "Plugins", "Verification"];
+        string[] ownKeys = ["FailureMode", "SettingsFile", "Directories", "Plugins", "Verification"];
         foreach (var child in section.GetChildren())
         {
             if (!ownKeys.Contains(child.Key, StringComparer.OrdinalIgnoreCase) && !readers.ContainsKey(child.Key))
@@ -179,6 +180,11 @@ public sealed class PluginCollection : IReadOnlyCollection<PluginSource>
                 : throw new InvalidOperationException(
                     $"The configuration '{section.Path}:FailureMode' has the invalid value '{failureMode}'. "
                     + $"Valid values are: {string.Join(", ", Enum.GetNames<PluginFailureMode>())}.");
+        }
+
+        if (section.GetSection("SettingsFile") is { Value: { } settingsFile })
+        {
+            Options.SettingsFile = settingsFile.Length == 0 ? null : settingsFile;
         }
 
         foreach (var directory in section.GetSection("Directories").GetChildren())

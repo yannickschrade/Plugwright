@@ -56,7 +56,7 @@ public sealed class ConfigurationTests
 
         var exception = Should.Throw<InvalidOperationException>(() => builder.Plugins.AddFromConfiguration(builder.Configuration.GetSection("Plugwright")));
 
-        exception.Message.ShouldBe("The configuration 'Plugwright:Directorys' is not known. Known keys are: Directories, FailureMode, Plugins, Verification.");
+        exception.Message.ShouldBe("The configuration 'Plugwright:Directorys' is not known. Known keys are: Directories, FailureMode, Plugins, SettingsFile, Verification.");
     }
 
     [Fact]
