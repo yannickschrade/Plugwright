@@ -99,6 +99,7 @@ internal sealed class PluginUnit
         State = State ?? PluginState.Loaded,
         Reason = Reason,
         ErrorMessage = ErrorMessage,
+        IsRequired = IsRequired,
         Dependencies = [.. Metadata.Dependencies.Select(dependency => dependency.PluginId)],
         AppliedHandlers = [.. AppliedHandlers],
     };
@@ -129,6 +130,11 @@ internal sealed class PluginUnit
     /// is turned off. That is no failure: the failure mode does not apply.
     /// </summary>
     public bool UnavailableBecauseDisabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the host application requires the plugin.
+    /// </summary>
+    public bool IsRequired { get; set; }
 
     public static PluginUnit FromCode(Assembly assembly) =>
         new(PluginMetadataReader.Read(assembly), CodeSource, "code") { Assembly = assembly };

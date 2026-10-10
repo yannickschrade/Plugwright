@@ -15,6 +15,7 @@ public sealed class PluginCollection : IReadOnlyCollection<PluginSource>
 {
     private readonly PluginSystem _system;
     private readonly List<PluginSource> _sources = [];
+    private readonly Dictionary<string, PluginPolicy> _policies = new(StringComparer.OrdinalIgnoreCase);
 
     internal PluginCollection(PluginSystem system)
     {
@@ -48,6 +49,101 @@ public sealed class PluginCollection : IReadOnlyCollection<PluginSource>
     {
         return Add(typeof(TPlugin));
     }
+
+    /// <summary>
+    /// Adds a plugin type from the application itself or from a referenced assembly, and sets the policy of its plugin.
+    /// </summary>
+    /// <typeparam name="TPlugin">The plugin type. Usually it implements <see cref="IPlugin"/>.</typeparam>
+    /// <param name="configure">Sets the policy, for example whether the plugin is required.</param>
+    /// <returns>This collection, for chaining.</returns>
+    /// <exception cref="InvalidOperationException"><c>builder.ApplyPlugins()</c> has already been called.</exception>
+    /// <exception cref="ArgumentException">The type has already been added.</exception>
+    /// <remarks>
+    /// The policy belongs to the plugin ID, which all plugin types of one assembly share. See
+    /// <see cref="Configure(string, Action{PluginPolicy})"/>.
+    /// </remarks>
+    /// <example>
+    /// <code language="csharp">
+    /// builder.Plugins.Add&lt;OrdersPlugin&gt;(policy =&gt; policy.Required = true);
+    /// builder.Plugins.Add&lt;ReportsPlugin&gt;(policy =&gt; policy.FailureMode = PluginFailureMode.SkipAndLog);
+    /// </code>
+    /// </example>
+    public PluginCollection Add<TPlugin>(Action<PluginPolicy> configure)
+        where TPlugin : class, new()
+    {
+        return Add(typeof(TPlugin), configure);
+    }
+
+    /// <summary>
+    /// Adds a plugin type from the application itself or from a referenced assembly, and sets the policy of its plugin.
+    /// </summary>
+    /// <param name="pluginType">The plugin type. It must be a non-abstract class with a public parameterless constructor.</param>
+    /// <param name="configure">Sets the policy, for example whether the plugin is required.</param>
+    /// <returns>This collection, for chaining.</returns>
+    /// <exception cref="InvalidOperationException"><c>builder.ApplyPlugins()</c> has already been called.</exception>
+    /// <exception cref="ArgumentException">The type is not a valid plugin type or has already been added.</exception>
+    public PluginCollection Add(Type pluginType, Action<PluginPolicy> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        Add(pluginType);
+        return Configure(PluginMetadataReader.Read(pluginType.Assembly).Metadata.Id, configure);
+    }
+
+    /// <summary>
+    /// Sets the policy of a plugin by its ID, for plugins from any source, also directories and packages.
+    /// </summary>
+    /// <param name="pluginId">The plugin ID, compared without case.</param>
+    /// <param name="configure">Changes the policy. Several calls for one ID change the same policy.</param>
+    /// <returns>This collection, for chaining.</returns>
+    /// <exception cref="InvalidOperationException"><c>builder.ApplyPlugins()</c> has already been called.</exception>
+    /// <example>
+    /// <code language="csharp">
+    /// builder.Plugins.AddFromDirectory("plugins");
+    /// builder.Plugins.Configure("Acme.Reports", policy =&gt; policy.FailureMode = PluginFailureMode.SkipAndLog);
+    /// </code>
+    /// </example>
+    public PluginCollection Configure(string pluginId, Action<PluginPolicy> configure)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(pluginId);
+        ArgumentNullException.ThrowIfNull(configure);
+        _system.ThrowIfApplied("Plugin policies cannot be changed");
+
+        if (!_policies.TryGetValue(pluginId, out var policy))
+        {
+            _policies[pluginId] = policy = new PluginPolicy();
+        }
+
+        configure(policy);
+        return this;
+    }
+
+    /// <summary>
+    /// Marks a plugin as required: the application does not start without it. Works for plugins from any source.
+    /// </summary>
+    /// <param name="pluginId">The plugin ID, compared without case.</param>
+    /// <returns>This collection, for chaining.</returns>
+    /// <exception cref="InvalidOperationException"><c>builder.ApplyPlugins()</c> has already been called.</exception>
+    /// <remarks>
+    /// <c>builder.ApplyPlugins()</c> throws a <see cref="PluginException"/> if no source provides the plugin, if it is
+    /// turned off in configuration, or if it cannot be loaded. See <see cref="PluginPolicy.Required"/>.
+    /// </remarks>
+    /// <example>
+    /// <code language="csharp">
+    /// builder.Plugins.AddFromDirectory("plugins");
+    /// builder.Plugins.Require("Acme.Billing");
+    /// </code>
+    /// </example>
+    public PluginCollection Require(string pluginId) => Configure(pluginId, policy => policy.Required = true);
+
+    /// <summary>
+    /// Returns the policy of a plugin, or <see langword="null"/> if the application set none.
+    /// </summary>
+    internal PluginPolicy? GetPolicy(string pluginId) => _policies.GetValueOrDefault(pluginId);
+
+    /// <summary>
+    /// Gets the IDs of all required plugins.
+    /// </summary>
+    internal IEnumerable<string> RequiredPluginIds => _policies.Where(entry => entry.Value.Required).Select(entry => entry.Key);
 
     /// <summary>
     /// Adds a plugin type from the application itself or from a referenced assembly.

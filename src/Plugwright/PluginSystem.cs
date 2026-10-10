@@ -18,6 +18,7 @@ internal sealed class PluginSystem
     private readonly LogBuffer _logBuffer = new();
     private readonly List<ActivePlugin> _activePlugins = [];
     private readonly List<PluginVerification> _verifications = [];
+    private readonly List<(string PluginId, string Problem, Exception? Exception)> _requiredProblems = [];
     private bool _applied;
     private bool _used;
 
@@ -86,9 +87,13 @@ internal sealed class PluginSystem
         var units = DiscoverUnits(builder);
 
         ThrowOnDuplicateIds(units);
+        FindRequiredPlugins(units);
 
         var sortedUnits = PluginDependencyResolver.Resolve(units, (unit, state, reason) => Fail(unit, state, reason, exception: null));
         SkipDependentsOfUnavailable(sortedUnits);
+
+        // Problems with required plugins that are known before any plugin runs stop the application right here.
+        ThrowIfRequiredPluginsHaveProblems();
 
         foreach (var unit in sortedUnits)
         {
@@ -98,6 +103,7 @@ internal sealed class PluginSystem
             Catalog.Set(unit.ToInfo());
         }
 
+        ThrowIfRequiredPluginsHaveProblems();
         MoveToEnd(builder, settingsSource);
 
         builder.Services.AddSingleton(this);
@@ -324,6 +330,15 @@ internal sealed class PluginSystem
     /// </summary>
     private void SkipDependentsOfUnavailable(List<PluginUnit> sortedUnits)
     {
+        foreach (var unit in sortedUnits.Where(unit => unit.State == PluginState.Disabled && unit.IsRequired))
+        {
+            _requiredProblems.Add((
+                unit.Id,
+                $"Required plugin '{unit.Id}' is turned off in configuration ({PluginConfiguration.EnabledKey(unit.Id)}). "
+                    + "Required plugins cannot be turned off.",
+                null));
+        }
+
         foreach (var unit in sortedUnits.Where(unit => unit.State is null))
         {
             if (unit.DependsOn.FirstOrDefault(dependency => dependency.Failed) is not { } dependency)
@@ -338,12 +353,73 @@ internal sealed class PluginSystem
                 unit.Reason = reason;
                 unit.UnavailableBecauseDisabled = true;
                 Catalog.Set(unit.ToInfo());
+                if (unit.IsRequired)
+                {
+                    _requiredProblems.Add((unit.Id, $"Required plugin '{unit.Id}' cannot start because it depends on {DescribeChain(dependency)}.", null));
+                }
             }
             else
             {
                 Fail(unit, PluginState.DependencyUnavailable, reason, exception: null);
             }
         }
+    }
+
+    /// <summary>
+    /// Marks the required plugins and records every required plugin that no source provides.
+    /// </summary>
+    private void FindRequiredPlugins(List<PluginUnit> units)
+    {
+        foreach (var unit in units)
+        {
+            unit.IsRequired = Plugins.GetPolicy(unit.Id)?.Required == true;
+        }
+
+        foreach (var pluginId in Plugins.RequiredPluginIds)
+        {
+            var known = units.Any(unit => string.Equals(unit.Id, pluginId, StringComparison.OrdinalIgnoreCase))
+                || Catalog.Find(pluginId) is not null;
+            if (!known)
+            {
+                _requiredProblems.Add((pluginId, $"Required plugin '{pluginId}' was not found. No plugin source provides it.", null));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Throws one exception that names every required plugin with a problem.
+    /// </summary>
+    private void ThrowIfRequiredPluginsHaveProblems()
+    {
+        if (_requiredProblems.Count == 0)
+        {
+            return;
+        }
+
+        var message = _requiredProblems.Count == 1
+            ? _requiredProblems[0].Problem
+            : "Required plugins cannot start:" + string.Concat(_requiredProblems.Select(problem => $"{Environment.NewLine}- {problem.Problem}"));
+        throw new PluginException(
+            message,
+            _requiredProblems.Count == 1 ? _requiredProblems[0].PluginId : null,
+            _requiredProblems.Count == 1 ? _requiredProblems[0].Exception : null);
+    }
+
+    /// <summary>
+    /// Describes the chain from a dependency to the plugin that is not available, for example
+    /// <c>'B', which depends on 'A', which is disabled</c>.
+    /// </summary>
+    private static string DescribeChain(PluginUnit dependency)
+    {
+        List<string> chain = [];
+        var current = dependency;
+        while (current.State == PluginState.DependencyUnavailable && current.DependsOn.FirstOrDefault(next => next.Failed) is { } next)
+        {
+            chain.Add($"'{current.Id}', which depends on ");
+            current = next;
+        }
+
+        return string.Concat(chain) + $"'{current.Id}', which is {Describe(current.State)}";
     }
 
     /// <summary>
@@ -544,6 +620,10 @@ internal sealed class PluginSystem
             _logBuffer.CreateLogger(pluginType.FullName ?? pluginType.Name));
         var plugin = new PluginDescriptor(pluginType, instance, context, unit.Source);
 
+        // If a handler fails, the services registered for this plugin type are taken back. Configuration sources,
+        // builder properties and ConfigureContainer callbacks cannot be taken back.
+        var servicesBefore = builder.Services.ToArray();
+
         foreach (var handler in handlers)
         {
             try
@@ -556,6 +636,7 @@ internal sealed class PluginSystem
             }
             catch (Exception exception)
             {
+                RestoreServices(builder.Services, servicesBefore);
                 Fail(
                     unit,
                     PluginState.Failed,
@@ -566,6 +647,15 @@ internal sealed class PluginSystem
         }
 
         _activePlugins.Add(new ActivePlugin(plugin, handlers));
+    }
+
+    private static void RestoreServices(IServiceCollection services, ServiceDescriptor[] servicesBefore)
+    {
+        services.Clear();
+        foreach (var service in servicesBefore)
+        {
+            services.Add(service);
+        }
     }
 
     /// <summary>
@@ -594,15 +684,33 @@ internal sealed class PluginSystem
             ErrorMessage = exception?.Message,
         });
 
+    /// <summary>
+    /// A required plugin's failure is collected and thrown together with the others. Otherwise the plugin's failure
+    /// mode decides: throw now, or log and continue.
+    /// </summary>
     private void Fail(string pluginId, string source, string reason, Exception? exception, PluginInfo info)
     {
-        if (Plugins.Options.FailureMode == PluginFailureMode.FailFast)
+        var policy = Plugins.GetPolicy(pluginId);
+        info = info with { IsRequired = policy?.Required == true };
+        Catalog.Set(info);
+
+        if (info.IsRequired)
         {
-            throw new PluginException($"Plugin '{pluginId}' ({source}): {reason}", pluginId, exception);
+            _requiredProblems.Add((pluginId, $"Required plugin '{pluginId}' ({source}): {reason}", exception));
+            return;
+        }
+
+        if ((policy?.FailureMode ?? Plugins.Options.FailureMode) == PluginFailureMode.FailFast)
+        {
+            var requiredProblems = string.Concat(_requiredProblems.Select(problem => $"{Environment.NewLine}- {problem.Problem}"));
+            throw new PluginException(
+                $"Plugin '{pluginId}' ({source}): {reason}"
+                    + (requiredProblems.Length == 0 ? "" : $"{Environment.NewLine}Required plugins cannot start either:{requiredProblems}"),
+                pluginId,
+                exception);
         }
 
         PluginLog.PluginSkipped(Logger, exception, pluginId, source, reason);
-        Catalog.Set(info);
     }
 
     private static string Describe(PluginState? state) => state switch

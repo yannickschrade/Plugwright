@@ -185,3 +185,15 @@ public sealed class TypedApplyOnlyHandler : PluginHandler<ITaggedPlugin>
         CallLog.From(builder).Calls.Add("TypedApplyOnly");
     }
 }
+
+/// <summary>
+/// Registers a service, then fails: the service must be taken back.
+/// </summary>
+public sealed class HalfConfiguredPlugin : IPlugin
+{
+    public void Configure(PluginContext context)
+    {
+        context.Builder.Services.AddSingleton(new Marker { Source = nameof(HalfConfiguredPlugin) });
+        throw new InvalidOperationException("Failed halfway");
+    }
+}

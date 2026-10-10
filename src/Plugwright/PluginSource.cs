@@ -22,7 +22,7 @@ public abstract class PluginSource
 }
 
 /// <summary>
-/// A plugin type added in code with <see cref="PluginCollection.Add{TPlugin}"/> or <see cref="PluginCollection.Add(Type)"/>.
+/// A plugin type added in code with <see cref="PluginCollection.Add{TPlugin}()"/> or <see cref="PluginCollection.Add(Type)"/>.
 /// </summary>
 public sealed class PluginTypeSource : PluginSource
 {
