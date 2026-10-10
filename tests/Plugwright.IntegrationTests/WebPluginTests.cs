@@ -73,6 +73,19 @@ public sealed class WebPluginTests(TestPluginsFixture testPlugins) : IDisposable
         host.Services.GetRequiredService<PluginReport>().Plugins.ShouldHaveSingleItem().PluginType.Name.ShouldBe("WebPlugin");
     }
 
+    [Theory]
+    [InlineData("Before")]
+    [InlineData("After")]
+    public async Task OpenAPI_document_contains_the_plugin_controller_and_endpoint(string controllers)
+    {
+        using var host = StartHost(controllers);
+
+        var document = await host.CreateClient().GetStringAsync("/openapi/v1.json", TestContext.Current.CancellationToken);
+
+        document.ShouldContain("\"/web-plugin/controller\"");
+        document.ShouldContain("\"/web-plugin/endpoint\"");
+    }
+
     private WebTestHost StartHost(string controllers = "After", Dictionary<string, string?>? settings = null)
     {
         testPlugins.Install(Web, PluginDirectory);

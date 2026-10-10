@@ -3,6 +3,7 @@ using Plugwright.TestWebHost.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents();
+builder.Services.AddOpenApi();
 
 // "Before", "After" or "None": where the host registers MVC, relative to ApplyPlugins().
 var controllers = builder.Configuration["TestWebHost:Controllers"] ?? "After";
@@ -43,6 +44,7 @@ if (controllers != "None")
     app.MapControllers();
 }
 
+app.MapOpenApi();
 app.MapRazorComponents<App>().AddPluginAssemblies(app);
 
 app.Run();
