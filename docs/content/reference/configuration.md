@@ -8,6 +8,7 @@ Plugwright reads plugin settings from the application's normal configuration, [`
 {
   "Plugwright": {
     "FailureMode": "FailFast",
+    "SettingsFile": "pluginsettings.json",
     "Directories": [ "plugins" ],
     "Packages": [
       {
@@ -28,7 +29,7 @@ Plugwright reads plugin settings from the application's normal configuration, [`
       "PackageSignature": { "TrustedThumbprints": [ "…" ] }
     },
     "Plugins": {
-      "{PluginId}": { "Settings": { } }
+      "{PluginId}": { "Enabled": true, "Settings": { } }
     }
   }
 }
@@ -36,9 +37,9 @@ Plugwright reads plugin settings from the application's normal configuration, [`
 
 | Key | Read by | Notes |
 | --- | --- | --- |
-| `FailureMode`, `Directories`, `Packages` | `builder.Plugins.AddFromConfiguration` | `Packages` needs `builder.Plugins.AddNuGetSupport()`. |
+| `FailureMode`, `SettingsFile`, `Directories`, `Packages` | `builder.Plugins.AddFromConfiguration` | `Packages` needs `builder.Plugins.AddNuGetSupport()`. An empty `SettingsFile` turns the plugin settings file off. |
 | `Verification` | `builder.PluginVerifiers.AddFromConfiguration` | `PackageSignature` needs `builder.Plugins.AddNuGetSupport()`. |
-| `Plugins:{PluginId}:Settings` | Every plugin | Always read, see below. |
+| `Plugins:{PluginId}:Enabled`, `Plugins:{PluginId}:Settings` | `builder.ApplyPlugins()`, every plugin | Always read, see below. |
 
 Unknown keys in these sections are errors. See [Configure plugins from appsettings.json](../how-to/configure-from-appsettings.md).
 
@@ -47,9 +48,24 @@ Unknown keys in these sections are errors. See [Configure plugins from appsettin
 | Key | Meaning |
 | --- | --- |
 | `Plugwright:Plugins:{PluginId}:Settings` | The plugin's own settings. Available to the plugin as [`PluginContext.Configuration`](../api/Plugwright.PluginContext.md#Plugwright_PluginContext_Configuration). |
-| `Plugwright:Plugins:{PluginId}:*` | Other keys next to `Settings` are reserved for the plugin system. |
+| `Plugwright:Plugins:{PluginId}:Enabled` | `false` turns the plugin off; it is neither verified nor loaded. Default `true`. Takes effect at the next start. See [Turn plugins on and off](../how-to/enable-and-disable-plugins.md). |
+| `Plugwright:Plugins:{PluginId}:*` | Other keys next to `Settings` and `Enabled` are reserved for the plugin system. |
 
 The plugin ID is the name of the plugin assembly. All plugin classes in one assembly share the same ID and the same section.
+
+Whether a plugin is required, and its failure mode, are set in code only, with [`PluginPolicy`](../api/Plugwright.PluginPolicy.md). See [Required and optional plugins](../how-to/required-and-optional-plugins.md).
+
+## The plugin settings file
+
+`builder.ApplyPlugins()` adds the application-managed file `pluginsettings.json` as the last configuration source.
+
+| Aspect | Behavior |
+| --- | --- |
+| Location | [`PluginOptions.SettingsFile`](../api/Plugwright.PluginOptions.md#Plugwright_PluginOptions_SettingsFile), default `pluginsettings.json`; relative paths are resolved against the content root. `null` turns the file off. The file need not exist. |
+| Priority | Wins over all other sources, **including environment variables and command-line arguments**. |
+| Keys | Only keys under `Plugwright:Plugins` are read; all others in the file are ignored. |
+| Changes | Reloaded while the application runs. Settings bound with `IOptionsMonitor` update; `Enabled` takes effect at the next start. |
+| Writing | [`IPluginSettingsStore`](../api/Plugwright.IPluginSettingsStore.md) rewrites the file; comments and formatting are lost. |
 
 ## Environment variables
 

@@ -27,13 +27,17 @@ Some types must be the same for the host and all plugins. If a plugin loaded its
 Plugwright therefore always takes these assemblies from the host, from the default load context:
 
 - `Plugwright.Abstractions` and `Plugwright`
+- `Plugwright.AspNetCore.Abstractions` and `Plugwright.AspNetCore`
 - `Microsoft.Extensions.*`
+- `Microsoft.AspNetCore.*`, so that web plugins and the host share controllers, endpoints and components
 
 This holds even when the plugin folder contains its own copy. The host's version is used, whatever version the plugin ships.
 
 !!! note
 
     If a plugin was compiled against a newer version of a `Microsoft.Extensions.*` package than the host provides, it can fail at runtime with a `MissingMethodException` or `TypeLoadException`. Keep the host's `Microsoft.Extensions.*` packages at least as new as those of your plugins.
+
+Contracts of your own application, for example for menu entries, are shared only if the plugin ships no copy of them: reference them with `Private="false" ExcludeAssets="runtime"`, like the plugin contract. Then the plugin's load context finds no private copy and uses the host's. See [Offer extension points to plugins](../how-to/offer-extension-points.md).
 
 If the host does not have one of these assemblies at all, for example a `Microsoft.Extensions.*` package that only the plugin uses, the plugin's own copy is loaded.
 

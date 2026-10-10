@@ -23,6 +23,20 @@ Verification moves the trust from the plugin directory to the lock file, the tru
 - Verifier settings come from code by default. If you bind them to `appsettings.json`, protect that file in the same way.
 - If the application lets the configuration choose the verifiers (`PluginVerifiers.AddFromConfiguration`), whoever can change the configuration can also turn verification off. Protect the configuration files and environment variables of the application accordingly.
 
+## What the plugin settings file can change
+
+The application can write `pluginsettings.json` itself, for example from an administration page. Its values win over all other configuration, environment variables included. It is limited on purpose:
+
+- It only contributes keys under `Plugwright:Plugins`: plugin settings and whether a plugin is on. It cannot change other settings, the plugin sources or the verifiers.
+- It cannot turn off a required plugin. Which plugins are required is decided in code.
+- Turning a plugin off never loads anything. A plugin that is off is neither verified nor loaded.
+
+Still, whoever can write the file can turn optional plugins off and change their settings. Grant write access to the file accordingly.
+
+## The catalog endpoint
+
+`MapPluginCatalog()` publishes the IDs, versions and states of all plugins, and the reasons why plugins are not loaded. That tells an attacker which plugins and versions run. The endpoint is never mapped automatically; protect it when the application is reachable from outside. Error messages are only included on request.
+
 ## No gap between verification and loading
 
 Plugwright reads all files of a plugin into memory, verifies these bytes, reads the plugin's metadata from them and loads its assemblies from them. Replacing a file on disk after verification has no effect.

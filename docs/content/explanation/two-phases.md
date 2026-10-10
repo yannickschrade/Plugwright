@@ -26,6 +26,10 @@ During phase 1 the service container does not exist yet. That has three conseque
 - **Logging is buffered.** [`PluginContext.Logger`](../api/Plugwright.PluginContext.md#Plugwright_PluginContext_Logger) and Plugwright's own log entries are collected during phase 1 and written to the configured logging providers when `app.UsePlugins()` runs. After that, the plugin's logger writes directly.
 - **Fail-fast errors are self-contained.** If phase 1 stops with a [`PluginException`](../api/Plugwright.PluginException.md), the buffered entries have not been written. The exception message names the plugin and the cause, so nothing is lost.
 
+## And a third moment: startup tasks
+
+Some plugins must do asynchronous work before the application runs, such as migrating a database. Neither phase is the place for it: phase 1 has no service container, and phase 2 runs synchronously before the host starts. [Startup tasks](../how-to/run-startup-tasks.md) run when the host starts, after `Build()` and `app.UsePlugins()`, before any hosted service and the web server.
+
 ## Plugins and handlers
 
 Plugins describe *what* extends the application. Handlers decide *how*. The built-in handler processes [`IPlugin`](../api/Plugwright.IPlugin.md) and calls `Configure`. Other kinds of plugins, for example web plugins with middleware, come as additional handlers without changing the core. See [Write a plugin handler](../how-to/write-a-plugin-handler.md).
