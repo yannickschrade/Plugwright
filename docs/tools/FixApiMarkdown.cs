@@ -3,8 +3,8 @@
 // - <xref href="Uid"> tags become links to the API page and anchor of that uid, or to Microsoft Learn for .NET types.
 //   An xref to a Plugwright uid without page fails, so that broken references in XML comments fail the docs build.
 // - <pre><code class="lang-x"> blocks become fenced code blocks, so that they get syntax highlighting.
-// - toc.yml is replaced by SUMMARY.md: the navigation of the API folder (Zensical's literate-nav), with every
-//   namespace and its types grouped by kind, as on Microsoft Learn.
+// - toc.yml is replaced by SUMMARY.md: the navigation of the API folder (Zensical's literate-nav). As on Microsoft
+//   Learn, every namespace is a node with its overview page and its types, grouped by kind.
 //
 // Usage: dotnet run docs/tools/FixApiMarkdown.cs -- <api folder>
 
@@ -103,7 +103,7 @@ string Link(string uid, string page)
 // The anchor in the title of a page, which is the anchor of its type.
 string TitleId(string page) => AnchorPattern().Match(pages[page]).Groups["id"].Value;
 
-// The navigation of the API folder: each namespace page, followed by its types grouped by kind.
+// The navigation of the API folder: a node per namespace with its overview page and its types grouped by kind.
 string Summary()
 {
     string[] kinds = ["Class", "Struct", "Interface", "Enum", "Delegate"];
@@ -111,7 +111,8 @@ string Summary()
     foreach (var namespacePage in kindOfPage.Where(entry => entry.Value == "Namespace").Select(entry => entry.Key).Order(StringComparer.Ordinal))
     {
         var namespaceName = Path.GetFileNameWithoutExtension(namespacePage);
-        lines.Add($"- [{namespaceName}]({namespacePage})");
+        lines.Add($"- {namespaceName}");
+        lines.Add($"    - [Overview]({namespacePage})");
         foreach (var kind in kinds)
         {
             var types = kindOfPage
@@ -124,8 +125,8 @@ string Summary()
                 continue;
             }
 
-            lines.Add($"- {(kind == "Class" ? "Classes" : kind + "s")}");
-            lines.AddRange(types.Select(type => $"    - [{EscapeLinkText(titleOfPage[type])}]({type})"));
+            lines.Add($"    - {(kind == "Class" ? "Classes" : kind + "s")}");
+            lines.AddRange(types.Select(type => $"        - [{EscapeLinkText(titleOfPage[type])}]({type})"));
         }
     }
 
