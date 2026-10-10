@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Shared by the backend plugin and the UI plugin. Not a plugin itself. -->
+
+</Project>

@@ -1,0 +1,14 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.6.1">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- The sample runs with dotnet run; it does not need the Aspire CLI bundle. -->
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);ASPIRE010</MSBuildWarningsAsMessages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Api\SplitHosts.Api.csproj" />
+    <ProjectReference Include="..\Web\SplitHosts.Web.csproj" />
+  </ItemGroup>
+
+</Project>

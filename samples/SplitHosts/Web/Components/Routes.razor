@@ -1,0 +1,10 @@
+@inject IPluginComponentAssemblies PluginAssemblies
+
+<Router AppAssembly="typeof(Program).Assembly" AdditionalAssemblies="PluginAssemblies.Assemblies">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" />
+    </Found>
+    <NotFound>
+        <h1>Not found</h1>
+    </NotFound>
+</Router>

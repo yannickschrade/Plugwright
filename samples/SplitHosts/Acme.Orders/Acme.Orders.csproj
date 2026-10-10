@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenTelemetry.Api.ProviderBuilderExtensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugwright.AspNetCore.Abstractions\Plugwright.AspNetCore.Abstractions.csproj" />
+    <ProjectReference Include="..\Acme.Orders.Abstractions\Acme.Orders.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

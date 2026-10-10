@@ -26,6 +26,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\samples\WebHost\App\WebHost.App.csproj" Aliases="WebHostSample" />
     <ProjectReference Include="..\..\samples\BlazorHost\App\BlazorHost.App.csproj" Aliases="BlazorHostSample" />
+    <ProjectReference Include="..\..\samples\SplitHosts\Api\SplitHosts.Api.csproj" Aliases="SplitHostsApiSample" />
   </ItemGroup>
 
   <!-- Build the test plugins first, but never reference them: the tests load them like real plugins. -->

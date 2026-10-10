@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugwright.AspNetCore\Plugwright.AspNetCore.csproj" />
+    <ProjectReference Include="..\ServiceDefaults\SplitHosts.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\Acme.Orders\Acme.Orders.csproj" />
+  </ItemGroup>
+
+</Project>

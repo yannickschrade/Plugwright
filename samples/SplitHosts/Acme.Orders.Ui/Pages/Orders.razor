@@ -1,0 +1,26 @@
+@page "/orders"
+@inject OrdersClient OrdersClient
+
+<PageTitle>Orders</PageTitle>
+
+<h1>Orders</h1>
+
+@if (_orders is null)
+{
+    <p>Loading…</p>
+}
+else
+{
+    <ul>
+        @foreach (var order in _orders)
+        {
+            <li>@order.Number: @order.Product (@(order.Shipped ? "shipped" : "open"))</li>
+        }
+    </ul>
+}
+
+@code {
+    private IReadOnlyList<OrderDto>? _orders;
+
+    protected override async Task OnInitializedAsync() => _orders = await OrdersClient.GetOrdersAsync();
+}

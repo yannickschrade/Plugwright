@@ -41,6 +41,15 @@
     <Project Path="samples/SignedPlugins/App/SignedPlugins.App.csproj" />
     <Project Path="samples/SignedPlugins/SampleCertificates/SampleCertificates.csproj" />
   </Folder>
+  <Folder Name="/samples/SplitHosts/">
+    <Project Path="samples/SplitHosts/Acme.Orders.Abstractions/Acme.Orders.Abstractions.csproj" />
+    <Project Path="samples/SplitHosts/Acme.Orders.Ui/Acme.Orders.Ui.csproj" />
+    <Project Path="samples/SplitHosts/Acme.Orders/Acme.Orders.csproj" />
+    <Project Path="samples/SplitHosts/Api/SplitHosts.Api.csproj" />
+    <Project Path="samples/SplitHosts/AppHost/SplitHosts.AppHost.csproj" />
+    <Project Path="samples/SplitHosts/ServiceDefaults/SplitHosts.ServiceDefaults.csproj" />
+    <Project Path="samples/SplitHosts/Web/SplitHosts.Web.csproj" />
+  </Folder>
   <Folder Name="/samples/WebHost/">
     <Project Path="samples/WebHost/Acme.Greetings/Acme.Greetings.csproj" />
     <Project Path="samples/WebHost/App/WebHost.App.csproj" />
