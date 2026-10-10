@@ -1,0 +1,25 @@
+@page "/plugins"
+@inject IPluginCatalog Catalog
+
+<PageTitle>Plugins</PageTitle>
+
+<h1>Plugins</h1>
+
+@* The catalog knows every plugin, also those that are not loaded. *@
+<table class="plugins">
+    <thead>
+        <tr><th>ID</th><th>Version</th><th>State</th><th>Required</th><th>Reason</th></tr>
+    </thead>
+    <tbody>
+        @foreach (var plugin in Catalog.Plugins)
+        {
+            <tr>
+                <td>@plugin.Id</td>
+                <td>@plugin.Version</td>
+                <td>@plugin.State</td>
+                <td>@(plugin.IsRequired ? "yes" : "no")</td>
+                <td>@plugin.Reason</td>
+            </tr>
+        }
+    </tbody>
+</table>

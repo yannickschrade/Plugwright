@@ -1,3 +1,5 @@
+@inject IPluginCatalog Catalog
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -11,7 +13,14 @@
 </head>
 
 <body>
-    <nav><a href="">Home</a> | <a href="orders">Orders</a></nav>
+    <nav>
+        <a href="">Home</a>
+        @* The link only appears when the UI plugin is loaded. *@
+        @if (Catalog.Find("Acme.Orders.Ui")?.State == PluginState.Loaded)
+        {
+            <text> | </text><a href="orders">Orders</a>
+        }
+    </nav>
     <Routes @rendermode="InteractiveServer" />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
 </body>

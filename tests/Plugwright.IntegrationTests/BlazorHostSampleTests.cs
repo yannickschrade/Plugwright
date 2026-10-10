@@ -40,4 +40,13 @@ public sealed class BlazorHostSampleTests : IDisposable
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).ShouldContain(".orders");
     }
+
+    [Fact]
+    public async Task Plugins_page_shows_the_catalog()
+    {
+        var response = await _factory.CreateClient().GetStringAsync("/plugins", TestContext.Current.CancellationToken);
+
+        response.ShouldContain("<td>Acme.Orders.Ui</td>");
+        response.ShouldContain("<td>Loaded</td>");
+    }
 }

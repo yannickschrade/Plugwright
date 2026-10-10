@@ -13,5 +13,9 @@ var app = builder.Build();
 app.UsePlugins();
 app.MapDefaultEndpoints();                        // /health includes the plugins' health checks
 
+// Tells the web host which backend plugins run here. Protect it, for example with RequireAuthorization(),
+// when the API is reachable from outside.
+app.MapPluginCatalog();
+
 app.Run();
 #endregion

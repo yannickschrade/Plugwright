@@ -1,11 +1,15 @@
 using Acme.Orders.Ui;
 using Plugwright;
+using SplitHosts.Web;
 using SplitHosts.Web.Components;
 
 #region host
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+
+// Turn off UI plugins whose backend part is not loaded in the API host. App code, not part of Plugwright.
+await BackendPlugins.TurnOffUiPluginsWithoutBackendAsync(builder, new() { ["Acme.Orders.Ui"] = "Acme.Orders" });
 
 builder.Plugins.Add<OrdersUiPlugin>();            // UI part
 builder.PluginHandlers.Add<BlazorPluginHandler>();

@@ -22,3 +22,14 @@ nav a.active {
 main {
     padding: 1.2rem;
 }
+
+.plugins {
+    border-collapse: collapse;
+}
+
+.plugins th,
+.plugins td {
+    border-bottom: 1px solid #ddd;
+    padding: 0.4rem 0.8rem;
+    text-align: left;
+}
