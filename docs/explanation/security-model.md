@@ -21,6 +21,7 @@ Verification moves the trust from the plugin directory to the lock file, the tru
 - Store the lock file and trusted issuer certificates where whoever can write to the plugin directory cannot write.
 - Keep the private key of a signing certificate with the publisher, never on the machines that run the plugins.
 - Verifier settings come from code by default. If you bind them to `appsettings.json`, protect that file in the same way.
+- If the application lets the configuration choose the verifiers (`PluginVerifiers.AddFromConfiguration`), whoever can change the configuration can also turn verification off. Protect the configuration files and environment variables of the application accordingly.
 
 ## No gap between verification and loading
 

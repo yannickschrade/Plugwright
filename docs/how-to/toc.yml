@@ -12,6 +12,8 @@
   href: verify-package-signatures.md
 - name: Declare plugin dependencies
   href: declare-plugin-dependencies.md
+- name: Configure plugins from appsettings.json
+  href: configure-from-appsettings.md
 - name: Write a plugin handler
   href: write-a-plugin-handler.md
 - name: Handle plugin failures

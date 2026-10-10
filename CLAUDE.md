@@ -6,7 +6,7 @@ The full specification (German, with rationale and decision log) lives in `docs/
 
 ## Status
 
-Done: repo setup (central package management, CI, DocFX), plugin contract, extension members and handler pipeline, directory loading, metadata and dependencies, verification with `HashVerifier` and `CertificateVerifier`, `PluginReport`, CLI `lock` and `sign`, NuGet package source with verification (lock file, `PackageSignatureVerifier`) and optional feed. Next: CLI `verify` (step 7).
+Done: repo setup (central package management, CI, DocFX), plugin contract, extension members and handler pipeline, directory loading, metadata and dependencies, verification with `HashVerifier` and `CertificateVerifier`, `PluginReport`, CLI `lock` and `sign`, NuGet package source with verification (lock file, `PackageSignatureVerifier`) and optional feed, sources and verifiers from configuration (`AddFromConfiguration`). Next: CLI `verify` (step 7).
 
 ## Baseline
 
@@ -116,7 +116,7 @@ docs/                        DocFX site; docs/design/specification.md
   - Publisher trust: root certificate file plus subject DN; intermediates come from the signature.
 - CLI: package `Plugwright.Cli`, command `plugwright`. Commands: `lock` (several directories) and `sign` (done), `verify`. No command-line parsing library.
 - Verify before reading metadata. Load from the verified bytes (`LoadFromStream`). Re-verify or re-extract the NuGet cache on every start.
-- Verifier settings come from code by default; binding them to a configuration section requires an explicit call. Which verifiers exist is always decided in code.
+- Verifier settings come from code by default; binding them to a configuration section requires an explicit call. Which verifiers exist is decided in code, unless the code explicitly hands that to configuration (`PluginVerifiers.AddFromConfiguration`).
 - Every check emits a structured log event with a fixed EventId; results are also available via API.
 - No Authenticode or strong-name checks in the core.
 

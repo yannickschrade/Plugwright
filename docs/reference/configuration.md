@@ -1,20 +1,48 @@
 # Configuration
 
-Plugwright reads plugin settings from the application's normal configuration, <xref:Microsoft.Extensions.Hosting.IHostApplicationBuilder.Configuration>.
+Plugwright reads plugin settings from the application's normal configuration, <xref:Microsoft.Extensions.Hosting.IHostApplicationBuilder.Configuration>. If the application calls `AddFromConfiguration`, the same section also sets up sources, options and verifiers.
 
-## Layout
+## The Plugwright section
 
 ```json
 {
   "Plugwright": {
-    "Plugins": {
-      "{PluginId}": {
-        "Settings": { }
+    "FailureMode": "FailFast",
+    "Directories": [ "plugins" ],
+    "Packages": [
+      {
+        "Path": "packages",
+        "Feed": "https://api.nuget.org/v3/index.json",
+        "DownloadDirectory": "plugin-package-downloads",
+        "DownloadTimeout": "00:00:30",
+        "VerifyDownloads": true
       }
+    ],
+    "Verification": {
+      "Hash": { "LockFile": "plugins.lock.json" },
+      "Certificate": {
+        "TrustedThumbprints": [ "…" ],
+        "TrustedPublishers": [ { "IssuerCertificate": "acme-ca.crt", "Subject": "CN=Acme Plugins, O=Acme" } ],
+        "RevocationMode": "NoCheck"
+      },
+      "PackageSignature": { "TrustedThumbprints": [ "…" ] }
+    },
+    "Plugins": {
+      "{PluginId}": { "Settings": { } }
     }
   }
 }
 ```
+
+| Key | Read by | Notes |
+| --- | --- | --- |
+| `FailureMode`, `Directories`, `Packages` | `builder.Plugins.AddFromConfiguration` | `Packages` needs `builder.Plugins.AddNuGetSupport()`. |
+| `Verification` | `builder.PluginVerifiers.AddFromConfiguration` | `PackageSignature` needs `builder.Plugins.AddNuGetSupport()`. |
+| `Plugins:{PluginId}:Settings` | Every plugin | Always read, see below. |
+
+Unknown keys in these sections are errors. See [Configure plugins from appsettings.json](../how-to/configure-from-appsettings.md).
+
+## Plugin settings
 
 | Key | Meaning |
 | --- | --- |
