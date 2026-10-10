@@ -36,6 +36,10 @@
     <Project Path="samples/SignedPlugins/App/SignedPlugins.App.csproj" />
     <Project Path="samples/SignedPlugins/SampleCertificates/SampleCertificates.csproj" />
   </Folder>
+  <Folder Name="/samples/WebHost/">
+    <Project Path="samples/WebHost/Acme.Greetings/Acme.Greetings.csproj" />
+    <Project Path="samples/WebHost/App/WebHost.App.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Plugwright.Abstractions/Plugwright.Abstractions.csproj" />
     <Project Path="src/Plugwright.AspNetCore.Abstractions/Plugwright.AspNetCore.Abstractions.csproj" />

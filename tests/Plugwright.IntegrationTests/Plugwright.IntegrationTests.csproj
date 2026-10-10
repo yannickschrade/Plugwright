@@ -22,6 +22,11 @@
     <ProjectReference Include="..\TestWebHost\TestWebHost.csproj" />
   </ItemGroup>
 
+  <!-- Samples tested with WebApplicationFactory<Program>. Aliases keep their Program classes apart. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\samples\WebHost\App\WebHost.App.csproj" Aliases="WebHostSample" />
+  </ItemGroup>
+
   <!-- Build the test plugins first, but never reference them: the tests load them like real plugins. -->
   <ItemGroup>
     <ProjectReference Include="..\TestPlugins\Greeter\Greeter.csproj" ReferenceOutputAssembly="false" Private="false" />
