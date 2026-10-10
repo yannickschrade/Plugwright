@@ -1,14 +1,18 @@
 @page "/plugins"
+@rendermode InteractiveServer
 @inject IPluginCatalog Catalog
+@inject IPluginSettingsStore SettingsStore
+@inject IConfiguration Configuration
 
 <PageTitle>Plugins</PageTitle>
 
 <h1>Plugins</h1>
 
+@* --8<-- [start:catalog] *@
 @* The catalog knows every plugin, also those that are not loaded. *@
 <table class="plugins">
     <thead>
-        <tr><th>ID</th><th>Version</th><th>State</th><th>Required</th><th>Reason</th></tr>
+        <tr><th>ID</th><th>Version</th><th>State</th><th>Required</th><th>Reason</th><th>Next start</th></tr>
     </thead>
     <tbody>
         @foreach (var plugin in Catalog.Plugins)
@@ -19,7 +23,47 @@
                 <td>@plugin.State</td>
                 <td>@(plugin.IsRequired ? "yes" : "no")</td>
                 <td>@plugin.Reason</td>
+                <td>
+                    @if (plugin.IsRequired)
+                    {
+                        <span>always on</span>
+                    }
+                    else
+                    {
+                        <button @onclick="() => ToggleAsync(plugin.Id)">@(IsEnabled(plugin.Id) ? "Turn off" : "Turn on")</button>
+                    }
+                </td>
             </tr>
         }
     </tbody>
 </table>
+@* --8<-- [end:catalog] *@
+
+@if (_changed)
+{
+    <p>Restart the application to apply the change.</p>
+}
+
+@code {
+    private readonly Dictionary<string, bool> _saved = new(StringComparer.OrdinalIgnoreCase);
+
+    private bool _changed;
+
+    // --8<-- [start:toggle]
+    // Plugwright:Plugins:{id}:Enabled from the merged configuration, pluginsettings.json included.
+    // The configuration reloads the file shortly after a save, so the page remembers what it saved.
+    private bool IsEnabled(string pluginId) =>
+        _saved.TryGetValue(pluginId, out var enabled)
+            ? enabled
+            : Configuration.GetValue($"Plugwright:Plugins:{pluginId}:Enabled", defaultValue: true);
+
+    // Saved to pluginsettings.json; takes effect at the next start.
+    private async Task ToggleAsync(string pluginId)
+    {
+        var enabled = !IsEnabled(pluginId);
+        await SettingsStore.SetEnabledAsync(pluginId, enabled);
+        _saved[pluginId] = enabled;
+        _changed = true;
+    }
+    // --8<-- [end:toggle]
+}

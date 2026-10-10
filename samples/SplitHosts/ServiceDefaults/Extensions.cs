@@ -42,6 +42,7 @@ public static class Extensions
             logging.IncludeScopes = true;
         });
 
+        // --8<-- [start:telemetry]
         builder.Services.AddOpenTelemetry()
             .WithMetrics(metrics => metrics
                 .AddAspNetCoreInstrumentation()
@@ -56,6 +57,7 @@ public static class Extensions
                         !context.Request.Path.StartsWithSegments(HealthEndpointPath)
                         && !context.Request.Path.StartsWithSegments(AlivenessEndpointPath))
                 .AddHttpClientInstrumentation());
+        // --8<-- [end:telemetry]
 
         if (!string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
         {

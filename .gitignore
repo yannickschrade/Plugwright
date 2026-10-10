@@ -487,3 +487,6 @@ docs/content/api/
 
 # Build output of test plugins
 artifacts/
+
+# Written by the samples at runtime (IPluginSettingsStore)
+samples/**/pluginsettings.json

@@ -13,6 +13,7 @@
 </head>
 
 <body>
+    @* --8<-- [start:nav] *@
     <nav>
         <a href="">Home</a>
         @* The link only appears when the UI plugin is loaded. *@
@@ -21,6 +22,7 @@
             <text> | </text><a href="orders">Orders</a>
         }
     </nav>
+    @* --8<-- [end:nav] *@
     <Routes @rendermode="InteractiveServer" />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
 </body>
