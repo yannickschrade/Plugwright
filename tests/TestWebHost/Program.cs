@@ -13,6 +13,11 @@ if (controllers == "Before")
 }
 
 builder.Plugins.AddFromConfiguration(builder.Configuration.GetSection("Plugwright"));
+foreach (var required in builder.Configuration.GetSection("TestWebHost:Require").GetChildren())
+{
+    builder.Plugins.Require(required.Value!);
+}
+
 builder.PluginHandlers.Add<WebPluginHandler>().Add<BlazorPluginHandler>();
 builder.ApplyPlugins();
 
