@@ -1,0 +1,24 @@
+body {
+    font-family: system-ui, sans-serif;
+    margin: 0;
+}
+
+nav {
+    background: #263238;
+    display: flex;
+    gap: 1rem;
+    padding: 0.8rem 1.2rem;
+}
+
+nav a {
+    color: #eceff1;
+    text-decoration: none;
+}
+
+nav a.active {
+    font-weight: bold;
+}
+
+main {
+    padding: 1.2rem;
+}

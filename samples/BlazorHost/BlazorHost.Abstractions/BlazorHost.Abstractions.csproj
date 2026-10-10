@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Contracts of the host application that plugins use. They are app-specific; Plugwright defines none. -->
+
+</Project>

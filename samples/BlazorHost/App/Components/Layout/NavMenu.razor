@@ -1,0 +1,7 @@
+@* The host's menu shows the entries all plugins registered. *@
+@inject IEnumerable<NavigationItem> Items
+
+@foreach (var item in Items)
+{
+    <NavLink href="@item.Href">@item.Title</NavLink>
+}

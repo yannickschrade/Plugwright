@@ -1,0 +1,10 @@
+@inject IPluginComponentAssemblies PluginAssemblies
+
+<Router AppAssembly="typeof(Program).Assembly"
+        AdditionalAssemblies="PluginAssemblies.Assemblies"
+        NotFoundPage="typeof(Pages.NotFound)">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+</Router>

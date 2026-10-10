@@ -25,6 +25,7 @@
   <!-- Samples tested with WebApplicationFactory<Program>. Aliases keep their Program classes apart. -->
   <ItemGroup>
     <ProjectReference Include="..\..\samples\WebHost\App\WebHost.App.csproj" Aliases="WebHostSample" />
+    <ProjectReference Include="..\..\samples\BlazorHost\App\BlazorHost.App.csproj" Aliases="BlazorHostSample" />
   </ItemGroup>
 
   <!-- Build the test plugins first, but never reference them: the tests load them like real plugins. -->

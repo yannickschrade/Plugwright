@@ -4,6 +4,11 @@
     <Project Path="samples/FailureHandling/FailureHandling.csproj" />
     <Project Path="samples/Heartbeat/Heartbeat.csproj" />
   </Folder>
+  <Folder Name="/samples/BlazorHost/">
+    <Project Path="samples/BlazorHost/Acme.Orders.Ui/Acme.Orders.Ui.csproj" />
+    <Project Path="samples/BlazorHost/App/BlazorHost.App.csproj" />
+    <Project Path="samples/BlazorHost/BlazorHost.Abstractions/BlazorHost.Abstractions.csproj" />
+  </Folder>
   <Folder Name="/samples/ConfiguredPlugins/">
     <Project Path="samples/ConfiguredPlugins/App/ConfiguredPlugins.App.csproj" />
   </Folder>
