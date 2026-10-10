@@ -1,3 +1,4 @@
+using System.Diagnostics.Metrics;
 using System.Reflection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -184,6 +185,11 @@ internal sealed class PluginSystem
         foreach (var plugin in Catalog.Plugins)
         {
             PluginLog.PluginStatus(logger, plugin);
+        }
+
+        if (app.Services.GetService<IMeterFactory>() is { } meterFactory)
+        {
+            PluginMetrics.Register(meterFactory, Catalog);
         }
     }
 
