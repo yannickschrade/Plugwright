@@ -16,12 +16,11 @@ public sealed class PluginReportTests
 
         report.Plugins.Select(plugin => plugin.PluginType).ShouldBe([typeof(SecondMarkerPlugin), typeof(MarkerPlugin)]);
         report.Plugins.ShouldAllBe(plugin => plugin.Metadata.Id == "Plugwright.Tests");
-        report.SkippedPlugins.ShouldBeEmpty();
         report.Verifications.ShouldBeEmpty();
     }
 
     [Fact]
-    public void Report_lists_skipped_plugins_with_their_reason()
+    public void Report_lists_only_the_plugin_types_that_did_not_fail()
     {
         var builder = TestHost.CreateBuilder();
         builder.Plugins.Options.FailureMode = PluginFailureMode.SkipAndLog;
@@ -31,9 +30,5 @@ public sealed class PluginReportTests
         var report = builder.Build().Services.GetRequiredService<PluginReport>();
 
         report.Plugins.ShouldHaveSingleItem().PluginType.ShouldBe(typeof(MarkerPlugin));
-        var skipped = report.SkippedPlugins.ShouldHaveSingleItem();
-        skipped.PluginId.ShouldBe("Plugwright.Tests");
-        skipped.Source.ShouldBe("added in code");
-        skipped.Reason.ShouldContain("Configure went wrong");
     }
 }

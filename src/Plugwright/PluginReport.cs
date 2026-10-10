@@ -1,9 +1,12 @@
 namespace Plugwright;
 
 /// <summary>
-/// What the plugin system did at startup: which plugins are active, which were skipped, and how they were verified.
-/// Available from the service container after <c>builder.ApplyPlugins()</c>.
+/// Details for the host application about what the plugin system did at startup: the active plugin types with their
+/// instances, and how plugins were verified. Available from the service container after <c>builder.ApplyPlugins()</c>.
 /// </summary>
+/// <remarks>
+/// The state of every plugin, also of those that were not loaded, is in the <see cref="IPluginCatalog"/>.
+/// </remarks>
 /// <example>
 /// <code language="csharp">
 /// var report = app.Services.GetRequiredService&lt;PluginReport&gt;();
@@ -12,22 +15,13 @@ namespace Plugwright;
 /// {
 ///     Console.WriteLine($"{plugin.Metadata} ({plugin.PluginType})");
 /// }
-///
-/// foreach (var skipped in report.SkippedPlugins)
-/// {
-///     Console.WriteLine($"{skipped.PluginId} skipped: {skipped.Reason}");
-/// }
 /// </code>
 /// </example>
 public sealed class PluginReport
 {
-    internal PluginReport(
-        IReadOnlyList<PluginDescriptor> plugins,
-        IReadOnlyList<SkippedPlugin> skippedPlugins,
-        IReadOnlyList<PluginVerification> verifications)
+    internal PluginReport(IReadOnlyList<PluginDescriptor> plugins, IReadOnlyList<PluginVerification> verifications)
     {
         Plugins = plugins;
-        SkippedPlugins = skippedPlugins;
         Verifications = verifications;
     }
 
@@ -37,46 +31,9 @@ public sealed class PluginReport
     public IReadOnlyList<PluginDescriptor> Plugins { get; }
 
     /// <summary>
-    /// Gets the plugins that failed and were skipped because <see cref="PluginOptions.FailureMode"/> is
-    /// <see cref="PluginFailureMode.SkipAndLog"/>. Empty in fail-fast mode, because a failure stops the application.
-    /// </summary>
-    public IReadOnlyList<SkippedPlugin> SkippedPlugins { get; }
-
-    /// <summary>
     /// Gets the result of every verification, one entry per plugin and verifier. Empty without verifiers.
     /// </summary>
     public IReadOnlyList<PluginVerification> Verifications { get; }
-}
-
-/// <summary>
-/// A plugin that failed and was skipped, as part of the <see cref="PluginReport"/>.
-/// </summary>
-public sealed class SkippedPlugin
-{
-    internal SkippedPlugin(string pluginId, string source, string reason)
-    {
-        PluginId = pluginId;
-        Source = source;
-        Reason = reason;
-    }
-
-    /// <summary>
-    /// Gets the plugin ID, or the folder name if the plugin failed before its metadata was read.
-    /// </summary>
-    public string PluginId { get; }
-
-    /// <summary>
-    /// Gets where the plugin comes from: <c>added in code</c> or the full path of the plugin folder.
-    /// </summary>
-    public string Source { get; }
-
-    /// <summary>
-    /// Gets why the plugin was skipped.
-    /// </summary>
-    public string Reason { get; }
-
-    /// <inheritdoc/>
-    public override string ToString() => $"{PluginId} ({Source}): {Reason}";
 }
 
 /// <summary>

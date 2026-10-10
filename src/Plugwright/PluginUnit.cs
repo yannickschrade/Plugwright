@@ -63,9 +63,45 @@ internal sealed class PluginUnit
     public List<PluginUnit> DependsOn { get; } = [];
 
     /// <summary>
-    /// Gets or sets whether the unit or one of its plugin types failed. Units depending on a failed unit are skipped.
+    /// Gets or sets the plugin's state, or <see langword="null"/> while it is still being processed.
     /// </summary>
-    public bool Failed { get; set; }
+    public PluginState? State { get; set; }
+
+    /// <summary>
+    /// Gets whether the plugin cannot be used: it is in any state other than loaded.
+    /// </summary>
+    public bool Failed => State is { } state && state != PluginState.Loaded;
+
+    /// <summary>
+    /// Gets or sets why the plugin is not loaded.
+    /// </summary>
+    public string? Reason { get; set; }
+
+    /// <summary>
+    /// Gets or sets the message of the exception that made the plugin fail.
+    /// </summary>
+    public string? ErrorMessage { get; set; }
+
+    /// <summary>
+    /// Gets the names of the handlers that processed the plugin's types.
+    /// </summary>
+    public List<string> AppliedHandlers { get; } = [];
+
+    /// <summary>
+    /// Returns the plugin's catalog entry.
+    /// </summary>
+    public PluginInfo ToInfo() => new()
+    {
+        Id = Id,
+        Version = Metadata.Version,
+        Description = Metadata.Description,
+        Source = Source,
+        State = State ?? PluginState.Loaded,
+        Reason = Reason,
+        ErrorMessage = ErrorMessage,
+        Dependencies = [.. Metadata.Dependencies.Select(dependency => dependency.PluginId)],
+        AppliedHandlers = [.. AppliedHandlers],
+    };
 
     public static PluginUnit FromCode(Assembly assembly) =>
         new(PluginMetadataReader.Read(assembly), CodeSource, "code") { Assembly = assembly };

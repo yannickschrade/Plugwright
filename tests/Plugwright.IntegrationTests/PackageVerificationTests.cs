@@ -66,7 +66,8 @@ public sealed class PackageVerificationTests(TestPluginsFixture testPlugins) : I
         });
 
         report.Plugins.ShouldBeEmpty();
-        report.SkippedPlugins.Select(skipped => skipped.PluginId).ShouldBe([LibraryV1, GreeterId]);
+        _catalog!.Plugins.Select(skipped => (skipped.Id, skipped.State))
+            .ShouldBe([(LibraryV1, PluginState.VerificationFailed), (GreeterId, PluginState.Failed)]);
     }
 
     [Fact]
@@ -146,6 +147,8 @@ public sealed class PackageVerificationTests(TestPluginsFixture testPlugins) : I
         CliApp.Run(["lock", PackageDirectory, "--output", LockFile], output, output).ShouldBe(CliApp.Success, output.ToString());
     }
 
+    private IPluginCatalog? _catalog;
+
     private PluginReport Load(Action<HostApplicationBuilder> configure)
     {
         var builder = TestHost.CreateBuilder(_directory.Path);
@@ -154,6 +157,7 @@ public sealed class PackageVerificationTests(TestPluginsFixture testPlugins) : I
         builder.ApplyPlugins();
         var app = builder.Build();
         app.UsePlugins();
+        _catalog = app.Services.GetRequiredService<IPluginCatalog>();
         return app.Services.GetRequiredService<PluginReport>();
     }
 

@@ -15,15 +15,15 @@ internal static class PluginDependencyResolver
     /// </summary>
     /// <param name="units">The units in the order they were added.</param>
     /// <param name="fail">Called once for every unit with a dependency problem.</param>
-    public static List<PluginUnit> Resolve(List<PluginUnit> units, Action<PluginUnit, string> fail)
+    public static List<PluginUnit> Resolve(List<PluginUnit> units, Action<PluginUnit, PluginState, string> fail)
     {
         var unitsById = units.ToDictionary(unit => unit.Id, StringComparer.OrdinalIgnoreCase);
 
         foreach (var unit in units)
         {
-            if (FindDependencies(unit, unitsById) is { } problem)
+            if (FindDependencies(unit, unitsById) is ({ } state, { } problem))
             {
-                fail(unit, problem);
+                fail(unit, state, problem);
             }
         }
 
@@ -34,7 +34,7 @@ internal static class PluginDependencyResolver
     /// Fills <see cref="PluginUnit.DependsOn"/> and <see cref="PluginUnit.Metadata"/>.
     /// </summary>
     /// <returns>A description of the first problem, or <see langword="null"/>.</returns>
-    private static string? FindDependencies(PluginUnit unit, Dictionary<string, PluginUnit> unitsById)
+    private static (PluginState? State, string? Problem) FindDependencies(PluginUnit unit, Dictionary<string, PluginUnit> unitsById)
     {
         List<PluginDependency> dependencies = [];
 
@@ -42,28 +42,28 @@ internal static class PluginDependencyResolver
         {
             if (!unitsById.TryGetValue(dependency.PluginId, out var other))
             {
-                return $"It depends on plugin '{dependency.PluginId}', which is not available.";
+                return (PluginState.DependencyUnavailable, $"It depends on plugin '{dependency.PluginId}', which is not available.");
             }
 
             if (dependency.VersionRange is not null)
             {
                 if (unit.Info.SatisfiesVersionRange?.Invoke(dependency, other.Metadata.Version) is not true)
                 {
-                    return $"It requires plugin '{dependency.PluginId}' version {dependency.VersionRange}, "
-                        + $"but version {other.Metadata.Version} is available.";
+                    return (PluginState.DependencyUnavailable, $"It requires plugin '{dependency.PluginId}' version {dependency.VersionRange}, "
+                        + $"but version {other.Metadata.Version} is available.");
                 }
             }
             else if (dependency.MinVersion is not null)
             {
                 if (!SemanticVersion.TryParse(dependency.MinVersion, out var minVersion))
                 {
-                    return $"Its dependency on plugin '{dependency.PluginId}' has an invalid minimum version '{dependency.MinVersion}'.";
+                    return (PluginState.Failed, $"Its dependency on plugin '{dependency.PluginId}' has an invalid minimum version '{dependency.MinVersion}'.");
                 }
 
                 if (!SemanticVersion.TryParse(other.Metadata.Version, out var availableVersion) || availableVersion.CompareTo(minVersion) < 0)
                 {
-                    return $"It requires plugin '{dependency.PluginId}' version {dependency.MinVersion} or later, "
-                        + $"but version {other.Metadata.Version} is available.";
+                    return (PluginState.DependencyUnavailable, $"It requires plugin '{dependency.PluginId}' version {dependency.MinVersion} or later, "
+                        + $"but version {other.Metadata.Version} is available.");
                 }
             }
 
@@ -80,8 +80,8 @@ internal static class PluginDependencyResolver
 
             if (reference.Version is not null && reference.Version > other.Info.AssemblyVersion)
             {
-                return $"It was compiled against assembly version {reference.Version} of plugin '{other.Id}', "
-                    + $"but assembly version {other.Info.AssemblyVersion} is available.";
+                return (PluginState.DependencyUnavailable, $"It was compiled against assembly version {reference.Version} of plugin '{other.Id}', "
+                    + $"but assembly version {other.Info.AssemblyVersion} is available.");
             }
 
             if (!dependencies.Any(dependency => string.Equals(dependency.PluginId, other.Id, StringComparison.OrdinalIgnoreCase)))
@@ -101,11 +101,11 @@ internal static class PluginDependencyResolver
 
         if (unit.IsInCode && unit.DependsOn.FirstOrDefault(other => !other.IsInCode) is { } folderDependency)
         {
-            return $"It depends on plugin '{folderDependency.Id}' from {folderDependency.Source}. "
-                + "Plugins added in code can only depend on plugins added in code.";
+            return (PluginState.DependencyUnavailable, $"It depends on plugin '{folderDependency.Id}' from {folderDependency.Source}. "
+                + "Plugins added in code can only depend on plugins added in code.");
         }
 
-        return null;
+        return (null, null);
     }
 
     private static void AddDependency(PluginUnit unit, PluginUnit other)
@@ -120,7 +120,7 @@ internal static class PluginDependencyResolver
     /// Depth-first topological sort that keeps the original order where dependencies allow it.
     /// Every unit in a cycle is reported.
     /// </summary>
-    private static List<PluginUnit> Sort(List<PluginUnit> units, Action<PluginUnit, string> fail)
+    private static List<PluginUnit> Sort(List<PluginUnit> units, Action<PluginUnit, PluginState, string> fail)
     {
         List<PluginUnit> sorted = [];
         HashSet<PluginUnit> done = [];
@@ -147,7 +147,7 @@ internal static class PluginDependencyResolver
                 var description = string.Join(" -> ", cycle.Append(unit).Select(member => member.Id));
                 foreach (var member in cycle.Where(member => !member.Failed))
                 {
-                    fail(member, $"Plugins depend on each other in a cycle: {description}.");
+                    fail(member, PluginState.Failed, $"Plugins depend on each other in a cycle: {description}.");
                 }
 
                 return;

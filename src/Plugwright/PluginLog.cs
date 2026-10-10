@@ -38,4 +38,22 @@ internal static partial class PluginLog
     [LoggerMessage(EventId = 1007, EventName = "PackageDownloaded", Level = LogLevel.Information,
         Message = "Package {PackageId} {PackageVersion} downloaded from {Feed} to {PackagePath}")]
     public static partial void PackageDownloaded(ILogger logger, string packageId, string packageVersion, string feed, string packagePath);
+
+    [LoggerMessage(EventId = 1008, EventName = "PluginStatus",
+        Message = "Plugin {PluginId} {PluginVersion} ({PluginSource}): {PluginState}{Reason}")]
+    private static partial void PluginStatus(
+        ILogger logger, LogLevel level, string pluginId, string? pluginVersion, string pluginSource, PluginState pluginState, string reason);
+
+    /// <summary>
+    /// Logs the state of one plugin at startup: information if it is loaded or disabled, otherwise a warning.
+    /// </summary>
+    public static void PluginStatus(ILogger logger, PluginInfo plugin) =>
+        PluginStatus(
+            logger,
+            plugin.State is PluginState.Loaded or PluginState.Disabled ? LogLevel.Information : LogLevel.Warning,
+            plugin.Id,
+            plugin.Version,
+            plugin.Source,
+            plugin.State,
+            plugin.Reason is null ? "" : $". {plugin.Reason}");
 }

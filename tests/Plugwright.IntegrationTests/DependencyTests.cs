@@ -106,11 +106,20 @@ public sealed class DependencyTests(TestPluginsFixture testPlugins) : IDisposabl
         var skipped = LogRecords(app).Where(record => record.Id.Id == 1001).Select(record => record.Message).ToList();
         skipped.Count.ShouldBe(2);
         skipped.ShouldContain(message => message.Contains(LoggingId) && message.Contains("Logging failed on purpose."));
-        skipped.ShouldContain(message => message.Contains(AuditId) && message.Contains($"It depends on plugin '{LoggingId}', which was skipped."));
+        skipped.ShouldContain(message => message.Contains(AuditId) && message.Contains($"It depends on plugin '{LoggingId}', which is not loaded because it failed."));
         LogRecords(app).Where(record => record.Id.Id == 1000).ShouldAllBe(record => record.Message.Contains(GreeterId));
 
         // Audit was never loaded for execution.
         AssembliesLoadedFrom(Path.Combine(PluginDirectory, AuditId)).ShouldBeEmpty();
+
+        var catalog = app.Services.GetRequiredService<IPluginCatalog>();
+        catalog.Find(LoggingId).ShouldNotBeNull().State.ShouldBe(PluginState.Failed);
+        catalog.Find(LoggingId)!.ErrorMessage.ShouldBe("Logging failed on purpose.");
+        var audit = catalog.Find(AuditId).ShouldNotBeNull();
+        audit.State.ShouldBe(PluginState.DependencyUnavailable);
+        audit.Reason.ShouldBe($"It depends on plugin '{LoggingId}', which is not loaded because it failed.");
+        audit.Dependencies.ShouldBe([LoggingId]);
+        catalog.Find(GreeterId).ShouldNotBeNull().State.ShouldBe(PluginState.Loaded);
     }
 
     [Fact]

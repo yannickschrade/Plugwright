@@ -79,10 +79,12 @@ public sealed class PackageFeedTests(TestPluginsFixture testPlugins) : IDisposab
     {
         Install(Greeter, PackageDirectory);
 
-        var report = BuildApp(options => options.Feed = UnreachableFeed, skipAndLog: true).Services.GetRequiredService<PluginReport>();
+        var services = BuildApp(options => options.Feed = UnreachableFeed, skipAndLog: true).Services;
 
-        report.Plugins.ShouldBeEmpty();
-        report.SkippedPlugins.ShouldHaveSingleItem().PluginId.ShouldBe(GreeterId);
+        services.GetRequiredService<PluginReport>().Plugins.ShouldBeEmpty();
+        var skipped = services.GetRequiredService<IPluginCatalog>().Plugins.ShouldHaveSingleItem();
+        skipped.Id.ShouldBe(GreeterId);
+        skipped.State.ShouldBe(PluginState.Failed);
     }
 
     [Fact]

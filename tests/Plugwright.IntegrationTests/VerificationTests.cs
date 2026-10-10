@@ -72,7 +72,8 @@ public sealed class VerificationTests(TestPluginsFixture testPlugins) : IDisposa
             .ShouldBe([(GreeterId, "HashVerifier", true), (LoggingId, "HashVerifier", false)]);
         report.Verifications[1].Message.ShouldBe("File 'Extra.txt' is not listed in the lock file.");
         report.Verifications[1].Location.ShouldBe(loggingFolder);
-        report.SkippedPlugins.ShouldHaveSingleItem().PluginId.ShouldBe(LoggingId);
+        app.Services.GetRequiredService<IPluginCatalog>().Plugins.Select(plugin => (plugin.Id, plugin.State))
+            .ShouldBe([(LoggingId, PluginState.VerificationFailed), (GreeterId, PluginState.Loaded)]);
         report.Plugins.Select(plugin => plugin.Metadata.Id).Distinct().ShouldBe([GreeterId]);
     }
 

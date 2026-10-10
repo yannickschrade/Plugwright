@@ -149,9 +149,9 @@ public sealed class PluginDependencyResolverTests
     }
 
     private List<PluginUnit> Resolve(params List<PluginUnit> units) =>
-        PluginDependencyResolver.Resolve(units, (unit, reason) =>
+        PluginDependencyResolver.Resolve(units, (unit, state, reason) =>
         {
-            unit.Failed = true;
+            unit.State = state;
             _failures.Add((unit.Id, reason));
         });
 

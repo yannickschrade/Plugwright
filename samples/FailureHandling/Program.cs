@@ -18,11 +18,11 @@ app.UsePlugins();
 #endregion
 
 #region report
-// The report tells which plugins run and which were skipped, for example for a status page.
-var report = app.Services.GetRequiredService<PluginReport>();
-foreach (var skipped in report.SkippedPlugins)
+// The catalog tells the state of every plugin, for example for a status page.
+var catalog = app.Services.GetRequiredService<IPluginCatalog>();
+foreach (var plugin in catalog.Plugins.Where(plugin => plugin.State != PluginState.Loaded))
 {
-    Console.WriteLine($"Skipped: {skipped.PluginId} ({skipped.Source}): {skipped.Reason}");
+    Console.WriteLine($"Not loaded: {plugin.Id} ({plugin.Source}): {plugin.State}, {plugin.Reason}");
 }
 #endregion
 

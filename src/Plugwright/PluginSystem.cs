@@ -16,7 +16,6 @@ internal sealed class PluginSystem
 
     private readonly LogBuffer _logBuffer = new();
     private readonly List<ActivePlugin> _activePlugins = [];
-    private readonly List<SkippedPlugin> _skippedPlugins = [];
     private readonly List<PluginVerification> _verifications = [];
     private bool _applied;
     private bool _used;
@@ -35,6 +34,8 @@ internal sealed class PluginSystem
     public PluginVerifierCollection Verifiers { get; }
 
     public PluginConfigurationReaders ConfigurationReaders { get; } = new();
+
+    public PluginCatalog Catalog { get; } = new();
 
     private ILogger Logger => _logBuffer.CreateLogger(LoggerCategory);
 
@@ -85,16 +86,19 @@ internal sealed class PluginSystem
 
         ThrowOnDuplicateIds(units);
 
-        foreach (var unit in PluginDependencyResolver.Resolve(units, (unit, reason) => Fail(unit, reason, exception: null)))
+        foreach (var unit in PluginDependencyResolver.Resolve(units, (unit, state, reason) => Fail(unit, state, reason, exception: null)))
         {
             ApplyUnit(builder, unit, handlers);
+            // A unit that failed in one plugin type keeps running its other types; record what they applied.
+            unit.State ??= PluginState.Loaded;
+            Catalog.Set(unit.ToInfo());
         }
 
         MoveToEnd(builder, settingsSource);
 
         builder.Services.AddSingleton(this);
-        builder.Services.AddSingleton(new PluginReport(
-            [.. _activePlugins.Select(active => active.Plugin)], [.. _skippedPlugins], [.. _verifications]));
+        builder.Services.AddSingleton<IPluginCatalog>(Catalog);
+        builder.Services.AddSingleton(new PluginReport([.. _activePlugins.Select(active => active.Plugin)], [.. _verifications]));
     }
 
     /// <summary>
@@ -166,6 +170,11 @@ internal sealed class PluginSystem
         {
             PluginLog.PluginLoaded(logger, plugin.Metadata.Id, plugin.Metadata.Version, plugin.PluginType.FullName, plugin.Source);
         }
+
+        foreach (var plugin in Catalog.Plugins)
+        {
+            PluginLog.PluginStatus(logger, plugin);
+        }
     }
 
     /// <summary>
@@ -184,7 +193,7 @@ internal sealed class PluginSystem
             Verifiers.Count > 0,
             Logger,
             Verify,
-            (pluginId, location, reason, exception) => Fail(pluginId, location, reason, exception));
+            (pluginId, location, reason, exception) => Fail(pluginId, location, PluginState.Failed, reason, exception));
 
         List<PluginUnit> units = [];
         foreach (var source in Plugins)
@@ -252,6 +261,7 @@ internal sealed class PluginSystem
             Fail(
                 name,
                 folder,
+                PluginState.Failed,
                 $"The folder contains no '{mainAssemblyFile}'. Each plugin folder must contain an assembly with the folder's name.",
                 exception: null);
             return null;
@@ -274,7 +284,7 @@ internal sealed class PluginSystem
         }
         catch (Exception exception)
         {
-            Fail(name, folder, $"'{mainAssemblyFile}' could not be read: {exception.Message}", exception);
+            Fail(name, folder, PluginState.Failed, $"'{mainAssemblyFile}' could not be read: {exception.Message}", exception);
             return null;
         }
     }
@@ -295,7 +305,7 @@ internal sealed class PluginSystem
         }
         catch (IOException exception)
         {
-            Fail(name, folder, $"The plugin files could not be read: {exception.Message}", exception);
+            Fail(name, folder, PluginState.Failed, $"The plugin files could not be read: {exception.Message}", exception);
             return null;
         }
 
@@ -314,6 +324,7 @@ internal sealed class PluginSystem
             Fail(
                 name,
                 location,
+                PluginState.VerificationFailed,
                 $"No registered plugin verifier can verify plugins from this source ({source}). "
                 + "Register one with builder.PluginVerifiers, or remove all verifiers to load plugins without verification.",
                 exception: null);
@@ -333,7 +344,7 @@ internal sealed class PluginSystem
             {
                 PluginLog.PluginVerificationFailed(Logger, exception, name, location, verifierName, exception.Message);
                 _verifications.Add(new PluginVerification(name, location, verifierName, succeeded: false, exception.Message));
-                Fail(name, location, $"Verification by {verifierName} failed: {exception.Message}", exception);
+                Fail(name, location, PluginState.VerificationFailed, $"Verification by {verifierName} failed: {exception.Message}", exception);
                 return false;
             }
 
@@ -341,7 +352,7 @@ internal sealed class PluginSystem
             {
                 PluginLog.PluginVerificationFailed(Logger, exception: null, name, location, verifierName, result.Message);
                 _verifications.Add(new PluginVerification(name, location, verifierName, succeeded: false, result.Message));
-                Fail(name, location, $"Verification by {verifierName} failed: {result.Message}", exception: null);
+                Fail(name, location, PluginState.VerificationFailed, $"Verification by {verifierName} failed: {result.Message}", exception: null);
                 return false;
             }
 
@@ -379,7 +390,11 @@ internal sealed class PluginSystem
 
         if (unit.DependsOn.FirstOrDefault(dependency => dependency.Failed) is { } failedDependency)
         {
-            Fail(unit, $"It depends on plugin '{failedDependency.Id}', which was skipped.", exception: null);
+            Fail(
+                unit,
+                PluginState.DependencyUnavailable,
+                $"It depends on plugin '{failedDependency.Id}', which is {Describe(failedDependency.State)}.",
+                exception: null);
             return;
         }
 
@@ -410,7 +425,7 @@ internal sealed class PluginSystem
         }
         catch (Exception exception)
         {
-            Fail(unit, $"'{mainAssemblyFile}' could not be loaded: {exception.Message}", exception);
+            Fail(unit, PluginState.Failed, $"'{mainAssemblyFile}' could not be loaded: {exception.Message}", exception);
             return false;
         }
 
@@ -420,7 +435,7 @@ internal sealed class PluginSystem
 
         if (unit.PluginTypes.Count == 0)
         {
-            Fail(unit, $"'{mainAssemblyFile}' contains no public plugin type that a registered handler can handle.", exception: null);
+            Fail(unit, PluginState.NoHandler, $"'{mainAssemblyFile}' contains no public plugin type that a registered handler can handle.", exception: null);
             return false;
         }
 
@@ -434,6 +449,7 @@ internal sealed class PluginSystem
         {
             Fail(
                 unit,
+                PluginState.NoHandler,
                 $"No plugin handler can handle plugin type '{pluginType}'. Implement {nameof(IPlugin)}, "
                 + "or register a handler for it with builder.PluginHandlers.Add<T>().",
                 exception: null);
@@ -444,6 +460,7 @@ internal sealed class PluginSystem
         {
             Fail(
                 unit,
+                PluginState.Failed,
                 $"Plugin type '{pluginType}' has no public parameterless constructor. "
                 + "Plugins are created before the service container exists, so they cannot receive services through their constructor.",
                 exception: null);
@@ -458,7 +475,7 @@ internal sealed class PluginSystem
         catch (TargetInvocationException exception)
         {
             var cause = exception.InnerException ?? exception;
-            Fail(unit, $"Plugin type '{pluginType}' could not be created: {cause.Message}", cause);
+            Fail(unit, PluginState.Failed, $"Plugin type '{pluginType}' could not be created: {cause.Message}", cause);
             return;
         }
 
@@ -474,11 +491,16 @@ internal sealed class PluginSystem
             try
             {
                 handler.Apply(plugin, builder);
+                if (!unit.AppliedHandlers.Contains(handler.GetType().Name))
+                {
+                    unit.AppliedHandlers.Add(handler.GetType().Name);
+                }
             }
             catch (Exception exception)
             {
                 Fail(
                     unit,
+                    PluginState.Failed,
                     $"Phase 1 failed for plugin type '{pluginType}' in handler '{handler.GetType()}': {exception.Message}",
                     exception);
                 return;
@@ -489,16 +511,32 @@ internal sealed class PluginSystem
     }
 
     /// <summary>
-    /// Reports a failed unit: throws in fail-fast mode, otherwise logs it and marks it as failed,
+    /// Reports a failed unit: throws in fail-fast mode, otherwise logs it and records its state,
     /// so that units depending on it are skipped.
     /// </summary>
-    private void Fail(PluginUnit unit, string reason, Exception? exception)
+    private void Fail(PluginUnit unit, PluginState state, string reason, Exception? exception)
     {
-        unit.Failed = true;
-        Fail(unit.Id, unit.Source, reason, exception);
+        unit.State = state;
+        unit.Reason = reason;
+        unit.ErrorMessage = exception?.Message;
+        Fail(unit.Id, unit.Source, reason, exception, unit.ToInfo());
     }
 
-    private void Fail(string pluginId, string source, string reason, Exception? exception)
+    /// <summary>
+    /// Reports a plugin that failed before it became a unit, for example in verification. Its ID is the name of its
+    /// folder or package.
+    /// </summary>
+    private void Fail(string pluginId, string source, PluginState state, string reason, Exception? exception) =>
+        Fail(pluginId, source, reason, exception, new PluginInfo
+        {
+            Id = pluginId,
+            Source = source,
+            State = state,
+            Reason = reason,
+            ErrorMessage = exception?.Message,
+        });
+
+    private void Fail(string pluginId, string source, string reason, Exception? exception, PluginInfo info)
     {
         if (Plugins.Options.FailureMode == PluginFailureMode.FailFast)
         {
@@ -506,8 +544,17 @@ internal sealed class PluginSystem
         }
 
         PluginLog.PluginSkipped(Logger, exception, pluginId, source, reason);
-        _skippedPlugins.Add(new SkippedPlugin(pluginId, source, reason));
+        Catalog.Set(info);
     }
+
+    private static string Describe(PluginState? state) => state switch
+    {
+        PluginState.Disabled => "disabled",
+        PluginState.DependencyUnavailable => "not loaded because of its own dependencies",
+        PluginState.VerificationFailed => "not loaded because it failed verification",
+        PluginState.NoHandler => "not loaded because no handler can handle it",
+        _ => "not loaded because it failed",
+    };
 
     private sealed record ActivePlugin(PluginDescriptor Plugin, List<IPluginHandler> Handlers);
 }

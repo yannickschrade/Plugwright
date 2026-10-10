@@ -81,10 +81,10 @@ public sealed class PluginSettingsFileTests : IDisposable
         var configuration = app.Services.GetRequiredService<IConfiguration>();
         var cancellationToken = TestContext.Current.CancellationToken;
 
-        var reloaded = WaitForReload(configuration, key => configuration[key] == "00:00:30", "Plugwright:Plugins:Acme.Clock:Settings:Interval");
         await store.SaveSettingsAsync("Acme.Clock", new { Interval = "00:00:30" }, cancellationToken);
         await store.SetEnabledAsync("acme.clock", false, cancellationToken);
-        await reloaded.WaitAsync(TimeSpan.FromSeconds(10), cancellationToken);
+        await WaitForReload(configuration, key => configuration[key] == "00:00:30", "Plugwright:Plugins:Acme.Clock:Settings:Interval")
+            .WaitAsync(TimeSpan.FromSeconds(10), cancellationToken);
 
         configuration["Plugwright:Plugins:Acme.Other:Enabled"].ShouldBe("False");
         var saved = File.ReadAllText(SettingsFile);
@@ -121,7 +121,15 @@ public sealed class PluginSettingsFileTests : IDisposable
     private static Task WaitForReload(IConfiguration configuration, Func<string, bool> condition, string key)
     {
         var completion = new TaskCompletionSource();
-        Register();
+        if (condition(key))
+        {
+            completion.SetResult();
+        }
+        else
+        {
+            Register();
+        }
+
         return completion.Task;
 
         void Register() => configuration.GetReloadToken().RegisterChangeCallback(

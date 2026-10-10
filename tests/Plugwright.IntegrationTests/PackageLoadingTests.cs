@@ -93,10 +93,10 @@ public sealed class PackageLoadingTests(TestPluginsFixture testPlugins) : IDispo
     {
         Install(LibraryV1);
 
-        var report = BuildApp().Services.GetRequiredService<PluginReport>();
+        var services = BuildApp().Services;
 
-        report.Plugins.ShouldBeEmpty();
-        report.SkippedPlugins.ShouldBeEmpty();
+        services.GetRequiredService<PluginReport>().Plugins.ShouldBeEmpty();
+        services.GetRequiredService<IPluginCatalog>().Plugins.ShouldBeEmpty();
     }
 
     [Fact]
@@ -144,7 +144,8 @@ public sealed class PackageLoadingTests(TestPluginsFixture testPlugins) : IDispo
 
         var report = app.Services.GetRequiredService<PluginReport>();
         report.Plugins.ShouldBeEmpty();
-        report.SkippedPlugins.Select(skipped => skipped.PluginId).ShouldBe([GreeterId, ReportsId], ignoreOrder: true);
+        app.Services.GetRequiredService<IPluginCatalog>().Plugins.Select(skipped => (skipped.Id, skipped.State))
+            .ShouldBe([(GreeterId, PluginState.Failed), (ReportsId, PluginState.DependencyUnavailable)], ignoreOrder: true);
     }
 
     [Fact]
