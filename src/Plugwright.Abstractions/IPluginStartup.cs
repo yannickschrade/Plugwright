@@ -48,8 +48,3 @@ public interface IPluginStartup
     /// <returns>A task that completes when the startup task is done.</returns>
     Task StartAsync(CancellationToken cancellationToken);
 }
-
-/// <summary>
-/// A startup task as recorded in the service collection, for the plugin system to run.
-/// </summary>
-internal sealed record PluginStartupRegistration(string PluginId, Type StartupType);
