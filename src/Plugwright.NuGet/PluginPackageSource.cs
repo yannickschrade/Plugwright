@@ -57,6 +57,16 @@ public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
         List<PluginUnit> units = [];
         foreach (var package in packages.Where(package => package.IsPlugin))
         {
+            if (context.IsDisabled(package.Id))
+            {
+                units.Add(PluginUnit.Disabled(package.Id, package.Path, "package", new PluginMetadata(package.Id, package.Version.ToNormalizedString())
+                {
+                    Description = package.Description,
+                    Authors = package.Authors,
+                }));
+                continue;
+            }
+
             if (CreateUnit(package, resolver, context) is { } unit)
             {
                 units.Add(unit);
@@ -88,10 +98,21 @@ public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
             return null;
         }
 
+        // A plugin package that is turned off is neither verified nor loaded; its manifest is all that is read.
+        if (package.IsPlugin && context.IsDisabled(package.Id))
+        {
+            return package;
+        }
+
         // A package is verified under its file name without .nupkg, so that versions of a library do not collide.
         if (verify
             && context.VerificationEnabled
-            && !context.Verify(this, System.IO.Path.GetFileNameWithoutExtension(path), path, [PluginDiscoveryContext.CreateFile(fileName, content)]))
+            && !context.Verify(
+                this,
+                System.IO.Path.GetFileNameWithoutExtension(path),
+                path,
+                [PluginDiscoveryContext.CreateFile(fileName, content)],
+                pluginId: package.IsPlugin ? package.Id : System.IO.Path.GetFileNameWithoutExtension(path)))
         {
             return null;
         }

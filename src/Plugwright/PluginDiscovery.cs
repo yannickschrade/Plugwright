@@ -18,16 +18,19 @@ internal interface IDiscoveringPluginSource
 /// </summary>
 internal sealed class PluginDiscoveryContext
 {
-    private readonly Func<PluginSource, string, string, IReadOnlyList<PluginFile>, bool> _verify;
+    private readonly Func<PluginSource, string, string, IReadOnlyList<PluginFile>, string, bool> _verify;
     private readonly Action<string, string, string, Exception?> _fail;
+    private readonly Func<string, bool> _isDisabled;
 
     public PluginDiscoveryContext(
         string contentRoot,
         bool verificationEnabled,
         ILogger logger,
-        Func<PluginSource, string, string, IReadOnlyList<PluginFile>, bool> verify,
-        Action<string, string, string, Exception?> fail)
+        Func<PluginSource, string, string, IReadOnlyList<PluginFile>, string, bool> verify,
+        Action<string, string, string, Exception?> fail,
+        Func<string, bool> isDisabled)
     {
+        _isDisabled = isDisabled;
         ContentRoot = contentRoot;
         VerificationEnabled = verificationEnabled;
         Logger = logger;
@@ -54,8 +57,12 @@ internal sealed class PluginDiscoveryContext
     /// Lets all responsible verifiers check a plugin's files. Logs and records the results, and reports a failure.
     /// </summary>
     /// <returns><see langword="true"/> if all responsible verifiers passed.</returns>
-    public bool Verify(PluginSource source, string name, string location, IReadOnlyList<PluginFile> files) =>
-        _verify(source, name, location, files);
+    /// <summary>
+    /// Lets the verifiers check a plugin's files. <paramref name="name"/> is the name the verifiers know the plugin by,
+    /// for example in the lock file; <paramref name="pluginId"/> the ID it appears under in the catalog if it fails.
+    /// </summary>
+    public bool Verify(PluginSource source, string name, string location, IReadOnlyList<PluginFile> files, string pluginId) =>
+        _verify(source, name, location, files, pluginId);
 
     /// <summary>
     /// Reports a plugin that failed before it became a unit: throws in fail-fast mode, otherwise logs and records it.
@@ -66,5 +73,10 @@ internal sealed class PluginDiscoveryContext
     /// <summary>
     /// Creates a file for verification.
     /// </summary>
+    /// <summary>
+    /// Returns whether the configuration turns the plugin with this ID off. Such plugins are neither verified nor loaded.
+    /// </summary>
+    public bool IsDisabled(string pluginId) => _isDisabled(pluginId);
+
     public static PluginFile CreateFile(string path, byte[] content) => new(path, content);
 }

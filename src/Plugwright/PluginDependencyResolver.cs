@@ -19,7 +19,8 @@ internal static class PluginDependencyResolver
     {
         var unitsById = units.ToDictionary(unit => unit.Id, StringComparer.OrdinalIgnoreCase);
 
-        foreach (var unit in units)
+        // Plugins that are turned off are never loaded, so their own dependencies do not matter.
+        foreach (var unit in units.Where(unit => unit.State is null))
         {
             if (FindDependencies(unit, unitsById) is ({ } state, { } problem))
             {
@@ -43,6 +44,14 @@ internal static class PluginDependencyResolver
             if (!unitsById.TryGetValue(dependency.PluginId, out var other))
             {
                 return (PluginState.DependencyUnavailable, $"It depends on plugin '{dependency.PluginId}', which is not available.");
+            }
+
+            // A plugin that is turned off or failed is not loaded: there is no version to check; its dependents are skipped later.
+            if (other.State is not null)
+            {
+                dependencies.Add(dependency);
+                AddDependency(unit, other);
+                continue;
             }
 
             if (dependency.VersionRange is not null)
@@ -78,7 +87,7 @@ internal static class PluginDependencyResolver
                 continue;
             }
 
-            if (reference.Version is not null && reference.Version > other.Info.AssemblyVersion)
+            if (other.State is null && reference.Version is not null && reference.Version > other.Info.AssemblyVersion)
             {
                 return (PluginState.DependencyUnavailable, $"It was compiled against assembly version {reference.Version} of plugin '{other.Id}', "
                     + $"but assembly version {other.Info.AssemblyVersion} is available.");

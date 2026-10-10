@@ -1,4 +1,5 @@
 using System.Reflection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -86,7 +87,10 @@ internal sealed class PluginSystem
 
         ThrowOnDuplicateIds(units);
 
-        foreach (var unit in PluginDependencyResolver.Resolve(units, (unit, state, reason) => Fail(unit, state, reason, exception: null)))
+        var sortedUnits = PluginDependencyResolver.Resolve(units, (unit, state, reason) => Fail(unit, state, reason, exception: null));
+        SkipDependentsOfUnavailable(sortedUnits);
+
+        foreach (var unit in sortedUnits)
         {
             ApplyUnit(builder, unit, handlers);
             // A unit that failed in one plugin type keeps running its other types; record what they applied.
@@ -193,7 +197,8 @@ internal sealed class PluginSystem
             Verifiers.Count > 0,
             Logger,
             Verify,
-            (pluginId, location, reason, exception) => Fail(pluginId, location, PluginState.Failed, reason, exception));
+            (pluginId, location, reason, exception) => Fail(pluginId, location, PluginState.Failed, reason, exception),
+            pluginId => PluginConfiguration.IsDisabled(builder.Configuration, pluginId));
 
         List<PluginUnit> units = [];
         foreach (var source in Plugins)
@@ -210,11 +215,17 @@ internal sealed class PluginSystem
                     }
 
                     unit.PluginTypes.Add(typeSource.PluginType);
+                    if (unit.State is null && PluginConfiguration.IsDisabled(builder.Configuration, unit.Id))
+                    {
+                        unit.State = PluginState.Disabled;
+                        unit.Reason = PluginConfiguration.DisabledReason(unit.Id);
+                    }
+
                     break;
 
                 case PluginDirectorySource directorySource:
                     var directory = Path.GetFullPath(directorySource.Path, builder.Environment.ContentRootPath);
-                    units.AddRange(DiscoverDirectory(directory, directorySource));
+                    units.AddRange(DiscoverDirectory(directory, directorySource, builder.Configuration));
                     break;
 
                 case IDiscoveringPluginSource discoveringSource:
@@ -226,7 +237,7 @@ internal sealed class PluginSystem
         return units;
     }
 
-    private List<PluginUnit> DiscoverDirectory(string directory, PluginDirectorySource source)
+    private List<PluginUnit> DiscoverDirectory(string directory, PluginDirectorySource source, IConfiguration configuration)
     {
         if (!Directory.Exists(directory))
         {
@@ -242,7 +253,7 @@ internal sealed class PluginSystem
         List<PluginUnit> units = [];
         foreach (var folder in Directory.EnumerateDirectories(directory).Order(StringComparer.Ordinal))
         {
-            if (DiscoverFolder(folder, source) is { } unit)
+            if (DiscoverFolder(folder, source, configuration) is { } unit)
             {
                 units.Add(unit);
             }
@@ -251,7 +262,7 @@ internal sealed class PluginSystem
         return units;
     }
 
-    private PluginUnit? DiscoverFolder(string folder, PluginDirectorySource source)
+    private PluginUnit? DiscoverFolder(string folder, PluginDirectorySource source, IConfiguration configuration)
     {
         var name = Path.GetFileName(folder);
         var mainAssemblyFile = $"{name}.dll";
@@ -265,6 +276,12 @@ internal sealed class PluginSystem
                 $"The folder contains no '{mainAssemblyFile}'. Each plugin folder must contain an assembly with the folder's name.",
                 exception: null);
             return null;
+        }
+
+        if (PluginConfiguration.IsDisabled(configuration, name))
+        {
+            // Read nothing unverified: without verifiers, the metadata can be read without running plugin code.
+            return PluginUnit.Disabled(name, folder, "folder", Verifiers.Count == 0 ? TryReadMetadata(mainAssemblyPath) : null);
         }
 
         VerifiedFiles? verifiedFiles = null;
@@ -289,6 +306,46 @@ internal sealed class PluginSystem
         }
     }
 
+    private static PluginMetadata? TryReadMetadata(string mainAssemblyPath)
+    {
+        try
+        {
+            return PluginMetadataReader.ReadWithoutLoading(mainAssemblyPath, verifiedContent: null).Metadata;
+        }
+        catch (Exception exception) when (exception is IOException or BadImageFormatException or InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Before any plugin is configured: plugins that depend, directly or transitively, on a plugin that is turned off
+    /// or failed are not loaded. A chain that starts at a plugin turned off is no failure; other chains are.
+    /// </summary>
+    private void SkipDependentsOfUnavailable(List<PluginUnit> sortedUnits)
+    {
+        foreach (var unit in sortedUnits.Where(unit => unit.State is null))
+        {
+            if (unit.DependsOn.FirstOrDefault(dependency => dependency.Failed) is not { } dependency)
+            {
+                continue;
+            }
+
+            var reason = $"It depends on plugin '{dependency.Id}', which is {Describe(dependency.State)}.";
+            if (dependency.State == PluginState.Disabled || dependency.UnavailableBecauseDisabled)
+            {
+                unit.State = PluginState.DependencyUnavailable;
+                unit.Reason = reason;
+                unit.UnavailableBecauseDisabled = true;
+                Catalog.Set(unit.ToInfo());
+            }
+            else
+            {
+                Fail(unit, PluginState.DependencyUnavailable, reason, exception: null);
+            }
+        }
+    }
+
     /// <summary>
     /// Reads all files of a plugin folder into memory and lets every responsible verifier check them.
     /// </summary>
@@ -309,20 +366,20 @@ internal sealed class PluginSystem
             return null;
         }
 
-        return Verify(source, name, folder, files) ? verifiedFiles : null;
+        return Verify(source, name, folder, files, name) ? verifiedFiles : null;
     }
 
     /// <summary>
     /// Lets every responsible verifier check a plugin's files. Logs and records every result, and reports a failure.
     /// </summary>
     /// <returns><see langword="true"/> if all responsible verifiers passed.</returns>
-    private bool Verify(PluginSource source, string name, string location, IReadOnlyList<PluginFile> files)
+    private bool Verify(PluginSource source, string name, string location, IReadOnlyList<PluginFile> files, string pluginId)
     {
         var verifiers = Verifiers.Where(verifier => verifier.CanVerify(source)).ToList();
         if (verifiers.Count == 0)
         {
             Fail(
-                name,
+                pluginId,
                 location,
                 PluginState.VerificationFailed,
                 $"No registered plugin verifier can verify plugins from this source ({source}). "
@@ -344,7 +401,7 @@ internal sealed class PluginSystem
             {
                 PluginLog.PluginVerificationFailed(Logger, exception, name, location, verifierName, exception.Message);
                 _verifications.Add(new PluginVerification(name, location, verifierName, succeeded: false, exception.Message));
-                Fail(name, location, PluginState.VerificationFailed, $"Verification by {verifierName} failed: {exception.Message}", exception);
+                Fail(pluginId, location, PluginState.VerificationFailed, $"Verification by {verifierName} failed: {exception.Message}", exception);
                 return false;
             }
 
@@ -352,7 +409,7 @@ internal sealed class PluginSystem
             {
                 PluginLog.PluginVerificationFailed(Logger, exception: null, name, location, verifierName, result.Message);
                 _verifications.Add(new PluginVerification(name, location, verifierName, succeeded: false, result.Message));
-                Fail(name, location, PluginState.VerificationFailed, $"Verification by {verifierName} failed: {result.Message}", exception: null);
+                Fail(pluginId, location, PluginState.VerificationFailed, $"Verification by {verifierName} failed: {result.Message}", exception: null);
                 return false;
             }
 
@@ -385,6 +442,7 @@ internal sealed class PluginSystem
     {
         if (unit.Failed)
         {
+            Catalog.Set(unit.ToInfo());
             return;
         }
 

@@ -40,6 +40,7 @@
     <ProjectReference Include="..\TestPlugins\CycleA\CycleA.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="..\TestPlugins\CycleB\CycleB.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="..\TestPlugins\Web\Web.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\TestPlugins\AuditReport\AuditReport.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="..\TestPackages\LibraryV1\LibraryV1.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="..\TestPackages\LibraryV2\LibraryV2.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="..\TestPackages\Greeter\Greeter.csproj" ReferenceOutputAssembly="false" Private="false" />

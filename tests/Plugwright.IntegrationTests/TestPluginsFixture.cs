@@ -19,6 +19,7 @@ public sealed class TestPluginsFixture
     public const string CycleA = "CycleA";
     public const string CycleB = "CycleB";
     public const string Web = "Web";
+    public const string AuditReport = "AuditReport";
 
     public const string GreeterId = "Plugwright.TestPlugins.Greeter";
     public const string CounterId = "Plugwright.TestPlugins.Counter";
@@ -26,6 +27,7 @@ public sealed class TestPluginsFixture
     public const string LoggingId = "Plugwright.TestPlugins.Logging";
     public const string AuditId = "Plugwright.TestPlugins.Audit";
     public const string WebId = "Plugwright.TestPlugins.Web";
+    public const string AuditReportId = "Plugwright.TestPlugins.AuditReport";
 
     private static readonly Dictionary<string, string> s_pluginIds = new()
     {
@@ -38,6 +40,7 @@ public sealed class TestPluginsFixture
         [CycleA] = "Plugwright.TestPlugins.CycleA",
         [CycleB] = "Plugwright.TestPlugins.CycleB",
         [Web] = WebId,
+        [AuditReport] = AuditReportId,
     };
 
     public TestPluginsFixture()

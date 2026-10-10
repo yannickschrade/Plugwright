@@ -93,7 +93,7 @@ internal sealed class PluginUnit
     public PluginInfo ToInfo() => new()
     {
         Id = Id,
-        Version = Metadata.Version,
+        Version = MetadataKnown ? Metadata.Version : null,
         Description = Metadata.Description,
         Source = Source,
         State = State ?? PluginState.Loaded,
@@ -102,6 +102,33 @@ internal sealed class PluginUnit
         Dependencies = [.. Metadata.Dependencies.Select(dependency => dependency.PluginId)],
         AppliedHandlers = [.. AppliedHandlers],
     };
+
+    /// <summary>
+    /// Creates a unit for a plugin that is turned off in configuration. Its metadata is only known when it could be
+    /// read safely, that is without verifiers or from a package's manifest.
+    /// </summary>
+    public static PluginUnit Disabled(string id, string source, string kind, PluginMetadata? metadata)
+    {
+        var known = metadata is not null;
+        metadata ??= new PluginMetadata(id, "0.0.0");
+        return new PluginUnit(new PluginAssemblyInfo(metadata, new Version(0, 0), []), source, kind)
+        {
+            MetadataKnown = known,
+            State = PluginState.Disabled,
+            Reason = PluginConfiguration.DisabledReason(id),
+        };
+    }
+
+    /// <summary>
+    /// Gets whether the plugin's metadata was read. Only plugins that are turned off can lack it.
+    /// </summary>
+    public bool MetadataKnown { get; private init; } = true;
+
+    /// <summary>
+    /// Gets or sets whether the plugin is not loaded only because a plugin it depends on, directly or transitively,
+    /// is turned off. That is no failure: the failure mode does not apply.
+    /// </summary>
+    public bool UnavailableBecauseDisabled { get; set; }
 
     public static PluginUnit FromCode(Assembly assembly) =>
         new(PluginMetadataReader.Read(assembly), CodeSource, "code") { Assembly = assembly };

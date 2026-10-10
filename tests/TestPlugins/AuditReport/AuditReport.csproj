@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Depends on the Audit plugin only through [PluginDependency]: the third link in a chain Logging <- Audit <- AuditReport. -->
+  <PropertyGroup>
+    <AssemblyName>Plugwright.TestPlugins.AuditReport</AssemblyName>
+    <RootNamespace>Plugwright.TestPlugins.AuditReport</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugwright.Abstractions\Plugwright.Abstractions.csproj" Private="false" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+</Project>

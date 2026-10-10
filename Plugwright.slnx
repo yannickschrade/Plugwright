@@ -75,6 +75,7 @@
   </Folder>
   <Folder Name="/tests/TestPlugins/">
     <Project Path="tests/TestPlugins/Audit/Audit.csproj" />
+    <Project Path="tests/TestPlugins/AuditReport/AuditReport.csproj" />
     <Project Path="tests/TestPlugins/Counter/Counter.csproj" />
     <Project Path="tests/TestPlugins/CycleA/CycleA.csproj" />
     <Project Path="tests/TestPlugins/CycleB/CycleB.csproj" />
