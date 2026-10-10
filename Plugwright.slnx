@@ -33,6 +33,11 @@
     <Project Path="samples/PluginDependencies/Acme.Welcome/Acme.Welcome.csproj" />
     <Project Path="samples/PluginDependencies/App/PluginDependencies.App.csproj" />
   </Folder>
+  <Folder Name="/samples/PluginPolicies/">
+    <Project Path="samples/PluginPolicies/Acme.Billing/Acme.Billing.csproj" />
+    <Project Path="samples/PluginPolicies/Acme.Reports/Acme.Reports.csproj" />
+    <Project Path="samples/PluginPolicies/App/PluginPolicies.App.csproj" />
+  </Folder>
   <Folder Name="/samples/SignedPackages/">
     <Project Path="samples/SignedPackages/App/SignedPackages.App.csproj" />
   </Folder>
@@ -53,6 +58,7 @@
   <Folder Name="/samples/WebHost/">
     <Project Path="samples/WebHost/Acme.Greetings/Acme.Greetings.csproj" />
     <Project Path="samples/WebHost/App/WebHost.App.csproj" />
+    <Project Path="samples/WebHost/WebHost.Tests/WebHost.Tests.csproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Plugwright.Abstractions/Plugwright.Abstractions.csproj" />
