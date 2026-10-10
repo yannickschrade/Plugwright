@@ -13,8 +13,9 @@ var app = builder.Build();
 app.UsePlugins();                                 // phase 2: plugin middleware runs here, plugin endpoints are mapped
 app.MapControllers();
 
-// The host uses a service the plugin registered.
-app.MapGet("/", (IGreeter greeter) => greeter.Greet("web host"));
+// The host uses a service the plugin registered. The plugin can be turned off, so the service may be missing.
+app.MapGet("/", (IServiceProvider services) =>
+    services.GetService<IGreeter>()?.Greet("web host") ?? "The greetings plugin is turned off.");
 
 app.Run();
 // --8<-- [end:host]

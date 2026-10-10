@@ -18,7 +18,9 @@ foreach (var required in builder.Configuration.GetSection("TestWebHost:Require")
     builder.Plugins.Require(required.Value!);
 }
 
+// --8<-- [start:handlers]
 builder.PluginHandlers.Add<WebPluginHandler>().Add<BlazorPluginHandler>();
+// --8<-- [end:handlers]
 builder.ApplyPlugins();
 
 if (controllers == "After")

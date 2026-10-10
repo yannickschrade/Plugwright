@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Plugwright.TestPlugins.Web;
 
+// --8<-- [start:plugin]
 /// <summary>
 /// Implements all three plugin contracts. The host does not know this assembly; it is loaded from a plugin directory.
 /// </summary>
@@ -29,6 +30,8 @@ public sealed class WebPlugin : IPlugin, IWebPlugin, IBlazorPlugin
     public void MapEndpoints(IEndpointRouteBuilder endpoints) =>
         endpoints.MapGet("/web-plugin/endpoint", (WebGreeting greeting) => $"endpoint: {greeting.Text}, instance: {_greeting}");
 }
+
+// --8<-- [end:plugin]
 
 public sealed record WebGreeting(string Text);
 

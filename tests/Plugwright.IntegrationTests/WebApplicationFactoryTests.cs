@@ -39,6 +39,7 @@ public sealed class WebApplicationFactoryTests(TestPluginsFixture testPlugins) :
         Catalog(host).Find(AuditId).ShouldNotBeNull().State.ShouldBe(PluginState.DependencyUnavailable);
     }
 
+    // --8<-- [start:failing]
     [Theory]
     [InlineData("Configure")]
     [InlineData("Startup")]
@@ -58,6 +59,7 @@ public sealed class WebApplicationFactoryTests(TestPluginsFixture testPlugins) :
         faulty.State.ShouldBe(PluginState.Failed);
         faulty.ErrorMessage.ShouldNotBeNull().ShouldContain("on purpose");
     }
+    // --8<-- [end:failing]
 
     [Theory]
     [InlineData("Configure")]
