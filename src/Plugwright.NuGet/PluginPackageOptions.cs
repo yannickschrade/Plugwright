@@ -1,4 +1,4 @@
-namespace Plugwright;
+namespace Plugwright.NuGet;
 
 /// <summary>
 /// Options of a package folder added with <see cref="PluginPackageExtensions.AddFromPackages(PluginCollection, string, Action{PluginPackageOptions})"/>.

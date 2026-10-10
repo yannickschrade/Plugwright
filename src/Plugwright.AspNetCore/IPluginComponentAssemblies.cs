@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace Plugwright;
+namespace Plugwright.AspNetCore;
 
 /// <summary>
 /// The assemblies of the active Blazor plugins, which contain their Razor components. Registered in the service container

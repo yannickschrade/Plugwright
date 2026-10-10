@@ -1,6 +1,6 @@
 # One plugin, several kinds
 
-A plugin class can implement several plugin contracts at once, for example [`IPlugin`](../api/Plugwright.IPlugin.md) for services, [`IWebPlugin`](../api/Plugwright.IWebPlugin.md) for controllers, endpoints and middleware, and [`IBlazorPlugin`](../api/Plugwright.IBlazorPlugin.md) for pages. Every handler that can handle the class processes it.
+A plugin class can implement several plugin contracts at once, for example [`IPlugin`](../api/Plugwright.IPlugin.md) for services, [`IWebPlugin`](../api/Plugwright.AspNetCore.IWebPlugin.md) for controllers, endpoints and middleware, and [`IBlazorPlugin`](../api/Plugwright.AspNetCore.IBlazorPlugin.md) for pages. Every handler that can handle the class processes it.
 
 ## Write the plugin
 

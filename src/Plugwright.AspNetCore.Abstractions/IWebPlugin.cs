@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 
-namespace Plugwright;
+namespace Plugwright.AspNetCore;
 
 /// <summary>
 /// A plugin for an ASP.NET Core host: brings MVC controllers, endpoints and middleware.

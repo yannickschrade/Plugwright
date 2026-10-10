@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Runtime.Loader;
 using System.Security.Cryptography;
 
-namespace Plugwright;
+namespace Plugwright.NuGet;
 
 /// <summary>
 /// The assemblies of a plugin package and of the library packages it depends on, loaded from memory.

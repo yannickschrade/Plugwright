@@ -13,19 +13,20 @@ Add the package `Plugwright.AspNetCore` to the web application, register the web
 ```
 
 - `builder.Plugins`, `builder.ApplyPlugins()` and `app.UsePlugins()` are the same members as in every host. `WebApplicationBuilder` is an `IHostApplicationBuilder`, and `WebApplication` an `IHost`.
-- [`WebPluginHandler`](../api/Plugwright.WebPluginHandler.md) processes every plugin that implements [`IWebPlugin`](../api/Plugwright.IWebPlugin.md). Register it before `ApplyPlugins()`.
+- [`WebPluginHandler`](../api/Plugwright.AspNetCore.WebPluginHandler.md) processes every plugin that implements [`IWebPlugin`](../api/Plugwright.AspNetCore.IWebPlugin.md). Register it before `ApplyPlugins()`.
+- The web types, such as `WebPluginHandler` and `IWebPlugin`, are in the namespace `Plugwright.AspNetCore`. Extension members such as `AddPluginAssemblies` and `MapPluginCatalog` are in `Plugwright`, so they are found with the usual `using Plugwright;`.
 - `AddControllers()` can come before or after `ApplyPlugins()`. The handler does not register MVC itself; if the host never calls `AddControllers()`, plugins can still bring endpoints and middleware.
 
 ## Write a web plugin
 
-A web plugin implements [`IWebPlugin`](../api/Plugwright.IWebPlugin.md) from the package `Plugwright.AspNetCore.Abstractions`. Both of its methods are optional:
+A web plugin implements [`IWebPlugin`](../api/Plugwright.AspNetCore.IWebPlugin.md) from the package `Plugwright.AspNetCore.Abstractions`. Both of its methods are optional:
 
 ```csharp
 --8<-- "samples/WebHost/Acme.Greetings/GreetingsPlugin.cs:plugin"
 ```
 
 - `Configure` runs in phase 1 and registers services, as in every plugin.
-- [`ConfigurePipeline`](../api/Plugwright.IWebPlugin.md#Plugwright_IWebPlugin_ConfigurePipeline_Microsoft_AspNetCore_Builder_IApplicationBuilder_) and [`MapEndpoints`](../api/Plugwright.IWebPlugin.md#Plugwright_IWebPlugin_MapEndpoints_Microsoft_AspNetCore_Routing_IEndpointRouteBuilder_) run in phase 2, in `app.UsePlugins()`, plugin by plugin in dependency order.
+- [`ConfigurePipeline`](../api/Plugwright.AspNetCore.IWebPlugin.md#Plugwright_AspNetCore_IWebPlugin_ConfigurePipeline_Microsoft_AspNetCore_Builder_IApplicationBuilder_) and [`MapEndpoints`](../api/Plugwright.AspNetCore.IWebPlugin.md#Plugwright_AspNetCore_IWebPlugin_MapEndpoints_Microsoft_AspNetCore_Routing_IEndpointRouteBuilder_) run in phase 2, in `app.UsePlugins()`, plugin by plugin in dependency order.
 - The plugin system creates one instance per plugin class. Fields set in `Configure` are still there in phase 2.
 
 The plugin project references the ASP.NET Core shared framework:

@@ -4,7 +4,7 @@ using NuGet.Packaging;
 using NuGet.Packaging.Core;
 using NuGet.Versioning;
 
-namespace Plugwright;
+namespace Plugwright.NuGet;
 
 /// <summary>
 /// One .nupkg file of a package folder, read into memory: its identity, whether it is a plugin, its dependencies,

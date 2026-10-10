@@ -1,5 +1,6 @@
 using Acme.Orders.Ui;
 using BlazorHost.App.Components;
+using Plugwright.AspNetCore;
 using Plugwright;
 
 // --8<-- [start:host]

@@ -1,4 +1,4 @@
-namespace Plugwright;
+namespace Plugwright.AspNetCore;
 
 /// <summary>
 /// Marks a plugin whose assembly contains Razor components, such as routable pages, for a Blazor host.

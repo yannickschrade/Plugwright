@@ -1,7 +1,8 @@
 using Acme.Orders.Ui;
+using Plugwright.AspNetCore;
 using Plugwright;
-using SplitHosts.Web;
 using SplitHosts.Web.Components;
+using SplitHosts.Web;
 
 // --8<-- [start:host]
 var builder = WebApplication.CreateBuilder(args);

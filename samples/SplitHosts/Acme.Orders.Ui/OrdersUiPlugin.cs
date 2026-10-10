@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using Acme.Orders.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
+using Plugwright.AspNetCore;
 using Plugwright;
 
 namespace Acme.Orders.Ui;

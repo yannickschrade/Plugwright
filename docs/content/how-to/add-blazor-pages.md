@@ -12,7 +12,7 @@ Create a Razor class library that references `Plugwright.AspNetCore.Abstractions
 --8<-- "samples/BlazorHost/Acme.Orders.Ui/Acme.Orders.Ui.csproj"
 ```
 
-Mark the plugin with [`IBlazorPlugin`](../api/Plugwright.IBlazorPlugin.md). It has no members; it tells the host that the plugin's assembly contains components. Register services as usual in `Configure`:
+Mark the plugin with [`IBlazorPlugin`](../api/Plugwright.AspNetCore.IBlazorPlugin.md). It has no members; it tells the host that the plugin's assembly contains components. Register services as usual in `Configure`:
 
 ```csharp
 --8<-- "samples/BlazorHost/Acme.Orders.Ui/OrdersUiPlugin.cs:plugin"
@@ -26,7 +26,7 @@ Pages are ordinary Razor components with `@page`:
 
 ## Set up the host
 
-Register [`BlazorPluginHandler`](../api/Plugwright.BlazorPluginHandler.md) and pass the plugin assemblies to `MapRazorComponents` with `AddPluginAssemblies(app)`:
+Register [`BlazorPluginHandler`](../api/Plugwright.AspNetCore.BlazorPluginHandler.md) and pass the plugin assemblies to `MapRazorComponents` with `AddPluginAssemblies(app)`:
 
 ```csharp
 --8<-- "samples/BlazorHost/App/Program.cs:host"
@@ -41,7 +41,7 @@ How you set up the router depends on where it runs:
 - **Interactivity per page or component** (the default of the Blazor template, as in the sample): the router renders on the server, and `AddPluginAssemblies(app)` is enough. Pages of plugins are found by direct call and by navigation.
 - **Global interactivity** (`<Routes @rendermode="InteractiveServer" />`): the router runs in the circuit and matches routes itself. Then it needs the plugin assemblies too, or navigation to a plugin page ends on "not found".
 
-To cover both, inject [`IPluginComponentAssemblies`](../api/Plugwright.IPluginComponentAssemblies.md) into the router:
+To cover both, inject [`IPluginComponentAssemblies`](../api/Plugwright.AspNetCore.IPluginComponentAssemblies.md) into the router:
 
 ```razor
 --8<-- "samples/BlazorHost/App/Components/Routes.razor:router"

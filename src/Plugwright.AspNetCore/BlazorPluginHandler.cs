@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace Plugwright;
+namespace Plugwright.AspNetCore;
 
 /// <summary>
 /// Processes every plugin that implements <see cref="IBlazorPlugin"/>: makes its Razor components known to the router

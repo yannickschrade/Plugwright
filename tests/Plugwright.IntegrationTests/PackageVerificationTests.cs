@@ -1,11 +1,12 @@
 using System.IO.Compression;
-using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using NullLogger = NuGet.Common.NullLogger;
 using NuGet.Packaging.Signing;
 using Plugwright.Cli;
+using NuGetHashAlgorithmName = NuGet.Common.HashAlgorithmName;
+using NullLogger = NuGet.Common.NullLogger;
 
 namespace Plugwright.IntegrationTests;
 
@@ -179,7 +180,7 @@ public sealed class PackageVerificationTests(TestPluginsFixture testPlugins) : I
         using var copy = X509CertificateLoader.LoadPkcs12(certificate.Export(X509ContentType.Pkcs12), password: null);
         var signed = package + ".signed";
         using (var options = SigningOptions.CreateFromFilePaths(package, signed, overwrite: true, new X509SignatureProvider(timestampProvider: null), NullLogger.Instance))
-        using (var request = new AuthorSignPackageRequest(copy, NuGet.Common.HashAlgorithmName.SHA256))
+        using (var request = new AuthorSignPackageRequest(copy, NuGetHashAlgorithmName.SHA256))
         {
             SigningUtility.SignAsync(options, request, CancellationToken.None).GetAwaiter().GetResult();
         }

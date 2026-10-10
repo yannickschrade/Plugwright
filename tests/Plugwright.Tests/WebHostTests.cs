@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Plugwright.AspNetCore;
 using Plugwright.Tests.Plugins;
 
 namespace Plugwright.Tests;

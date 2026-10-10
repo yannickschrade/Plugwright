@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <RootNamespace>Plugwright</RootNamespace>
     <Description>NuGet package source for Plugwright: loads plugins from a folder of .nupkg files, with their dependencies.</Description>
   </PropertyGroup>
 

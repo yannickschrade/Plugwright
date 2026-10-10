@@ -1,7 +1,7 @@
 using NuGet.Packaging.Core;
 using NuGet.Versioning;
 
-namespace Plugwright;
+namespace Plugwright.NuGet;
 
 /// <summary>
 /// A folder of NuGet packages added with <see cref="PluginPackageExtensions.AddFromPackages(PluginCollection, string, Action{PluginPackageOptions})"/>.

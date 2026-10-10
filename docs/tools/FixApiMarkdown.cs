@@ -108,7 +108,11 @@ string Summary()
 {
     string[] kinds = ["Class", "Struct", "Interface", "Enum", "Delegate"];
     var lines = new List<string>();
-    foreach (var namespacePage in kindOfPage.Where(entry => entry.Value == "Namespace").Select(entry => entry.Key).Order(StringComparer.Ordinal))
+    var namespacePages = kindOfPage
+        .Where(entry => entry.Value == "Namespace")
+        .Select(entry => entry.Key)
+        .OrderBy(Path.GetFileNameWithoutExtension, StringComparer.Ordinal);
+    foreach (var namespacePage in namespacePages)
     {
         var namespaceName = Path.GetFileNameWithoutExtension(namespacePage);
         lines.Add($"- {namespaceName}");
@@ -116,7 +120,7 @@ string Summary()
         foreach (var kind in kinds)
         {
             var types = kindOfPage
-                .Where(entry => entry.Value == kind && Path.GetFileNameWithoutExtension(entry.Key).StartsWith(namespaceName + ".", StringComparison.Ordinal))
+                .Where(entry => entry.Value == kind && NamespaceOf(entry.Key) == namespaceName)
                 .Select(entry => entry.Key)
                 .OrderBy(type => titleOfPage[type], StringComparer.OrdinalIgnoreCase)
                 .ToList();
@@ -131,6 +135,13 @@ string Summary()
     }
 
     return string.Join('\n', lines) + "\n";
+}
+
+// The namespace of a type page: its name without the type name, Plugwright.AspNetCore.WebPluginHandler.md -> Plugwright.AspNetCore.
+static string NamespaceOf(string page)
+{
+    var name = Path.GetFileNameWithoutExtension(page);
+    return name[..name.LastIndexOf('.')];
 }
 
 // Escapes the angle brackets of generic types, and lets long names wrap before inner capitals

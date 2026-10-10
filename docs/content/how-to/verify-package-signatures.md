@@ -1,6 +1,6 @@
 # Verify package signatures
 
-The [`PackageSignatureVerifier`](../api/Plugwright.PackageSignatureVerifier.md) only loads NuGet packages that are signed by a certificate you trust and unchanged since signing. It checks every package in a package folder: plugin packages and the library packages they use.
+The [`PackageSignatureVerifier`](../api/Plugwright.NuGet.PackageSignatureVerifier.md) only loads NuGet packages that are signed by a certificate you trust and unchanged since signing. It checks every package in a package folder: plugin packages and the library packages they use.
 
 The complete, runnable project is in `samples/SignedPackages` in the repository.
 

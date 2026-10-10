@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace Plugwright;
+namespace Plugwright.AspNetCore;
 
 /// <summary>
 /// Processes every plugin that implements <see cref="IWebPlugin"/>: makes its MVC controllers discoverable and adds its

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Plugwright.AspNetCore;
 using static Plugwright.IntegrationTests.TestPluginsFixture;
 
 namespace Plugwright.IntegrationTests;

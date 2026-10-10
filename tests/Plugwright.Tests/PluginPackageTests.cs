@@ -1,9 +1,11 @@
-using System.Runtime.Versioning;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Text;
-using NuGet.Packaging;
+using NuGet.Frameworks;
 using NuGet.Packaging.Core;
+using NuGet.Packaging;
 using NuGet.Versioning;
+using Plugwright.NuGet;
 
 namespace Plugwright.Tests;
 
@@ -96,7 +98,7 @@ public sealed class PluginPackageTests
         }
 
         builder.DependencyGroups.Add(new PackageDependencyGroup(
-            NuGet.Frameworks.NuGetFramework.Parse("net8.0"),
+            NuGetFramework.Parse("net8.0"),
             [new PackageDependency("Acme.Library", VersionRange.Parse("1.0.0"))]));
 
         Add(builder, "lib/net8.0/Acme.Native.dll", "net8.0");
@@ -120,7 +122,7 @@ public sealed class PluginPackageTests
 
         public string? EffectivePath => null;
 
-        public NuGet.Frameworks.NuGetFramework? NuGetFramework => null;
+        public NuGetFramework? NuGetFramework => null;
 
         public FrameworkName? TargetFramework => null;
 

@@ -107,7 +107,7 @@ Packages are code that runs in your process, library packages as much as plugin 
   plugwright lock /srv/myapp/packages --output /etc/myapp/plugins.lock.json
   ```
 
-- The [`PackageSignatureVerifier`](../api/Plugwright.PackageSignatureVerifier.md) checks the NuGet signature of every package. See [Verify package signatures](verify-package-signatures.md).
+- The [`PackageSignatureVerifier`](../api/Plugwright.NuGet.PackageSignatureVerifier.md) checks the NuGet signature of every package. See [Verify package signatures](verify-package-signatures.md).
 
 A library package that fails verification is not used, so plugins that depend on it fail as well.
 

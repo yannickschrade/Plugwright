@@ -4,7 +4,7 @@ using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 
-namespace Plugwright;
+namespace Plugwright.NuGet;
 
 /// <summary>
 /// Downloads library packages from a NuGet feed.

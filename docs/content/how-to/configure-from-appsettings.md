@@ -44,7 +44,7 @@ Every key in `Verification` turns on one verifier, with the settings of its own 
 | --- | --- | --- |
 | `Hash` | [`HashVerifier`](../api/Plugwright.HashVerifier.md) | [`HashVerifierOptions`](../api/Plugwright.HashVerifierOptions.md) |
 | `Certificate` | [`CertificateVerifier`](../api/Plugwright.CertificateVerifier.md) | [`CertificateVerifierOptions`](../api/Plugwright.CertificateVerifierOptions.md) |
-| `PackageSignature` | [`PackageSignatureVerifier`](../api/Plugwright.PackageSignatureVerifier.md) (Plugwright.NuGet) | [`CertificateVerifierOptions`](../api/Plugwright.CertificateVerifierOptions.md) |
+| `PackageSignature` | [`PackageSignatureVerifier`](../api/Plugwright.NuGet.PackageSignatureVerifier.md) (Plugwright.NuGet) | [`CertificateVerifierOptions`](../api/Plugwright.CertificateVerifierOptions.md) |
 
 A verifier is on when its section has settings, or is `true`. `"Hash": true` turns on the hash verifier with its default lock file, `plugins.lock.json` in the content root; an empty object `"Hash": {}` does not work, because .NET configuration ignores it. `false` turns a verifier off, which is useful in environment-specific files or environment variables such as `Plugwright__Verification__Hash=false`.
 
