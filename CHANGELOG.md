@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- `PluginReport.SkippedPlugins` and `SkippedPlugin` are replaced by the plugin catalog.
+- Services that a plugin type registered before it failed are removed again.
+
 ### Added
 
 - Plugin contract: `IPlugin`, `PluginContext`, `PluginMetadata`.
@@ -25,7 +30,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `builder.Plugins.AddFromConfiguration()` and `builder.PluginVerifiers.AddFromConfiguration()`: plugin sources, failure mode and verifiers from the `Plugwright` configuration section. `builder.Plugins.AddNuGetSupport()` adds package folders and the package signature verifier. `PluginPackageOptions.VerifyDownloads`.
 - `Plugwright.AspNetCore` and `Plugwright.AspNetCore.Abstractions`: `IWebPlugin` and `WebPluginHandler` for MVC controllers, endpoints and middleware of plugins; `IBlazorPlugin`, `BlazorPluginHandler`, `IPluginComponentAssemblies` and `AddPluginAssemblies(app)` for Razor components of plugins. Works with `WebApplicationBuilder` and `WebApplication`, also together with .NET Aspire.
 - `Plugwright.AspNetCore*` and `Microsoft.AspNetCore.*` are shared with plugins loaded from directories and packages.
-- Dependencies between plugins: checked before loading, applied in dependency order, with shared types across load contexts. Dependents of skipped plugins are skipped.
+- `pluginsettings.json`: application-managed settings file, added by `ApplyPlugins()` as the last configuration source (only keys under `Plugwright:Plugins`, reloads on change). `Options.SettingsFile`; `IPluginSettingsStore` saves settings and the on/off state.
+- Plugin catalog: `IPluginCatalog`, `PluginInfo` and `PluginState` with the state of every plugin, also those not loaded. Log event 1008 `PluginStatus`, meter `Plugwright` with the gauge `plugwright.plugins`.
+- Turn plugins off with `Plugwright:Plugins:{PluginId}:Enabled`. Disabled plugins are neither verified nor loaded; plugins that depend on them are `DependencyUnavailable`.
+- Required plugins and a failure mode per plugin: `PluginPolicy`, `builder.Plugins.Add<T>(policy => …)`, `Configure(pluginId, …)` and `Require(pluginId)`. All problems of required plugins are reported in one exception.
+- `MapPluginCatalog()` in `Plugwright.AspNetCore`: read-only endpoint with `PluginStatus` (in `Plugwright.Abstractions`).
+ checked before loading, applied in dependency order, with shared types across load contexts. Dependents of skipped plugins are skipped.
 - Per-plugin settings section `Plugwright:Plugins:{PluginId}:Settings`.
 - `PluginFailureMode.SkipAndLog` to skip failing plugins instead of stopping the application.
 - Buffered logging in phase 1, log events `PluginLoaded` (1000), `PluginSkipped` (1001), `PluginDirectoryNotFound` (1002) and `AssemblyOutsidePluginFolder` (1003). Events name the plugin's source.

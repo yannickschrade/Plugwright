@@ -6,7 +6,7 @@ The full specification (German, with rationale and decision log) lives in `docs/
 
 ## Status
 
-Done: repo setup (central package management, CI, DocFX), plugin contract, extension members and handler pipeline, directory loading, metadata and dependencies, verification with `HashVerifier` and `CertificateVerifier`, `PluginReport`, CLI `lock` and `sign`, NuGet package source with verification (lock file, `PackageSignatureVerifier`) and optional feed, sources and verifiers from configuration (`AddFromConfiguration`), web hosts (`Plugwright.AspNetCore`, M1 of `docs/design/requirements-web-host.md`). Next: M2 and M3 of the web host requirements, then CLI `verify` (step 7). Doc pages are on hold until the docs move from DocFX to Zensical.
+Done: repo setup (central package management, CI, DocFX), plugin contract, extension members and handler pipeline, directory loading, metadata and dependencies, verification with `HashVerifier` and `CertificateVerifier`, `PluginReport`, CLI `lock` and `sign`, NuGet package source with verification (lock file, `PackageSignatureVerifier`) and optional feed, sources and verifiers from configuration (`AddFromConfiguration`), web hosts (`Plugwright.AspNetCore`, M1 of `docs/design/requirements-web-host.md`), `pluginsettings.json` with `IPluginSettingsStore`, plugin catalog, enabling/disabling, required plugins and per-plugin failure mode, catalog endpoint (M2). Next: M3 of the web host requirements (startup tasks, testing), then CLI `verify` (step 7). Doc pages are on hold until the docs move from DocFX to Zensical.
 
 ## Baseline
 
@@ -70,8 +70,11 @@ docs/                        DocFX site; docs/design/specification.md
    - `IPluginHandler`, `PluginDescriptor` and `IPluginVerifier` live in `Plugwright`, not in Abstractions.
    - Phase 1 has no `ILoggerFactory`: log entries are buffered and flushed in `UsePlugins()`. Fail-fast exceptions must carry all relevant information themselves.
 5. **Plugin contract:** `IPlugin.Configure(PluginContext context)`, parameterless constructor. `PluginContext` carries the builder, the plugin's own settings section, its metadata and a (buffered) `ILogger`. Extend `PluginContext` instead of changing `IPlugin`.
-6. **Fail-fast by default.** An opt-in "skip and log" option (one global switch, name provisional, e.g. `builder.Plugins.Options.FailureMode`) covers errors in `Configure`, missing handlers and failed verification; skipping a plugin also skips everything that (transitively) depends on it.
-7. **No hot reload, no unloading.** Enabling/disabling plugins (v2) takes effect after a process restart.
+6. **Fail-fast by default.** `builder.Plugins.Options.FailureMode` (`FailFast`/`SkipAndLog`) is the global default; `PluginPolicy.FailureMode` overrides it per plugin (`Add<T>(policy => …)`, `Configure(id, …)`). It covers errors in `Configure`, missing handlers and failed verification; skipping a plugin also skips everything that (transitively) depends on it (`DependencyUnavailable`).
+   - Required plugins (`PluginPolicy.Required`, `Require(id)`, code only) always stop the start: missing, disabled, unavailable dependency, unverified or failing. One `PluginException` names all of them; problems known before phase 1 throw before any `Configure`.
+   - Services a failing plugin type registered are taken back; configuration sources, properties and `ConfigureContainer` are not.
+7. **No hot reload, no unloading.** Plugins are turned off with `Plugwright:Plugins:{Id}:Enabled` (v1); changes take effect after a restart. Disabled plugins are neither verified nor loaded; a dependency chain that starts at a disabled plugin is no failure.
+8. **Plugin catalog.** `IPluginCatalog` (Abstractions) holds every known plugin with `PluginState` (`Loaded`, `Disabled`, `DependencyUnavailable`, `Failed`, `VerificationFailed`, `NoHandler`); log event 1008 per plugin, meter `Plugwright` with gauge `plugwright.plugins`. `PluginReport` keeps descriptors and verification results. `MapPluginCatalog()` (Plugwright.AspNetCore) exposes `PluginStatus` DTOs, error messages only on request.
 
 ## Sources, identity, dependencies
 
@@ -102,17 +105,17 @@ docs/                        DocFX site; docs/design/specification.md
 
 ## Configuration
 
-- Per-plugin section: `Plugwright:Plugins:{PluginId}:Settings`. Sibling keys such as `Enabled` are reserved for the plugin system. Plugin classes in one assembly share the section.
+- Per-plugin section: `Plugwright:Plugins:{PluginId}:Settings`. The sibling key `Enabled` turns a plugin off; other sibling keys are reserved for the plugin system. Plugin classes in one assembly share the section.
 - `pluginsettings.json` is app-managed:
   - Added by `ApplyPlugins()` as the last configuration provider, so it wins over everything, including environment variables.
-  - `reloadOnChange` enabled; path configurable; saved via `IPluginSettingsStore`.
+  - `reloadOnChange` enabled; path `Options.SettingsFile` (default `pluginsettings.json` in the content root, `null` turns it off); saved via `IPluginSettingsStore` (Abstractions; atomic writes). Moved back to the end after phase 1.
   - Its provider accepts only keys under `Plugwright:Plugins`.
 
 ## Integrity verification
 
 - Optional. Verifiers are registered explicitly via `builder.PluginVerifiers`: built-in ones with `AddHashVerifier(...)` / `AddCertificateVerifier(...)` (delegate or explicit configuration section), custom ones with `Add(instance)` or `Add<T>()`. No verifiers → no verification, only a log notice (EventId 1004).
 - All verifiers implement `IPluginVerifier` and declare supported sources via `CanVerify`. All responsible verifiers must pass. Verifiers registered but none responsible for a plugin → plugin failure. Plugins added in code are never verified.
-- Verification failures of any kind are plugin failures (skip-and-log applies). Results: log events 1005/1006 and `PluginReport`.
+- Verification failures of any kind are plugin failures (skip-and-log applies). Results: log events 1005/1006, `PluginReport` and the catalog (`VerificationFailed`).
 - Hash mode: host-side lock file covering all plugin files; hashes carry an algorithm prefix (`sha256-…`).
 - Certificate mode: NuGet package signatures; for DLL directories a CMS-signed manifest with plugin ID, version and hashes of all files. Files not listed in the manifest fail verification. Trust by certificate thumbprint or by issuer plus subject. No timestamps in v1 (certificate must be valid at verification time). Revocation mode configurable (`NoCheck`/`Online`/`Offline`), default `NoCheck`, applies to publishers only.
   - Manifest: `plugwright.manifest.p7s` in the plugin folder, CMS with embedded JSON (version, plugin ID, plugin version, hashes of all other files).
