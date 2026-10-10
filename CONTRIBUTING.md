@@ -20,13 +20,16 @@ Build the documentation:
 
 ```bash
 dotnet tool restore
-dotnet docfx docs/docfx.json --warningsAsErrors --serve
+pip install -r docs/requirements.txt   # Zensical, ideally in a virtual environment
+dotnet docfx metadata docs/docfx.json --warningsAsErrors
+dotnet run docs/tools/FixApiMarkdown.cs -- docs/content/api
+cd docs && zensical serve               # or: zensical build --strict
 ```
 
 ## Rules
 
 - Every change ships with tests, documentation and, where it adds a feature, a runnable sample under `samples/`.
-- Code snippets in the documentation are included from `samples/`, never pasted by hand.
+- Code snippets in the documentation are included from `samples/`, never pasted by hand. Mark a section in the sample with `// --8<-- [start:name]` and `// --8<-- [end:name]` and include it with `--8<-- "samples/…/File.cs:name"` in a fenced code block.
 - Every public type and member has XML documentation comments.
 - Warnings are errors. Keep the public API small; everything else is `internal`.
 - Code, comments, documentation and commit messages are in English.

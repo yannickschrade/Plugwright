@@ -6,7 +6,7 @@ The full specification (German, with rationale and decision log) lives in `docs/
 
 ## Status
 
-Done: repo setup (central package management, CI, DocFX), plugin contract, extension members and handler pipeline, directory loading, metadata and dependencies, verification with `HashVerifier` and `CertificateVerifier`, `PluginReport`, CLI `lock` and `sign`, NuGet package source with verification (lock file, `PackageSignatureVerifier`) and optional feed, sources and verifiers from configuration (`AddFromConfiguration`), web hosts (`Plugwright.AspNetCore`, M1 of `docs/design/requirements-web-host.md`), `pluginsettings.json` with `IPluginSettingsStore`, plugin catalog, enabling/disabling, required plugins and per-plugin failure mode, catalog endpoint (M2). startup tasks (`IPluginStartup`, M3). Next: doc pages for the web host requirements after the move to Zensical, M4 only after asking, then CLI `verify` (step 7). Doc pages are on hold until the docs move from DocFX to Zensical.
+Done: repo setup (central package management, CI, docs with Zensical and DocFX API reference), plugin contract, extension members and handler pipeline, directory loading, metadata and dependencies, verification with `HashVerifier` and `CertificateVerifier`, `PluginReport`, CLI `lock` and `sign`, NuGet package source with verification (lock file, `PackageSignatureVerifier`) and optional feed, sources and verifiers from configuration (`AddFromConfiguration`), web hosts (`Plugwright.AspNetCore`, M1 of `docs/design/requirements-web-host.md`), `pluginsettings.json` with `IPluginSettingsStore`, plugin catalog, enabling/disabling, required plugins and per-plugin failure mode, catalog endpoint (M2). startup tasks (`IPluginStartup`, M3). Next: doc pages for the web host requirements, M4 only after asking, then CLI `verify` (step 7).
 
 ## Baseline
 
@@ -14,7 +14,7 @@ Done: repo setup (central package management, CI, DocFX), plugin contract, exten
 - License: MIT.
 - Code, comments, XML docs, docs site, commit messages: English.
 - Allowed dependencies: `Microsoft.Extensions.*`, the ASP.NET Core shared framework (only in `Plugwright.AspNetCore*`), `NuGet.Packaging` and `NuGet.Protocol` (only in `Plugwright.NuGet`), `System.Security.Cryptography.Pkcs`, `System.Reflection.MetadataLoadContext`. Ask before adding anything else.
-- CI: GitHub Actions with build, tests and DocFX build on every push and PR.
+- CI: GitHub Actions with build, tests and docs build (DocFX API Markdown + Zensical, strict) on every push and PR.
 
 ## Intended repository layout
 
@@ -32,14 +32,14 @@ tests/
   TestPlugins/                   Test plugin projects (built and copied, never referenced)
   TestWebHost/                   Web host for WebApplicationFactory tests
 samples/                     Runnable sample apps and plugins (source of all doc snippets)
-docs/                        DocFX site; docs/design/specification.md
+docs/                        zensical.toml, content/ (published pages), design/ (specification, not published), tools/
 ```
 
 ## Commands
 
 - Build: `dotnet build`
 - Test: `dotnet test`
-- Docs: `dotnet tool restore`, then `dotnet docfx docs/docfx.json --warningsAsErrors` (add `--serve` to preview)
+- Docs: `dotnet tool restore`, `pip install -r docs/requirements.txt`, `dotnet docfx metadata docs/docfx.json --warningsAsErrors`, `dotnet run docs/tools/FixApiMarkdown.cs -- docs/content/api`, then in `docs/`: `zensical build --strict` (or `zensical serve`)
 
 ## Architecture rules — do not change without asking
 
@@ -147,9 +147,12 @@ docs/                        DocFX site; docs/design/specification.md
 
 ## Documentation
 
-- DocFX only, English, structured by Diátaxis (tutorials, how-to guides, reference, explanation), hosted on GitHub Pages.
-- Link API pages via `<xref:…>`; broken cross-references fail the build.
-- Code snippets are included from `samples/` (by region), never pasted by hand.
+- Zensical site (`docs/zensical.toml`, pages in `docs/content/`), English, structured by Diátaxis (tutorials, how-to guides, reference, explanation), hosted on GitHub Pages. Navigation is the `nav` list in `zensical.toml`; add every new page there.
+- The API reference comes from DocFX: `docfx metadata` writes Markdown to `docs/content/api/` (generated, not committed), `docs/tools/FixApiMarkdown.cs` turns its `<xref>` tags into links. An unresolvable Plugwright reference in XML comments fails the build.
+- Link API pages with relative links, e.g. ``[`PluginContext`](../api/Plugwright.PluginContext.md)`` or with a member anchor `#Plugwright_PluginContext_Configuration`. `zensical build --strict` fails on broken links, anchors and snippets.
+- Admonitions use `!!! note` / `!!! warning "Important"`, not GitHub alerts.
+- DocFX does not document C# 14 extension members (`builder.Plugins`, `ApplyPlugins()`, …); describe them on the containing class and in the guides.
+- Code snippets are included from `samples/`, never pasted by hand: mark sections with `// --8<-- [start:name]` and `// --8<-- [end:name]`, include with `--8<-- "samples/…/File.cs:name"` inside a fenced block (paths from the repository root).
 - No version switcher: use "Available since x.y" / "Changed in x.y" notes, a migration guide per major version and `CHANGELOG.md`.
 - Docs must state clearly:
   - Getting Started shows verifier registration (the default is unverified).

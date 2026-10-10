@@ -51,11 +51,14 @@ Plugins run with full trust inside your process. Only load plugins you trust, an
 
 ## Documentation
 
-The documentation lives in [`docs/`](docs/) and is built with DocFX:
+The documentation lives in [`docs/content/`](docs/content/) and is built with [Zensical](https://zensical.org). The API reference is generated from the XML documentation comments by DocFX:
 
 ```bash
 dotnet tool restore
-dotnet docfx docs/docfx.json --serve
+pip install -r docs/requirements.txt   # Zensical, ideally in a virtual environment
+dotnet docfx metadata docs/docfx.json --warningsAsErrors
+dotnet run docs/tools/FixApiMarkdown.cs -- docs/content/api
+cd docs && zensical serve               # or: zensical build --strict
 ```
 
 ## License
