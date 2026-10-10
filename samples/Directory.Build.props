@@ -4,6 +4,8 @@
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
+    <!-- Samples and tests need no XML documentation comments. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
 </Project>

@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using NullLogger = NuGet.Common.NullLogger;
 using NuGet.Packaging.Signing;
+using NullLogger = NuGet.Common.NullLogger;
 
 // For the samples only. Never use these certificates outside the samples.
 //

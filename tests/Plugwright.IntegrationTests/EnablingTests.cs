@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging.Testing;
 using static Plugwright.IntegrationTests.TestPluginsFixture;
 
 namespace Plugwright.IntegrationTests;

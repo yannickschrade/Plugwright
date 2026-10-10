@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Logging;
 using Plugwright.Tests.Plugins;
 

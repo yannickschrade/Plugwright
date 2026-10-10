@@ -1,5 +1,5 @@
-using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using Plugwright.Tests.Plugins;
 
 namespace Plugwright.Tests;
@@ -19,7 +19,7 @@ public sealed class LoggingTests
 
         app.UsePlugins();
 
-        var record = collector.GetSnapshot().Where(record => record.Message == "Configured during phase 1").ShouldHaveSingleItem();
+        FakeLogRecord record = collector.GetSnapshot().Where(record => record.Message == "Configured during phase 1").ShouldHaveSingleItem();
         record.Category.ShouldBe(typeof(LoggingPlugin).FullName);
         record.Level.ShouldBe(LogLevel.Information);
     }
@@ -50,7 +50,7 @@ public sealed class LoggingTests
 
         app.UsePlugins();
 
-        var record = app.Services.GetFakeLogCollector().GetSnapshot().Where(record => record.Id.Id == 1000).ShouldHaveSingleItem();
+        FakeLogRecord record = app.Services.GetFakeLogCollector().GetSnapshot().Where(record => record.Id.Id == 1000).ShouldHaveSingleItem();
         record.Category.ShouldBe("Plugwright");
         record.Message.ShouldContain("Plugwright.Tests");
         record.Message.ShouldContain(typeof(MarkerPlugin).FullName!);

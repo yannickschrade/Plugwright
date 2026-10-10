@@ -164,7 +164,7 @@ static string ShortName(string uid) => MemberName(uid);
 static string LearnPath(string uid) =>
     uid.Split('(')[0].TrimEnd('*').Replace('`', '-').ToLowerInvariant();
 
-partial class Program
+internal partial class Program
 {
     [GeneratedRegex("<a id=\"(?<id>[^\"]+)\"></a>")]
     private static partial Regex AnchorPattern();

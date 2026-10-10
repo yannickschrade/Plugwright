@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Configuration;
-
 namespace Plugwright.Tests;
 
 public sealed class PluginVerifierCollectionTests

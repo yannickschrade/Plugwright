@@ -2,8 +2,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using Plugwright.AspNetCore;
 using Plugwright;
+using Plugwright.AspNetCore;
 
 namespace Acme.Greetings;
 

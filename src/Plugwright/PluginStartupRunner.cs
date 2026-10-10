@@ -38,7 +38,8 @@ internal sealed class PluginStartupRunner(
             var stopwatch = Stopwatch.StartNew();
             try
             {
-                await using var scope = scopeFactory.CreateAsyncScope();
+                var scope = scopeFactory.CreateAsyncScope();
+                await using var _ = scope.ConfigureAwait(false);
                 var task = (IPluginStartup)scope.ServiceProvider.GetRequiredService(registration.StartupType);
                 await task.StartAsync(cancellationToken).ConfigureAwait(false);
                 PluginLog.PluginStartupCompleted(logger, registration.PluginId, taskName, stopwatch.Elapsed.TotalMilliseconds);

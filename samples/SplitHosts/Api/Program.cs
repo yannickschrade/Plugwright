@@ -1,6 +1,6 @@
 using Acme.Orders;
-using Plugwright.AspNetCore;
 using Plugwright;
+using Plugwright.AspNetCore;
 
 // --8<-- [start:host]
 var builder = WebApplication.CreateBuilder(args);

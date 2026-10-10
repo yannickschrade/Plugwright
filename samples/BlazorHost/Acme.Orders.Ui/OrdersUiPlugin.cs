@@ -1,7 +1,7 @@
 using BlazorHost.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
-using Plugwright.AspNetCore;
 using Plugwright;
+using Plugwright.AspNetCore;
 
 namespace Acme.Orders.Ui;
 

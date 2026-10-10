@@ -36,7 +36,7 @@ internal sealed class PluginLockFile
         var plugins = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
         foreach (var pluginDirectory in pluginDirectories)
         {
-            foreach (var (name, files) in CreateEntries(pluginDirectory))
+            foreach ((var name, var files) in CreateEntries(pluginDirectory))
             {
                 if (!plugins.TryAdd(name, files))
                 {
@@ -61,7 +61,7 @@ internal sealed class PluginLockFile
 
         foreach (var folder in Directory.EnumerateDirectories(pluginDirectory).Order(StringComparer.Ordinal))
         {
-            var (_, files) = VerifiedFiles.Read(folder);
+            (var _, var files) = VerifiedFiles.Read(folder);
             plugins.Add(
                 Path.GetFileName(folder),
                 files.ToDictionary(file => file.Path, file => PluginFileHash.Compute(file.Content.Span), StringComparer.Ordinal));
@@ -81,11 +81,11 @@ internal sealed class PluginLockFile
         writer.WriteStartObject();
         writer.WriteNumber("version", CurrentVersion);
         writer.WriteStartObject("plugins");
-        foreach (var (plugin, files) in Plugins.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+        foreach ((var plugin, var files) in Plugins.OrderBy(pair => pair.Key, StringComparer.Ordinal))
         {
             writer.WriteStartObject(plugin);
             writer.WriteStartObject("files");
-            foreach (var (file, hash) in files.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+            foreach ((var file, var hash) in files.OrderBy(pair => pair.Key, StringComparer.Ordinal))
             {
                 writer.WriteString(file, hash);
             }

@@ -20,7 +20,7 @@ internal sealed class LogBuffer
         lock (_syncRoot)
         {
             _loggerFactory = factory;
-            foreach (var (category, write) in _entries)
+            foreach ((var category, var write) in _entries)
             {
                 write(factory.CreateLogger(category));
             }

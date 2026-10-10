@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Configuration;
-using NuGet.Packaging;
 using Plugwright.NuGet;
 
 namespace Plugwright;

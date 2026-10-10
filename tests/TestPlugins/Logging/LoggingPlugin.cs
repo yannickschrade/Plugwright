@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Plugwright;
-using Plugwright.TestPlugins.Logging;
 
 [assembly: Plugin(Description = "Ignored, the project sets a description.", Authors = "Logging team")]
 

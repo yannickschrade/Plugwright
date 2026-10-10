@@ -117,7 +117,7 @@ internal sealed class PluginPackage
             return;
         }
 
-        foreach (var (file, _) in byFramework.Single(group => group.Key == nearest))
+        foreach ((var file, var _) in byFramework.Single(group => group.Key == nearest))
         {
             assemblies[System.IO.Path.GetFileNameWithoutExtension(file)] = ReadAll(reader, file);
         }

@@ -163,7 +163,7 @@ internal sealed class PluginSystem
         var loggerFactory = app.Services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
         _logBuffer.Flush(loggerFactory);
 
-        foreach (var (plugin, handlers) in _activePlugins)
+        foreach ((var plugin, var handlers) in _activePlugins)
         {
             foreach (var handler in handlers)
             {
@@ -183,7 +183,7 @@ internal sealed class PluginSystem
         }
 
         var logger = loggerFactory.CreateLogger(LoggerCategory);
-        foreach (var (plugin, _) in _activePlugins)
+        foreach ((var plugin, var _) in _activePlugins)
         {
             PluginLog.PluginLoaded(logger, plugin.Metadata.Id, plugin.Metadata.Version, plugin.PluginType.FullName, plugin.Source);
         }
@@ -225,7 +225,7 @@ internal sealed class PluginSystem
             {
                 case PluginTypeSource typeSource:
                     var assembly = typeSource.PluginType.Assembly;
-                    var unit = units.FirstOrDefault(unit => unit.Assembly == assembly);
+                    PluginUnit? unit = units.FirstOrDefault(unit => unit.Assembly == assembly);
                     if (unit is null)
                     {
                         unit = PluginUnit.FromCode(assembly);

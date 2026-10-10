@@ -281,12 +281,12 @@ internal sealed class PackageDependencyResolver
 
             if (library is not null)
             {
-                foreach (var (name, content) in library.Assemblies)
+                foreach ((var name, var content) in library.Assemblies)
                 {
                     assemblies.TryAdd(name, content);
                 }
 
-                foreach (var (name, content) in library.NativeLibraries)
+                foreach ((var name, var content) in library.NativeLibraries)
                 {
                     nativeLibraries.TryAdd(name, content);
                 }

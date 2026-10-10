@@ -1,6 +1,6 @@
+using Plugwright;
 using Plugwright.AspNetCore;
 using Plugwright.TestWebHost.Components;
-using Plugwright;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents();

@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Configuration;
 using Plugwright.Tests.Plugins;
 
 namespace Plugwright.Tests;

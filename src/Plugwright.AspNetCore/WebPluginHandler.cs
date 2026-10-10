@@ -54,6 +54,7 @@ public sealed class WebPluginHandler : PluginHandler<IWebPlugin>
     {
         ArgumentNullException.ThrowIfNull(instance);
         ArgumentNullException.ThrowIfNull(plugin);
+        ArgumentNullException.ThrowIfNull(app);
 
         if (app is not IApplicationBuilder pipeline || app is not IEndpointRouteBuilder endpoints)
         {

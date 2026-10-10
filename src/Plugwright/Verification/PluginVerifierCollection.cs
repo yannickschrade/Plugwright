@@ -25,18 +25,17 @@ namespace Plugwright;
 public sealed class PluginVerifierCollection : IReadOnlyCollection<IPluginVerifier>
 {
     private readonly PluginSystem _system;
-    private readonly string _contentRoot;
     private readonly List<IPluginVerifier> _verifiers = [];
 
     /// <summary>
     /// Gets the host's content root, for resolving relative paths in verifier settings.
     /// </summary>
-    internal string ContentRoot => _contentRoot;
+    internal string ContentRoot { get; }
 
     internal PluginVerifierCollection(PluginSystem system, string contentRoot)
     {
         _system = system;
-        _contentRoot = contentRoot;
+        ContentRoot = contentRoot;
     }
 
     /// <summary>
@@ -257,11 +256,11 @@ public sealed class PluginVerifierCollection : IReadOnlyCollection<IPluginVerifi
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     private PluginVerifierCollection AddCertificateVerifier(CertificateVerifierOptions options) =>
-        Add(new CertificateVerifier(CertificateTrust.Create(options, _contentRoot)));
+        Add(new CertificateVerifier(CertificateTrust.Create(options, ContentRoot)));
 
     private PluginVerifierCollection AddHashVerifier(HashVerifierOptions options)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(options.LockFile, nameof(options.LockFile));
-        return Add(new HashVerifier(Path.GetFullPath(options.LockFile, _contentRoot)));
+        return Add(new HashVerifier(Path.GetFullPath(options.LockFile, ContentRoot)));
     }
 }

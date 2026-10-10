@@ -11,7 +11,7 @@ internal sealed class WebTestHost(IDictionary<string, string?> settings)
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        foreach (var (key, value) in settings)
+        foreach ((var key, var value) in settings)
         {
             builder.UseSetting(key, value);
         }

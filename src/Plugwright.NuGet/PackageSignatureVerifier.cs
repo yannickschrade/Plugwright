@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using Microsoft.Extensions.Configuration;
 using NuGet.Packaging;
 using NuGet.Packaging.Signing;
 

@@ -289,7 +289,7 @@ public sealed class PluginCollection : IReadOnlyCollection<PluginSource>
                 ?? throw new InvalidOperationException($"The configuration '{directory.Path}' must be the path of a plugin directory."));
         }
 
-        foreach (var (key, read) in readers)
+        foreach ((var key, var read) in readers)
         {
             if (section.GetSection(key) is { } sourceSection && sourceSection.Exists())
             {

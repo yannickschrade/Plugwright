@@ -97,7 +97,7 @@ public sealed class PluginCatalogTests
 
         var app = Build(builder);
 
-        var record = app.Services.GetRequiredService<FakeLogCollector>().GetSnapshot()
+        FakeLogRecord record = app.Services.GetRequiredService<FakeLogCollector>().GetSnapshot()
             .Where(record => record.Id.Id == 1008).ShouldHaveSingleItem();
         record.Level.ShouldBe(LogLevel.Warning);
         record.Category.ShouldBe("Plugwright");

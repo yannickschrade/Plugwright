@@ -1,13 +1,12 @@
 using System.Diagnostics;
 using Acme.Orders.Abstractions;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry.Trace;
-using Plugwright.AspNetCore;
 using Plugwright;
+using Plugwright.AspNetCore;
 
 namespace Acme.Orders;
 

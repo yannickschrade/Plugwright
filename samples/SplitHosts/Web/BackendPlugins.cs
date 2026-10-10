@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using Plugwright;
 
 namespace SplitHosts.Web;
@@ -32,7 +31,7 @@ internal static class BackendPlugins
             return;
         }
 
-        foreach (var (uiPlugin, backendPlugin) in backendOfUiPlugin)
+        foreach ((var uiPlugin, var backendPlugin) in backendOfUiPlugin)
         {
             var loaded = backendPlugins.Any(plugin =>
                 string.Equals(plugin.Id, backendPlugin, StringComparison.OrdinalIgnoreCase) && plugin.State == PluginState.Loaded);

@@ -48,7 +48,7 @@ internal sealed class PluginManifest
         }
 
         var metadata = PluginMetadataReader.ReadWithoutLoading(mainAssemblyPath, verifiedContent: null).Metadata;
-        var (_, files) = VerifiedFiles.Read(folder);
+        (var _, var files) = VerifiedFiles.Read(folder);
         var hashes = files
             .Where(file => file.Path != FileName)
             .ToDictionary(file => file.Path, file => PluginFileHash.Compute(file.Content.Span), StringComparer.Ordinal);
@@ -101,7 +101,7 @@ internal sealed class PluginManifest
             writer.WriteString("pluginId", PluginId);
             writer.WriteString("pluginVersion", PluginVersion);
             writer.WriteStartObject("files");
-            foreach (var (path, hash) in Files.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+            foreach ((var path, var hash) in Files.OrderBy(pair => pair.Key, StringComparer.Ordinal))
             {
                 writer.WriteString(path, hash);
             }

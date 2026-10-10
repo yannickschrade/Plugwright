@@ -81,7 +81,7 @@ internal sealed class CertificateTrust
 
         var subject = NormalizeName(certificate.Subject);
         string? chainProblem = null;
-        foreach (var (issuer, trustedSubject, _) in _trustedPublishers.Where(publisher => publisher.NormalizedSubject == subject))
+        foreach ((var issuer, var trustedSubject, var _) in _trustedPublishers.Where(publisher => publisher.NormalizedSubject == subject))
         {
             using var chain = new X509Chain();
             chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
