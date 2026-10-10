@@ -45,6 +45,8 @@ if (controllers != "None")
 }
 
 app.MapOpenApi();
+app.MapPluginCatalog();
+app.MapPluginCatalog("/_plugwright/plugins-with-errors", includeErrorMessages: true);
 app.MapRazorComponents<App>().AddPluginAssemblies(app);
 
 app.Run();
