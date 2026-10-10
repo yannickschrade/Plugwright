@@ -1,0 +1,16 @@
+/* API type names are long: give the navigation more room on wide screens, and wrap names instead of cutting them off.
+   The API navigation marks where names may wrap, see docs/tools/FixApiMarkdown.cs. */
+@media screen and (min-width: 76.25em) {
+  .md-grid {
+    max-width: 72rem;
+  }
+
+  .md-sidebar--primary {
+    width: 14.5rem;
+  }
+}
+
+.md-nav--primary .md-ellipsis {
+  text-overflow: clip;
+  white-space: normal;
+}

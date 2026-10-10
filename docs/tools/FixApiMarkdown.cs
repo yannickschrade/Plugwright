@@ -3,7 +3,8 @@
 // - <xref href="Uid"> tags become links to the API page and anchor of that uid, or to Microsoft Learn for .NET types.
 //   An xref to a Plugwright uid without page fails, so that broken references in XML comments fail the docs build.
 // - <pre><code class="lang-x"> blocks become fenced code blocks, so that they get syntax highlighting.
-// - toc.yml is removed; the navigation links to the namespace page.
+// - toc.yml is replaced by SUMMARY.md: the navigation of the API folder (Zensical's literate-nav), with every
+//   namespace and its types grouped by kind, as on Microsoft Learn.
 //
 // Usage: dotnet run docs/tools/FixApiMarkdown.cs -- <api folder>
 
@@ -23,6 +24,7 @@ var pages = Directory.GetFiles(apiFolder, "*.md").ToDictionary(file => Path.GetR
 // Plugwright_PluginContext_Builder. Remember the page of each anchor and the display name of each page.
 var pageOfAnchor = new Dictionary<string, string>(StringComparer.Ordinal);
 var titleOfPage = new Dictionary<string, string>(StringComparer.Ordinal);
+var kindOfPage = new Dictionary<string, string>(StringComparer.Ordinal);
 foreach (var (page, content) in pages)
 {
     foreach (Match anchor in AnchorPattern().Matches(content))
@@ -32,6 +34,7 @@ foreach (var (page, content) in pages)
 
     var title = TitlePattern().Match(content);
     titleOfPage[page] = title.Success ? title.Groups["name"].Value.Replace("\\>", ">", StringComparison.Ordinal) : Path.GetFileNameWithoutExtension(page);
+    kindOfPage[page] = title.Success ? title.Groups["kind"].Value : "Class";
 }
 
 var unresolved = new List<string>();
@@ -44,6 +47,7 @@ foreach (var (page, content) in pages)
 }
 
 File.Delete(Path.Combine(apiFolder, "toc.yml"));
+File.WriteAllText(Path.Combine(apiFolder, "SUMMARY.md"), Summary());
 
 if (unresolved.Count > 0)
 {
@@ -99,6 +103,40 @@ string Link(string uid, string page)
 // The anchor in the title of a page, which is the anchor of its type.
 string TitleId(string page) => AnchorPattern().Match(pages[page]).Groups["id"].Value;
 
+// The navigation of the API folder: each namespace page, followed by its types grouped by kind.
+string Summary()
+{
+    string[] kinds = ["Class", "Struct", "Interface", "Enum", "Delegate"];
+    var lines = new List<string>();
+    foreach (var namespacePage in kindOfPage.Where(entry => entry.Value == "Namespace").Select(entry => entry.Key).Order(StringComparer.Ordinal))
+    {
+        var namespaceName = Path.GetFileNameWithoutExtension(namespacePage);
+        lines.Add($"- [{namespaceName}]({namespacePage})");
+        foreach (var kind in kinds)
+        {
+            var types = kindOfPage
+                .Where(entry => entry.Value == kind && Path.GetFileNameWithoutExtension(entry.Key).StartsWith(namespaceName + ".", StringComparison.Ordinal))
+                .Select(entry => entry.Key)
+                .OrderBy(type => titleOfPage[type], StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (types.Count == 0)
+            {
+                continue;
+            }
+
+            lines.Add($"- {(kind == "Class" ? "Classes" : kind + "s")}");
+            lines.AddRange(types.Select(type => $"    - [{EscapeLinkText(titleOfPage[type])}]({type})"));
+        }
+    }
+
+    return string.Join('\n', lines) + "\n";
+}
+
+// Escapes the angle brackets of generic types, and lets long names wrap before inner capitals
+// (PluginHost|Application|Builder|Extensions) with a zero-width space instead of in the middle of a word.
+static string EscapeLinkText(string text) =>
+    InnerCapitalPattern().Replace(text, "&#8203;").Replace("<", "&lt;", StringComparison.Ordinal).Replace(">", "&gt;", StringComparison.Ordinal);
+
 static string AnchorId(string uid) => NonWordPattern().Replace(uid, "_");
 
 // The name of a member without parameters and generic arity: Plugwright.IPlugin.Configure(Plugwright.PluginContext) -> Configure.
@@ -119,7 +157,7 @@ partial class Program
     [GeneratedRegex("<a id=\"(?<id>[^\"]+)\"></a>")]
     private static partial Regex AnchorPattern();
 
-    [GeneratedRegex(@"^# <a id=""[^""]+""></a> \w+ (?<name>.+)$", RegexOptions.Multiline)]
+    [GeneratedRegex(@"^# <a id=""[^""]+""></a> (?<kind>\w+) (?<name>.+)$", RegexOptions.Multiline)]
     private static partial Regex TitlePattern();
 
     [GeneratedRegex(@"<xref href=""(?<uid>[^""]+)""[^>]*></xref>")]
@@ -130,4 +168,7 @@ partial class Program
 
     [GeneratedRegex(@"\W")]
     private static partial Regex NonWordPattern();
+
+    [GeneratedRegex(@"(?<=[a-z])(?=[A-Z])")]
+    private static partial Regex InnerCapitalPattern();
 }

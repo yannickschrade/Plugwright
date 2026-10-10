@@ -148,7 +148,7 @@ docs/                        zensical.toml, content/ (published pages), design/ 
 ## Documentation
 
 - Zensical site (`docs/zensical.toml`, pages in `docs/content/`), English, structured by Diátaxis (tutorials, how-to guides, reference, explanation), hosted on GitHub Pages. Navigation is the `nav` list in `zensical.toml`; add every new page there.
-- The API reference comes from DocFX: `docfx metadata` writes Markdown to `docs/content/api/` (generated, not committed), `docs/tools/FixApiMarkdown.cs` turns its `<xref>` tags into links. An unresolvable Plugwright reference in XML comments fails the build.
+- The API reference comes from DocFX: `docfx metadata` writes Markdown to `docs/content/api/` (generated, not committed), `docs/tools/FixApiMarkdown.cs` turns its `<xref>` tags into links and writes `api/SUMMARY.md`, the API navigation tree (types grouped by kind, via Zensical's literate-nav). An unresolvable Plugwright reference in XML comments fails the build.
 - Link API pages with relative links, e.g. ``[`PluginContext`](../api/Plugwright.PluginContext.md)`` or with a member anchor `#Plugwright_PluginContext_Configuration`. `zensical build --strict` fails on broken links, anchors and snippets.
 - Admonitions use `!!! note` / `!!! warning "Important"`, not GitHub alerts.
 - DocFX does not document C# 14 extension members (`builder.Plugins`, `ApplyPlugins()`, …); describe them on the containing class and in the guides.

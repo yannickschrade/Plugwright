@@ -12,6 +12,7 @@ repo_name = "yannickschrade/Plugwright"
 edit_uri = "edit/main/docs/content/"
 copyright = "Copyright &copy; Yannick Schrade. MIT license."
 docs_dir = "content"
+extra_css = ["stylesheets/extra.css"]
 site_dir = "_site"
 
 nav = [
@@ -64,9 +65,12 @@ nav = [
     { "Plugin metadata" = "reference/plugin-metadata.md" },
     { "Log events and telemetry" = "reference/log-events.md" },
     { "Command-line tool" = "reference/cli.md" },
-    { "API" = "api/Plugwright.md" },
+    { "API" = "api/" },
   ] },
 ]
+
+# The navigation of the generated API folder comes from content/api/SUMMARY.md, see tools/FixApiMarkdown.cs.
+[project.plugins.literate-nav]
 
 [project.theme]
 language = "en"
