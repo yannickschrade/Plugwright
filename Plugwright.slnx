@@ -79,6 +79,7 @@
     <Project Path="tests/TestPlugins/Counter/Counter.csproj" />
     <Project Path="tests/TestPlugins/CycleA/CycleA.csproj" />
     <Project Path="tests/TestPlugins/CycleB/CycleB.csproj" />
+    <Project Path="tests/TestPlugins/Faulty/Faulty.csproj" />
     <Project Path="tests/TestPlugins/Greeter/Greeter.csproj" />
     <Project Path="tests/TestPlugins/Logging/Logging.csproj" />
     <Project Path="tests/TestPlugins/NeedsNewLogging/NeedsNewLogging.csproj" />

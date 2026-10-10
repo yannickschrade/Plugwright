@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- A plugin that fails on request, for tests of failure handling: setting ThrowIn = Configure or Startup. -->
+  <PropertyGroup>
+    <AssemblyName>Plugwright.TestPlugins.Faulty</AssemblyName>
+    <RootNamespace>Plugwright.TestPlugins.Faulty</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugwright.Abstractions\Plugwright.Abstractions.csproj" Private="false" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+</Project>

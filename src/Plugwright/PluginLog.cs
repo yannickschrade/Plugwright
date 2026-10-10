@@ -39,6 +39,18 @@ internal static partial class PluginLog
         Message = "Package {PackageId} {PackageVersion} downloaded from {Feed} to {PackagePath}")]
     public static partial void PackageDownloaded(ILogger logger, string packageId, string packageVersion, string feed, string packagePath);
 
+    [LoggerMessage(EventId = 1009, EventName = "PluginStartupCompleted", Level = LogLevel.Information,
+        Message = "Startup task {StartupTask} of plugin {PluginId} completed in {ElapsedMilliseconds:0} ms")]
+    public static partial void PluginStartupCompleted(ILogger logger, string pluginId, string startupTask, double elapsedMilliseconds);
+
+    [LoggerMessage(EventId = 1010, EventName = "PluginStartupFailed", Level = LogLevel.Error,
+        Message = "Startup task {StartupTask} of plugin {PluginId} failed after {ElapsedMilliseconds:0} ms")]
+    public static partial void PluginStartupFailed(ILogger logger, Exception exception, string pluginId, string startupTask, double elapsedMilliseconds);
+
+    [LoggerMessage(EventId = 1011, EventName = "PluginStartupSkipped", Level = LogLevel.Warning,
+        Message = "Startup task {StartupTask} of plugin {PluginId} skipped: {Reason}")]
+    public static partial void PluginStartupSkipped(ILogger logger, string pluginId, string startupTask, string reason);
+
     [LoggerMessage(EventId = 1008, EventName = "PluginStatus",
         Message = "Plugin {PluginId} {PluginVersion} ({PluginSource}): {PluginState}{Reason}")]
     private static partial void PluginStatus(

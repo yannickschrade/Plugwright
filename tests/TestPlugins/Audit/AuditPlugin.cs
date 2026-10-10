@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Plugwright;
@@ -14,6 +15,16 @@ public sealed class AuditPlugin : IPlugin
         context.Builder.Configuration["TestPlugins:Order"] += "Audit;";
         context.Builder.Configuration["TestPlugins:Audit:Dependencies"] = string.Join(",", context.Metadata.Dependencies);
         context.Builder.Services.AddHostedService<AuditService>();
+        context.AddStartup<AuditStartup>();
+    }
+}
+
+public sealed class AuditStartup(IConfiguration configuration) : IPluginStartup
+{
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        configuration["TestPlugins:Startup"] += "Audit;";
+        return Task.CompletedTask;
     }
 }
 

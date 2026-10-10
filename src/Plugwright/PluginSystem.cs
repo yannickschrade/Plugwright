@@ -14,7 +14,7 @@ namespace Plugwright;
 /// </summary>
 internal sealed class PluginSystem
 {
-    private const string LoggerCategory = "Plugwright";
+    public const string LoggerCategory = "Plugwright";
 
     private readonly LogBuffer _logBuffer = new();
     private readonly List<ActivePlugin> _activePlugins = [];
@@ -106,6 +106,12 @@ internal sealed class PluginSystem
 
         ThrowIfRequiredPluginsHaveProblems();
         MoveToEnd(builder, settingsSource);
+
+        // First among the hosted services, so that startup tasks run before any other service starts.
+        if (builder.Services.Any(service => service.ServiceType == typeof(PluginStartupRegistration)))
+        {
+            builder.Services.Insert(0, ServiceDescriptor.Singleton<IHostedService, PluginStartupRunner>());
+        }
 
         builder.Services.AddSingleton(this);
         builder.Services.AddSingleton<IPluginCatalog>(Catalog);
@@ -653,6 +659,57 @@ internal sealed class PluginSystem
         }
 
         _activePlugins.Add(new ActivePlugin(plugin, handlers));
+    }
+
+    /// <summary>
+    /// A startup task failed. A required plugin stops the application, and so does the fail-fast mode. Otherwise the
+    /// plugin becomes failed and the plugins that depend on it, directly or transitively, become unavailable.
+    /// </summary>
+    public void FailStartup(PluginInfo plugin, string taskName, Exception exception)
+    {
+        var reason = $"Startup task '{taskName}' failed: {exception.Message}";
+        Catalog.Set(plugin with { State = PluginState.Failed, Reason = reason, ErrorMessage = exception.Message });
+
+        var policy = Plugins.GetPolicy(plugin.Id);
+        if (plugin.IsRequired)
+        {
+            throw new PluginException($"Required plugin '{plugin.Id}' ({plugin.Source}): {reason}", plugin.Id, exception);
+        }
+
+        if ((policy?.FailureMode ?? Plugins.Options.FailureMode) == PluginFailureMode.FailFast)
+        {
+            throw new PluginException($"Plugin '{plugin.Id}' ({plugin.Source}): {reason}", plugin.Id, exception);
+        }
+
+        bool changed;
+        do
+        {
+            changed = false;
+            foreach (var dependent in Catalog.Plugins.Where(candidate => candidate.State == PluginState.Loaded))
+            {
+                var dependency = dependent.Dependencies
+                    .Select(Catalog.Find)
+                    .FirstOrDefault(candidate => candidate is not null && candidate.State != PluginState.Loaded);
+                if (dependency is null)
+                {
+                    continue;
+                }
+
+                var dependentReason = $"It depends on plugin '{dependency.Id}', which is {Describe(dependency.State)}.";
+                Catalog.Set(dependent with { State = PluginState.DependencyUnavailable, Reason = dependentReason });
+                if (dependent.IsRequired)
+                {
+                    throw new PluginException(
+                        $"Required plugin '{dependent.Id}' cannot start because it depends on plugin '{dependency.Id}', which is "
+                            + $"{Describe(dependency.State)}. {reason}",
+                        dependent.Id,
+                        exception);
+                }
+
+                changed = true;
+            }
+        }
+        while (changed);
     }
 
     private static void RestoreServices(IServiceCollection services, ServiceDescriptor[] servicesBefore)

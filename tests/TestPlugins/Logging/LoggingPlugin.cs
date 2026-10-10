@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Plugwright;
 using Plugwright.TestPlugins.Logging;
@@ -28,5 +29,20 @@ public sealed class LoggingPlugin : IPlugin
         context.Builder.Configuration["TestPlugins:Logging:Authors"] = context.Metadata.Authors;
         context.Builder.Configuration["TestPlugins:Logging:Description"] = context.Metadata.Description;
         context.Builder.Services.AddSingleton<LogSink>();
+        context.AddStartup<LoggingStartup>();
+    }
+}
+
+/// <summary>
+/// Records that it ran; fails if the plugin's setting FailStartup is true.
+/// </summary>
+public sealed class LoggingStartup(IConfiguration configuration) : IPluginStartup
+{
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        configuration["TestPlugins:Startup"] += "Logging;";
+        return configuration["Plugwright:Plugins:Plugwright.TestPlugins.Logging:Settings:FailStartup"] == "true"
+            ? throw new InvalidOperationException("Logging startup failed on purpose.")
+            : Task.CompletedTask;
     }
 }

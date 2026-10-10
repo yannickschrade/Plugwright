@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -85,4 +87,27 @@ public sealed class PluginContext
     /// For logging at runtime, inject <see cref="ILogger{TCategoryName}"/> into your services as usual.
     /// </remarks>
     public ILogger Logger { get; }
+
+    /// <summary>
+    /// Adds an asynchronous startup task for this plugin. It runs after the host is built and before the application
+    /// starts, see <see cref="IPluginStartup"/>.
+    /// </summary>
+    /// <typeparam name="TStartup">The task. It is created in its own service scope and can receive services.</typeparam>
+    /// <returns>This context, for chaining.</returns>
+    /// <example>
+    /// <code language="csharp">
+    /// public void Configure(PluginContext context)
+    /// {
+    ///     context.Builder.Services.AddDbContext&lt;OrdersDbContext&gt;();
+    ///     context.AddStartup&lt;MigrateOrdersStartup&gt;();
+    /// }
+    /// </code>
+    /// </example>
+    public PluginContext AddStartup<TStartup>()
+        where TStartup : class, IPluginStartup
+    {
+        Builder.Services.TryAddScoped<TStartup>();
+        Builder.Services.AddSingleton(new PluginStartupRegistration(Metadata.Id, typeof(TStartup)));
+        return this;
+    }
 }
