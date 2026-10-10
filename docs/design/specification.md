@@ -11,7 +11,7 @@ Ziel ist eine öffentliche C#-Bibliothek, die ein generisches Plugin-System auf 
 - Die Bibliothek baut auf den Standard-Abstraktionen von Microsoft auf, statt eigene Host-Konzepte zu erfinden.
 - Eine sehr gute, ausführliche Anwenderdokumentation ist Kernanforderung, nicht Beiwerk.
 
-Das Dokument ist ein Arbeitsstand und wird über mehrere Sessions ergänzt. Einträge mit **Vorschlag** sind noch nicht entschieden.
+Erweiterung für Web-Hosts, Plugin-Zustand und Startablauf: `requirements-web-host.md` im selben Ordner. Das Dokument ist ein Arbeitsstand und wird über mehrere Sessions ergänzt. Einträge mit **Vorschlag** sind noch nicht entschieden.
 
 ## Rahmenbedingungen
 
@@ -26,7 +26,7 @@ Fest steht: C#-Klassenbibliothek, öffentlich auf GitHub, aufgebaut auf `Microso
 | Ziel-Framework | Festgelegt | .NET 10 (LTS); ermöglicht C# 14 Extension Members |
 | Lizenz | Festgelegt | MIT |
 | CI/CD | Festgelegt | GitHub Actions ab dem ersten Tag: Build, Tests und DocFX-Build (Codebeispiele werden mitkompiliert) bei jedem Push und PR; NuGet-Publish folgt später |
-| Paketschnitt | Festgelegt | `*.Abstractions` nur mit Plugin-Vertrag (`IPlugin`, `PluginContext`, Metadaten, Attribute); Hauptpaket mit Extensions, `IPluginHandler`, `PluginDescriptor`, `IPluginVerifier` und Laden; NuGet-Quelle als eigenes Paket \*.NuGet |
+| Paketschnitt | Festgelegt | `*.Abstractions` nur mit Plugin-Vertrag (`IPlugin`, `PluginContext`, Metadaten, Attribute, Plugin-Katalog); Hauptpaket mit Extensions, `IPluginHandler`, `PluginDescriptor`, `IPluginVerifier` und Laden; NuGet-Quelle als eigenes Paket \*.NuGet; Web und Blazor in `Plugwright.AspNetCore` mit Verträgen in `Plugwright.AspNetCore.Abstractions` |
 | Projektname | Festgelegt | Plugwright; Pakete z. B. Plugwright, Plugwright.Abstractions, Plugwright.NuGet, Plugwright.Cli |
 
 ## Begriffe
@@ -375,7 +375,7 @@ v1 enthält ein CLI-Tool als `dotnet tool` mit drei Aufgaben:
 ### Nicht in v1
 
 - Hot Reload und Entladen von Plugins
-- Andere Host-Typen (ASP.NET Core, Desktop)
+- Andere Host-Typen außer ASP.NET Core und Blazor Server (siehe `requirements-web-host.md`), z. B. Desktop
 
 ### Danach, in dieser Reihenfolge
 
@@ -596,3 +596,17 @@ docs/       Anwenderdokumentation
 | 2026-10-07 | `Plugins.AddFromConfiguration` und `PluginVerifiers.AddFromConfiguration` lesen Quellen, Fehlermodus und Prüfer aus dem Abschnitt `Plugwright`; nur bei ausdrücklichem Aufruf. Ergänzt „Welche Prüfer es gibt, legt immer der Code fest“: der Code kann diese Entscheidung ausdrücklich an die Konfiguration abgeben | Betrieb soll Plugins und Prüfung ohne Neukompilieren ändern können; der Aufruf bleibt eine bewusste Entscheidung im Code, pluginsettings.json kann diese Schlüssel nie setzen |
 | 2026-10-07 | Unbekannte Schlüssel in diesen Abschnitten sind Fehler; ein Prüfer ist an, wenn sein Abschnitt Einstellungen hat oder `true` ist | Ein Tippfehler darf die Prüfung nicht still abschalten; leere JSON-Objekte erzeugen keine Konfigurationsschlüssel |
 | 2026-10-07 | `PluginPackageOptions.VerifyDownloads`, Standard `true` | Wer dem eigenen Feed vertraut, muss Downloads nicht in die Lock-Datei aufnehmen; sicher als Standard |
+| 2026-10-10 | ASP.NET Core und Blazor Server, Aktivieren/Deaktivieren per Konfiguration, Pflicht-Plugins und ein asynchroner Start-Hook kommen in v1 (`requirements-web-host.md`) | Zielanwendung mit API- und Blazor-Host braucht sie |
+| 2026-10-10 | Pakete `Plugwright.AspNetCore.Abstractions` (`IWebPlugin`, `IBlazorPlugin`) und `Plugwright.AspNetCore` (Web- und Blazor-Handler, Komponenten-Assemblies, Katalog-Endpunkt); kein eigenes `Plugwright.Blazor` | Die Verträge brauchen ASP.NET-Core-Typen und gehören nicht in `Plugwright.Abstractions`; Blazor ist Teil des Shared Framework, ein eigenes Paket spart keine Abhängigkeit |
+| 2026-10-10 | `IPluginCatalog`, `PluginInfo`, `PluginState` und das Endpunkt-DTO liegen in `Plugwright.Abstractions`; `PluginReport` bleibt für Descriptors und Prüfergebnisse, `SkippedPlugins` entfällt | Plugins sollen ihren Zustand ohne Hauptpaket prüfen können; keine zwei Listen mit gleichem Inhalt; noch nicht veröffentlicht |
+| 2026-10-10 | Fehler-Policy je Plugin mit den bestehenden Namen `FailureMode`/`PluginFailureMode` statt `FailurePolicy`; dazu `Required` | Keine Umbenennung ohne Gewinn |
+| 2026-10-10 | `PluginSource` im Katalog als Text statt Enum | Name kollidiert mit der bestehenden Klasse `PluginSource` |
+| 2026-10-10 | Web-Handler in Phase 2 je Plugin: erst `ConfigurePipeline`, dann `MapEndpoints` (statt erst alle `ConfigurePipeline`) | `Map…` fügt keine Middleware ein, das Ergebnis ist gleich; sonst bräuchte `IPluginHandler` einen weiteren Haken |
+| 2026-10-10 | Application Parts in Phase 1: vorhandenen `ApplicationPartManager` ergänzen, sonst einen mit den Standard-Parts der App anlegen, den `AddControllers()` später übernimmt | Controller werden gefunden, egal ob `AddControllers()` vor oder nach `ApplyPlugins()` steht, ohne MVC zu erzwingen |
+| 2026-10-10 | `Plugwright.AspNetCore*` und `Microsoft.AspNetCore.*` sind gemeinsame Assemblies wie `Microsoft.Extensions.*` | Typgleichheit für Web-Verträge bei Plugins aus Verzeichnissen |
+| 2026-10-10 | `IPluginStartup.StartAsync(CancellationToken)` ohne `IServiceProvider` | Die Aufgabe wird je Scope aus DI aufgelöst und bekommt Dienste per Konstruktor, wie `IHostedService` |
+| 2026-10-10 | Deaktivierte Plugins aus Verzeichnis oder Paket: Id aus Ordner- bzw. Paketname, keine Prüfung, kein Laden; Metadaten nur ohne Prüfer | „Erst prüfen, dann Metadaten lesen“ bleibt; ein deaktiviertes, beschädigtes Plugin darf den Start nicht verhindern |
+| 2026-10-10 | Dienste eines in `Configure` fehlgeschlagenen Plugins werden zurückgenommen (Stand von `builder.Services` davor); Konfigurationsquellen, `Properties` und `ConfigureContainer` nicht | Die Dienstliste lässt sich zuverlässig wiederherstellen, die übrigen Teile nicht |
+| 2026-10-10 | `pluginsettings.json` wird vor dem Aktivieren/Deaktivieren umgesetzt | R-10 und R-13 setzen sie voraus |
+| 2026-10-10 | Doku-Seiten der Web-Anforderungen folgen nach dem Umzug der Doku von DocFX auf Zensical; XML-Doku, Tests und Samples sofort | Seiten nicht zweimal schreiben |
+| 2026-10-10 | Samples dürfen Aspire- und OpenTelemetry-Pakete nutzen, Bibliotheken nicht | Aspire-ServiceDefaults wie im Template |
