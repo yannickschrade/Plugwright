@@ -6,14 +6,14 @@ The full specification (German, with rationale and decision log) lives in `docs/
 
 ## Status
 
-Done: repo setup (central package management, CI, DocFX), plugin contract, extension members and handler pipeline, directory loading, metadata and dependencies, verification with `HashVerifier` and `CertificateVerifier`, `PluginReport`, CLI `lock` and `sign`, NuGet package source with verification (lock file, `PackageSignatureVerifier`) and optional feed, sources and verifiers from configuration (`AddFromConfiguration`). Next: CLI `verify` (step 7).
+Done: repo setup (central package management, CI, DocFX), plugin contract, extension members and handler pipeline, directory loading, metadata and dependencies, verification with `HashVerifier` and `CertificateVerifier`, `PluginReport`, CLI `lock` and `sign`, NuGet package source with verification (lock file, `PackageSignatureVerifier`) and optional feed, sources and verifiers from configuration (`AddFromConfiguration`), web hosts (`Plugwright.AspNetCore`, M1 of `docs/design/requirements-web-host.md`). Next: M2 and M3 of the web host requirements, then CLI `verify` (step 7). Doc pages are on hold until the docs move from DocFX to Zensical.
 
 ## Baseline
 
 - Target `net10.0` only, C# 14 (extension members). No multi-targeting.
 - License: MIT.
 - Code, comments, XML docs, docs site, commit messages: English.
-- Allowed dependencies: `Microsoft.Extensions.*`, `NuGet.Packaging` and `NuGet.Protocol` (only in `Plugwright.NuGet`), `System.Security.Cryptography.Pkcs`, `System.Reflection.MetadataLoadContext`. Ask before adding anything else.
+- Allowed dependencies: `Microsoft.Extensions.*`, the ASP.NET Core shared framework (only in `Plugwright.AspNetCore*`), `NuGet.Packaging` and `NuGet.Protocol` (only in `Plugwright.NuGet`), `System.Security.Cryptography.Pkcs`, `System.Reflection.MetadataLoadContext`. Ask before adding anything else.
 - CI: GitHub Actions with build, tests and DocFX build on every push and PR.
 
 ## Intended repository layout
@@ -23,11 +23,14 @@ src/
   Plugwright.Abstractions/   Plugin contract (IPlugin, PluginContext, attributes)
   Plugwright/                Extension members, handler pipeline, loading, built-in verifiers
   Plugwright.NuGet/          NuGet folder source
+  Plugwright.AspNetCore.Abstractions/  Web plugin contracts (IWebPlugin, IBlazorPlugin)
+  Plugwright.AspNetCore/     Web and Blazor handlers, component assemblies
   Plugwright.Cli/            dotnet tool: lock file, manifest signing, verify
 tests/
   Plugwright.Tests/              Unit tests
   Plugwright.IntegrationTests/   Real loading, signing, verification
   TestPlugins/                   Test plugin projects (built and copied, never referenced)
+  TestWebHost/                   Web host for WebApplicationFactory tests
 samples/                     Runnable sample apps and plugins (source of all doc snippets)
 docs/                        DocFX site; docs/design/specification.md
 ```
@@ -79,7 +82,7 @@ docs/                        DocFX site; docs/design/specification.md
   - Plugin types: public, non-abstract classes of the main assembly that a handler can handle.
 - Duplicate plugin IDs (case-insensitive) always throw, naming both sources; skip-and-log does not apply.
 - Load path: without verifiers `LoadFromAssemblyPath`; with verifiers `LoadFromStream` from the verified bytes (`Assembly.Location` is empty, document it). Native libraries are hash-verified, then loaded from path.
-- Shared types (plugin contract, `Microsoft.Extensions.*`) always come from the default load context, in the host's version. Only if the host lacks such an assembly, the plugin's copy is loaded.
+- Shared types (plugin contracts, `Microsoft.Extensions.*`, `Microsoft.AspNetCore.*`) always come from the default load context, in the host's version. Only if the host lacks such an assembly, the plugin's copy is loaded.
 - Identity, version and dependencies live at assembly/package level. Plugin classes in one assembly share them and load together.
 - Metadata comes from `.nuspec` or the assembly. `[Plugin]` and `[PluginDependency]` attributes only fill gaps, never override. Conflicting version constraints must both be satisfied.
 - Read metadata without executing plugin code (`MetadataLoadContext`).
