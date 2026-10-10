@@ -18,7 +18,7 @@ dotnet add MyApp package Plugwright
 
 ## 2. Create a plugin
 
-A plugin is a class library with a class that implements <xref:Plugwright.IPlugin>:
+A plugin is a class library with a class that implements [`IPlugin`](../api/Plugwright.IPlugin.md):
 
 ```bash
 dotnet new classlib -n Acme.Hello
@@ -27,11 +27,15 @@ dotnet add Acme.Hello package Plugwright.Abstractions
 
 Replace the generated class with a plugin that adds a hosted service:
 
-[!code-csharp[](../../samples/GettingStarted/Acme.Hello/HelloPlugin.cs?name=plugin)]
+```csharp
+--8<-- "samples/GettingStarted/Acme.Hello/HelloPlugin.cs:plugin"
+```
 
 Open `Acme.Hello.csproj` and make two changes, so that the build output can be deployed as a plugin folder:
 
-[!code-xml[](../../samples/GettingStarted/Acme.Hello/Acme.Hello.csproj)]
+```xml
+--8<-- "samples/GettingStarted/Acme.Hello/Acme.Hello.csproj"
+```
 
 `EnableDynamicLoading` copies all dependencies into the output. `ExcludeAssets="runtime"` keeps `Plugwright.Abstractions.dll` out of it, because the host provides that assembly. When you reference the package instead of the project, put `ExcludeAssets="runtime"` on the `PackageReference`.
 
@@ -39,7 +43,9 @@ Open `Acme.Hello.csproj` and make two changes, so that the build output can be d
 
 Replace `Program.cs` of the host application:
 
-[!code-csharp[](../../samples/GettingStarted/App/Program.cs?name=host)]
+```csharp
+--8<-- "samples/GettingStarted/App/Program.cs:host"
+```
 
 - `AddFromDirectory` loads every plugin from its own folder in `plugins`.
 - `AddHashVerifier` only loads plugins whose files match a lock file. Verification is optional: without it, Plugwright loads whatever is in the plugin directory and logs a notice.

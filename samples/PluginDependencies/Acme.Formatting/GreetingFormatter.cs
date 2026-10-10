@@ -3,7 +3,7 @@ using Plugwright;
 
 namespace Acme.Formatting;
 
-#region formatting
+// --8<-- [start:formatting]
 // A service that other plugins can use.
 public interface IGreetingFormatter
 {
@@ -17,7 +17,7 @@ public sealed class FormattingPlugin : IPlugin
         context.Builder.Services.AddSingleton<IGreetingFormatter, GreetingFormatter>();
     }
 }
-#endregion
+// --8<-- [end:formatting]
 
 internal sealed class GreetingFormatter : IGreetingFormatter
 {

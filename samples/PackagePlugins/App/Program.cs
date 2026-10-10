@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using Plugwright;
 
-#region host
+// --8<-- [start:host]
 var builder = Host.CreateApplicationBuilder(args);
 
 // Every package with the package type PlugwrightPlugin is a plugin; the others are library packages.
@@ -16,4 +16,4 @@ var app = builder.Build();
 app.UsePlugins();
 
 await app.RunAsync();
-#endregion
+// --8<-- [end:host]

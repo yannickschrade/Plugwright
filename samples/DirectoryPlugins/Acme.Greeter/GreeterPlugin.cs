@@ -3,7 +3,7 @@ using Plugwright;
 
 namespace Acme.Greeter;
 
-#region plugin
+// --8<-- [start:plugin]
 public sealed class GreeterPlugin : IPlugin
 {
     public void Configure(PluginContext context)
@@ -12,4 +12,4 @@ public sealed class GreeterPlugin : IPlugin
         context.Builder.Services.AddHostedService<GreeterService>();
     }
 }
-#endregion
+// --8<-- [end:plugin]

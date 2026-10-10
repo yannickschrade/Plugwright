@@ -3,7 +3,7 @@ using Plugwright;
 
 namespace Heartbeat;
 
-#region plugin
+// --8<-- [start:plugin]
 public sealed class HeartbeatPlugin : IPlugin
 {
     public void Configure(PluginContext context)
@@ -17,4 +17,4 @@ public sealed class HeartbeatPlugin : IPlugin
         context.Builder.Services.AddHostedService<HeartbeatService>();
     }
 }
-#endregion
+// --8<-- [end:plugin]

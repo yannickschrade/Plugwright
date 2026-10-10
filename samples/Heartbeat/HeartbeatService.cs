@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 
 namespace Heartbeat;
 
-#region service
+// --8<-- [start:service]
 public sealed class HeartbeatService(IOptionsMonitor<HeartbeatOptions> options, ILogger<HeartbeatService> logger)
     : BackgroundService
 {
@@ -19,4 +19,4 @@ public sealed class HeartbeatService(IOptionsMonitor<HeartbeatOptions> options, 
         }
     }
 }
-#endregion
+// --8<-- [end:service]

@@ -1,8 +1,8 @@
 namespace Heartbeat;
 
-#region options
+// --8<-- [start:options]
 public sealed class HeartbeatOptions
 {
     public TimeSpan Interval { get; set; } = TimeSpan.FromSeconds(5);
 }
-#endregion
+// --8<-- [end:options]

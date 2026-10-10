@@ -5,7 +5,7 @@ using Plugwright;
 
 namespace Acme.Hello;
 
-#region plugin
+// --8<-- [start:plugin]
 public sealed class HelloPlugin : IPlugin
 {
     public void Configure(PluginContext context)
@@ -22,4 +22,4 @@ public sealed class HelloService(ILogger<HelloService> logger) : BackgroundServi
         return Task.CompletedTask;
     }
 }
-#endregion
+// --8<-- [end:plugin]

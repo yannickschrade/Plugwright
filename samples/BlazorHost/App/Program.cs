@@ -2,7 +2,7 @@ using Acme.Orders.Ui;
 using BlazorHost.App.Components;
 using Plugwright;
 
-#region host
+// --8<-- [start:host]
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 
@@ -26,4 +26,4 @@ app.MapRazorComponents<App>()
    .AddPluginAssemblies(app);                        // endpoints for the plugins' pages
 
 app.Run();
-#endregion
+// --8<-- [end:host]

@@ -6,9 +6,11 @@ _layout: landing
 
 Plugwright adds a plugin system to the .NET Generic Host. Plugins extend a host application through dependency injection: they register services, hosted services and configuration, just like the application itself.
 
-Plugwright works with any <xref:Microsoft.Extensions.Hosting.IHostApplicationBuilder> and <xref:Microsoft.Extensions.Hosting.IHost>, so console apps, worker services and web apps all use it the same way.
+Plugwright works with any [`IHostApplicationBuilder`](https://learn.microsoft.com/dotnet/api/microsoft.extensions.hosting.ihostapplicationbuilder) and [`IHost`](https://learn.microsoft.com/dotnet/api/microsoft.extensions.hosting.ihost), so console apps, worker services and web apps all use it the same way.
 
-[!code-csharp[](../samples/Heartbeat/Program.cs?name=host)]
+```csharp
+--8<-- "samples/Heartbeat/Program.cs:host"
+```
 
 ## Where to go next
 
@@ -22,5 +24,6 @@ Plugwright works with any <xref:Microsoft.Extensions.Hosting.IHostApplicationBui
 - [Keep running when a plugin fails](how-to/handle-plugin-failures.md)
 - [Understand the two phases](explanation/two-phases.md)
 
-> [!IMPORTANT]
-> Plugins run with full trust inside your process. A plugin can do anything your application can do. Only load plugins you trust, and [verify plugins](how-to/verify-plugins-with-a-lock-file.md) loaded from a directory. Verification is optional and off by default.
+!!! warning "Important"
+
+    Plugins run with full trust inside your process. A plugin can do anything your application can do. Only load plugins you trust, and [verify plugins](how-to/verify-plugins-with-a-lock-file.md) loaded from a directory. Verification is optional and off by default.

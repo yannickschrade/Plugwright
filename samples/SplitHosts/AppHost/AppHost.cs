@@ -1,4 +1,4 @@
-#region apphost
+// --8<-- [start:apphost]
 var builder = DistributedApplication.CreateBuilder(args);
 
 var api = builder.AddProject<Projects.SplitHosts_Api>("api");
@@ -12,4 +12,4 @@ builder.AddProject<Projects.SplitHosts_Web>("web")
     .WaitFor(api);
 
 builder.Build().Run();
-#endregion
+// --8<-- [end:apphost]

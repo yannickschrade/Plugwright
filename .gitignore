@@ -483,7 +483,7 @@ $RECYCLE.BIN/
 
 # DocFX output
 docs/_site/
-docs/api/
+docs/content/api/
 
 # Build output of test plugins
 artifacts/

@@ -1,6 +1,6 @@
 # Load contexts and shared assemblies
 
-Plugins from a directory are not referenced by the host application. Plugwright loads them at runtime, each into its own <xref:System.Runtime.Loader.AssemblyLoadContext>. This page explains what that means for the assemblies a plugin uses.
+Plugins from a directory are not referenced by the host application. Plugwright loads them at runtime, each into its own [`AssemblyLoadContext`](https://learn.microsoft.com/dotnet/api/system.runtime.loader.assemblyloadcontext). This page explains what that means for the assemblies a plugin uses.
 
 ## One load context per plugin
 
@@ -31,8 +31,9 @@ Plugwright therefore always takes these assemblies from the host, from the defau
 
 This holds even when the plugin folder contains its own copy. The host's version is used, whatever version the plugin ships.
 
-> [!NOTE]
-> If a plugin was compiled against a newer version of a `Microsoft.Extensions.*` package than the host provides, it can fail at runtime with a `MissingMethodException` or `TypeLoadException`. Keep the host's `Microsoft.Extensions.*` packages at least as new as those of your plugins.
+!!! note
+
+    If a plugin was compiled against a newer version of a `Microsoft.Extensions.*` package than the host provides, it can fail at runtime with a `MissingMethodException` or `TypeLoadException`. Keep the host's `Microsoft.Extensions.*` packages at least as new as those of your plugins.
 
 If the host does not have one of these assemblies at all, for example a `Microsoft.Extensions.*` package that only the plugin uses, the plugin's own copy is loaded.
 
@@ -46,6 +47,6 @@ Unloading would rarely work in a dependency injection application anyway. The co
 
 ## Loading runs no plugin code
 
-Plugwright reads the metadata of a plugin folder, including its dependencies, with a <xref:System.Reflection.MetadataLoadContext>. That only reads the assembly file; nothing is loaded for execution. A plugin with a missing dependency is therefore rejected before any of its code is loaded.
+Plugwright reads the metadata of a plugin folder, including its dependencies, with a [`MetadataLoadContext`](https://learn.microsoft.com/dotnet/api/system.reflection.metadataloadcontext). That only reads the assembly file; nothing is loaded for execution. A plugin with a missing dependency is therefore rejected before any of its code is loaded.
 
 Loading a plugin assembly and finding its plugin types does not call into the plugin either. Plugin code first runs when Plugwright creates the plugin in phase 1.

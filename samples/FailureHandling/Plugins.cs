@@ -4,7 +4,7 @@ using Plugwright;
 
 namespace FailureHandling;
 
-#region plugins
+// --8<-- [start:plugins]
 public sealed class WorkingPlugin : IPlugin
 {
     public void Configure(PluginContext context)
@@ -20,7 +20,7 @@ public sealed class BrokenPlugin : IPlugin
         throw new InvalidOperationException("The database connection string is missing.");
     }
 }
-#endregion
+// --8<-- [end:plugins]
 
 public sealed class GreetingService(IHostApplicationLifetime lifetime) : BackgroundService
 {

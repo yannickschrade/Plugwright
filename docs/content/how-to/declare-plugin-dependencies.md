@@ -16,25 +16,33 @@ When plugin A depends on plugin B:
 
 The plugin depended on is an ordinary plugin with public types:
 
-[!code-csharp[](../../samples/PluginDependencies/Acme.Formatting/GreetingFormatter.cs?name=formatting)]
+```csharp
+--8<-- "samples/PluginDependencies/Acme.Formatting/GreetingFormatter.cs:formatting"
+```
 
 ## Reference the other plugin
 
 Reference the other plugin's project or package. Like the plugin contract, it is compiled against but not shipped, because it is deployed as its own plugin:
 
-[!code-xml[](../../samples/PluginDependencies/Acme.Welcome/Acme.Welcome.csproj)]
+```xml
+--8<-- "samples/PluginDependencies/Acme.Welcome/Acme.Welcome.csproj"
+```
 
 The reference alone is a dependency: Plugwright sees that `Acme.Welcome` references the assembly of the plugin `Acme.Formatting`. It also checks that the available assembly version is at least the one `Acme.Welcome` was compiled against.
 
 The dependent plugin then uses the other plugin's types as usual:
 
-[!code-csharp[](../../samples/PluginDependencies/Acme.Welcome/WelcomePlugin.cs?name=plugin)]
+```csharp
+--8<-- "samples/PluginDependencies/Acme.Welcome/WelcomePlugin.cs:plugin"
+```
 
 ## Require a minimum version
 
-To require a minimum version, or to depend on a plugin you do not reference, add <xref:Plugwright.PluginDependencyAttribute> to the assembly:
+To require a minimum version, or to depend on a plugin you do not reference, add [`PluginDependencyAttribute`](../api/Plugwright.PluginDependencyAttribute.md) to the assembly:
 
-[!code-csharp[](../../samples/PluginDependencies/Acme.Welcome/WelcomePlugin.cs?name=dependency)]
+```csharp
+--8<-- "samples/PluginDependencies/Acme.Welcome/WelcomePlugin.cs:dependency"
+```
 
 `MinVersion` is a semantic version and is compared with the other plugin's version, the `<Version>` of its project. Prerelease versions are lower than the release: `1.2.0-beta` does not satisfy `MinVersion = "1.2.0"`. If both a reference and an attribute exist for the same plugin, both conditions must be met.
 
@@ -49,7 +57,7 @@ The attribute applies to the whole assembly, because all plugin classes in one a
 | The plugin was compiled against a newer assembly version. | `It was compiled against assembly version 2.0.0.0 of plugin 'Acme.Formatting', but assembly version 1.0.0.0 is available.` |
 | Plugins depend on each other in a circle. | `Plugins depend on each other in a cycle: Acme.A -> Acme.B -> Acme.A.` |
 
-By default, each of these stops the application with a <xref:Plugwright.PluginException>. With <xref:Plugwright.PluginFailureMode.SkipAndLog>, the affected plugins are skipped instead, every plugin in a cycle included. Plugins that depend on a skipped plugin are skipped as well, also when their dependency failed later, for example in `Configure`.
+By default, each of these stops the application with a [`PluginException`](../api/Plugwright.PluginException.md). With [`PluginFailureMode.SkipAndLog`](../api/Plugwright.PluginFailureMode.md), the affected plugins are skipped instead, every plugin in a cycle included. Plugins that depend on a skipped plugin are skipped as well, also when their dependency failed later, for example in `Configure`.
 
 ## Rules
 

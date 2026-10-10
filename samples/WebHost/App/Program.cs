@@ -1,7 +1,7 @@
 using Acme.Greetings;
 using Plugwright;
 
-#region host
+// --8<-- [start:host]
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
@@ -17,4 +17,4 @@ app.MapControllers();
 app.MapGet("/", (IGreeter greeter) => greeter.Greet("web host"));
 
 app.Run();
-#endregion
+// --8<-- [end:host]

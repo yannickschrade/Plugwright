@@ -6,7 +6,7 @@ using Plugwright;
 
 namespace Acme.Weather;
 
-#region plugin
+// --8<-- [start:plugin]
 public sealed class WeatherPlugin : IPlugin
 {
     public void Configure(PluginContext context)
@@ -24,4 +24,4 @@ public sealed class WeatherService(ILogger<WeatherService> logger) : BackgroundS
         return Task.CompletedTask;
     }
 }
-#endregion
+// --8<-- [end:plugin]

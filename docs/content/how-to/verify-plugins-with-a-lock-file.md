@@ -1,6 +1,6 @@
 # Verify plugins with a lock file
 
-The <xref:Plugwright.HashVerifier> only loads plugins whose files match a lock file on the host side. A changed, added or removed file in a plugin folder stops the plugin from loading. This guide shows how to set it up and keep it up to date.
+The [`HashVerifier`](../api/Plugwright.HashVerifier.md) only loads plugins whose files match a lock file on the host side. A changed, added or removed file in a plugin folder stops the plugin from loading. This guide shows how to set it up and keep it up to date.
 
 The same verifier also verifies [NuGet packages](load-plugins-from-packages.md#verify-packages): the lock file then lists each `.nupkg` file.
 
@@ -10,7 +10,9 @@ The complete, runnable project is in `samples/GettingStarted` in the repository.
 
 Add the verifier before calling `ApplyPlugins()`:
 
-[!code-csharp[](../../samples/GettingStarted/App/Program.cs?name=host)]
+```csharp
+--8<-- "samples/GettingStarted/App/Program.cs:host"
+```
 
 Without the `configure` delegate, the lock file is `plugins.lock.json` in the content root. A relative path is resolved against the content root as well.
 
@@ -74,13 +76,13 @@ A plugin fails verification when:
 - a listed file is missing, or
 - a file does not match its hash.
 
-Verification runs before Plugwright reads anything from the plugin's assemblies. A plugin that fails is never loaded. By default, the application stops with a <xref:Plugwright.PluginException>; with [`SkipAndLog`](handle-plugin-failures.md), the plugin and the plugins that depend on it are skipped.
+Verification runs before Plugwright reads anything from the plugin's assemblies. A plugin that fails is never loaded. By default, the application stops with a [`PluginException`](../api/Plugwright.PluginException.md); with [`SkipAndLog`](handle-plugin-failures.md), the plugin and the plugins that depend on it are skipped.
 
 A missing or invalid lock file fails every plugin from a directory.
 
 ## What changes when plugins are verified
 
-Verified plugins are loaded from the bytes that were verified, not from the files. Nothing can be swapped between verification and loading. One consequence: <xref:System.Reflection.Assembly.Location> is empty for assemblies of verified plugins. Code that needs the path of its own assembly should use <xref:System.AppContext.BaseDirectory> of the host or a setting instead.
+Verified plugins are loaded from the bytes that were verified, not from the files. Nothing can be swapped between verification and loading. One consequence: [`Location`](https://learn.microsoft.com/dotnet/api/system.reflection.assembly.location) is empty for assemblies of verified plugins. Code that needs the path of its own assembly should use [`BaseDirectory`](https://learn.microsoft.com/dotnet/api/system.appcontext.basedirectory) of the host or a setting instead.
 
 Native libraries can only be loaded from disk. Plugwright checks them against their verified content right before loading them.
 
@@ -88,7 +90,7 @@ Plugins added in code with `Add<T>()` are part of the host application and are n
 
 ## Check the results
 
-Every verification is logged with event ID 1005 (passed) or 1006 (failed). The results are also available in the <xref:Plugwright.PluginReport>, see [Keep running when a plugin fails](handle-plugin-failures.md#see-what-was-skipped).
+Every verification is logged with event ID 1005 (passed) or 1006 (failed). The results are also available in the [`PluginReport`](../api/Plugwright.PluginReport.md), see [Keep running when a plugin fails](handle-plugin-failures.md#see-what-was-skipped).
 
 ## See also
 

@@ -5,7 +5,7 @@ Plugwright logs with the category `Plugwright` and fixed event IDs. Use them to 
 | Event ID | Name | Level | When |
 | --- | --- | --- | --- |
 | 1000 | `PluginLoaded` | Information | A plugin completed both phases. Written by `app.UsePlugins()`. |
-| 1001 | `PluginSkipped` | Error | A plugin failed and was skipped because <xref:Plugwright.PluginOptions.FailureMode> is <xref:Plugwright.PluginFailureMode.SkipAndLog>. Includes the exception. |
+| 1001 | `PluginSkipped` | Error | A plugin failed and was skipped because [`PluginOptions.FailureMode`](../api/Plugwright.PluginOptions.md#Plugwright_PluginOptions_FailureMode) is [`PluginFailureMode.SkipAndLog`](../api/Plugwright.PluginFailureMode.md). Includes the exception. |
 | 1002 | `PluginDirectoryNotFound` | Warning | A directory added with `AddFromDirectory()` does not exist. |
 | 1003 | `AssemblyOutsidePluginFolder` | Warning | A DLL lies directly in a plugin directory instead of in a plugin folder, and is ignored. |
 | 1004 | `PluginVerificationDisabled` | Information | Plugins are loaded from a directory or a package folder, but no verifier is registered. |

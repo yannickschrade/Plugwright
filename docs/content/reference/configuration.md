@@ -1,6 +1,6 @@
 # Configuration
 
-Plugwright reads plugin settings from the application's normal configuration, <xref:Microsoft.Extensions.Hosting.IHostApplicationBuilder.Configuration>. If the application calls `AddFromConfiguration`, the same section also sets up sources, options and verifiers.
+Plugwright reads plugin settings from the application's normal configuration, [`Configuration`](https://learn.microsoft.com/dotnet/api/microsoft.extensions.hosting.ihostapplicationbuilder.configuration). If the application calls `AddFromConfiguration`, the same section also sets up sources, options and verifiers.
 
 ## The Plugwright section
 
@@ -46,7 +46,7 @@ Unknown keys in these sections are errors. See [Configure plugins from appsettin
 
 | Key | Meaning |
 | --- | --- |
-| `Plugwright:Plugins:{PluginId}:Settings` | The plugin's own settings. Available to the plugin as <xref:Plugwright.PluginContext.Configuration>. |
+| `Plugwright:Plugins:{PluginId}:Settings` | The plugin's own settings. Available to the plugin as [`PluginContext.Configuration`](../api/Plugwright.PluginContext.md#Plugwright_PluginContext_Configuration). |
 | `Plugwright:Plugins:{PluginId}:*` | Other keys next to `Settings` are reserved for the plugin system. |
 
 The plugin ID is the name of the plugin assembly. All plugin classes in one assembly share the same ID and the same section.

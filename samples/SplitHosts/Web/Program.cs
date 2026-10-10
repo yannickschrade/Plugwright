@@ -3,7 +3,7 @@ using Plugwright;
 using SplitHosts.Web;
 using SplitHosts.Web.Components;
 
-#region host
+// --8<-- [start:host]
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
@@ -25,4 +25,4 @@ app.MapRazorComponents<App>()
    .AddPluginAssemblies(app);
 
 app.Run();
-#endregion
+// --8<-- [end:host]

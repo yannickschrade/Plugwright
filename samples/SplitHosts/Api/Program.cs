@@ -1,7 +1,7 @@
 using Acme.Orders;
 using Plugwright;
 
-#region host
+// --8<-- [start:host]
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();                     // Aspire: telemetry, health checks, service discovery
 
@@ -18,4 +18,4 @@ app.MapDefaultEndpoints();                        // /health includes the plugin
 app.MapPluginCatalog();
 
 app.Run();
-#endregion
+// --8<-- [end:host]

@@ -8,7 +8,7 @@ dotnet tool install --global Plugwright.Cli
 
 ## plugwright lock
 
-Creates the lock file for the <xref:Plugwright.HashVerifier>.
+Creates the lock file for the [`HashVerifier`](../api/Plugwright.HashVerifier.md).
 
 ```text
 plugwright lock <plugin-directory>... [--output <file>]
@@ -24,7 +24,7 @@ The lock file contains the sha256 hash of every file in every subfolder, under t
 
 ## plugwright sign
 
-Signs a plugin folder for the <xref:Plugwright.CertificateVerifier>.
+Signs a plugin folder for the [`CertificateVerifier`](../api/Plugwright.CertificateVerifier.md).
 
 ```text
 plugwright sign <plugin-folder> --certificate <file> [--password <password>]

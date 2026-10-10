@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Plugwright;
 
-#region host
+// --8<-- [start:host]
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.PluginHandlers.Add<GreetingPluginHandler>();
@@ -18,4 +18,4 @@ foreach (var greeting in app.Services.GetServices<Greeting>())
 {
     Console.WriteLine($"{greeting.Text} (from {greeting.PluginId})");
 }
-#endregion
+// --8<-- [end:host]

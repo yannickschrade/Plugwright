@@ -4,14 +4,14 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Plugwright;
 
-#region dependency
+// --8<-- [start:dependency]
 // The reference to Acme.Formatting is already a dependency. The attribute adds a minimum version.
 [assembly: PluginDependency("Acme.Formatting", MinVersion = "1.2.0")]
-#endregion
+// --8<-- [end:dependency]
 
 namespace Acme.Welcome;
 
-#region plugin
+// --8<-- [start:plugin]
 public sealed class WelcomePlugin : IPlugin
 {
     public void Configure(PluginContext context)
@@ -29,4 +29,4 @@ public sealed class WelcomeService(IGreetingFormatter formatter, ILogger<Welcome
         return Task.CompletedTask;
     }
 }
-#endregion
+// --8<-- [end:plugin]

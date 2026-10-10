@@ -2,7 +2,7 @@ using Heartbeat;
 using Microsoft.Extensions.Hosting;
 using Plugwright;
 
-#region host
+// --8<-- [start:host]
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Plugins.Add<HeartbeatPlugin>();
@@ -12,4 +12,4 @@ var app = builder.Build();
 app.UsePlugins();         // phase 2: plugins work with the built host
 
 await app.RunAsync();
-#endregion
+// --8<-- [end:host]

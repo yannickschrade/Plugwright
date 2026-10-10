@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using Plugwright;
 
-#region host
+// --8<-- [start:host]
 var builder = Host.CreateApplicationBuilder(args);
 
 // Acme.Welcome depends on Acme.Formatting. Plugwright checks the dependency before loading any plugin
@@ -13,4 +13,4 @@ var app = builder.Build();
 app.UsePlugins();
 
 await app.RunAsync();
-#endregion
+// --8<-- [end:host]

@@ -10,7 +10,7 @@ using Plugwright;
 
 namespace Acme.Orders;
 
-#region plugin
+// --8<-- [start:plugin]
 /// <summary>
 /// The backend part of the orders feature: services, API, health check and tracing.
 /// </summary>
@@ -40,7 +40,7 @@ public sealed class OrdersPlugin : IPlugin, IWebPlugin
             return orders.GetAll();
         });
 }
-#endregion
+// --8<-- [end:plugin]
 
 internal sealed class OrderRepository
 {
@@ -51,7 +51,7 @@ internal sealed class OrderRepository
     public void Replace(IEnumerable<OrderDto> orders) => _orders = [.. orders];
 }
 
-#region startup
+// --8<-- [start:startup]
 /// <summary>
 /// Loads the orders before the application starts. A real plugin would migrate its database here.
 /// </summary>
@@ -63,7 +63,7 @@ internal sealed class LoadOrdersStartup(OrderRepository orders) : IPluginStartup
         orders.Replace([new(1001, "Coffee beans", Shipped: true), new(1002, "Espresso machine", Shipped: false)]);
     }
 }
-#endregion
+// --8<-- [end:startup]
 
 internal sealed class OrderRepositoryHealthCheck(OrderRepository orders) : IHealthCheck
 {

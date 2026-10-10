@@ -1,6 +1,6 @@
 # Verify package signatures
 
-The <xref:Plugwright.PackageSignatureVerifier> only loads NuGet packages that are signed by a certificate you trust and unchanged since signing. It checks every package in a package folder: plugin packages and the library packages they use.
+The [`PackageSignatureVerifier`](../api/Plugwright.PackageSignatureVerifier.md) only loads NuGet packages that are signed by a certificate you trust and unchanged since signing. It checks every package in a package folder: plugin packages and the library packages they use.
 
 The complete, runnable project is in `samples/SignedPackages` in the repository.
 
@@ -16,14 +16,17 @@ dotnet nuget sign Acme.Weather.1.0.0.nupkg \
 
 `dotnet nuget sign` needs an RSA code signing certificate that chains to a root the signing machine trusts, usually from a public certificate authority. Packages from nuget.org already carry a repository signature by nuget.org.
 
-> [!NOTE]
-> The sample creates a self-signed certificate during the build and signs with NuGet's signing API, because its sample certificate authority is not trusted by your machine.
+!!! note
+
+    The sample creates a self-signed certificate during the build and signs with NuGet's signing API, because its sample certificate authority is not trusted by your machine.
 
 ## Register the verifier
 
 Add the verifier, from the `Plugwright.NuGet` package, before calling `ApplyPlugins()`:
 
-[!code-csharp[](../../samples/SignedPackages/App/Program.cs?name=host)]
+```csharp
+--8<-- "samples/SignedPackages/App/Program.cs:host"
+```
 
 Trust works exactly as for [signed plugin folders](sign-plugins.md#trust-the-publisher): by certificate thumbprint, or as publisher with the certificate authority's root certificate and the signer's subject. Revocation checking is configured the same way. To take the settings from configuration, pass a configuration section instead of the delegate.
 
@@ -37,8 +40,9 @@ A package passes when:
 
 The primary signature counts: the author signature for packages the author signed, the repository signature for packages that only a repository such as nuget.org signed. To trust nuget.org's repository signature, trust its certificate.
 
-> [!IMPORTANT]
-> Timestamps in package signatures are not used. The signing certificate must be valid when the host verifies the package. Packages signed with a certificate that has expired since fail, even if the signature carries a timestamp. Use the [lock file](load-plugins-from-packages.md#verify-packages) for packages whose signing certificate may have expired, such as older packages from nuget.org.
+!!! warning "Important"
+
+    Timestamps in package signatures are not used. The signing certificate must be valid when the host verifies the package. Packages signed with a certificate that has expired since fail, even if the signature carries a timestamp. Use the [lock file](load-plugins-from-packages.md#verify-packages) for packages whose signing certificate may have expired, such as older packages from nuget.org.
 
 ## See also
 

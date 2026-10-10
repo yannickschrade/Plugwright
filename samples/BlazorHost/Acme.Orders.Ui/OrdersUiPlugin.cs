@@ -4,7 +4,7 @@ using Plugwright;
 
 namespace Acme.Orders.Ui;
 
-#region plugin
+// --8<-- [start:plugin]
 /// <summary>
 /// Brings the page /orders. Its menu entry uses the host's own contract, <see cref="NavigationItem"/>.
 /// </summary>
@@ -16,4 +16,4 @@ public sealed class OrdersUiPlugin : IPlugin, IBlazorPlugin
         context.Builder.Services.AddSingleton<OrderBook>();
     }
 }
-#endregion
+// --8<-- [end:plugin]

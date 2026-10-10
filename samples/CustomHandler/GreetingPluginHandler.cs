@@ -5,7 +5,7 @@ using Plugwright;
 
 namespace CustomHandler;
 
-#region handler
+// --8<-- [start:handler]
 public sealed class GreetingPluginHandler : PluginHandler<IGreetingPlugin>
 {
     // Phase 1: register what the plugin contributes.
@@ -24,4 +24,4 @@ public sealed class GreetingPluginHandler : PluginHandler<IGreetingPlugin>
         logger.LogInformation("Greetings from {PluginType} are ready", plugin.PluginType.Name);
     }
 }
-#endregion
+// --8<-- [end:handler]

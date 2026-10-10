@@ -1,6 +1,6 @@
 # Sign plugins and trust their publisher
 
-The <xref:Plugwright.CertificateVerifier> only loads plugins signed by a publisher you trust. Unlike a [lock file](verify-plugins-with-a-lock-file.md), nothing changes on the host when a plugin is updated: the publisher signs the new version, and the host keeps trusting the publisher.
+The [`CertificateVerifier`](../api/Plugwright.CertificateVerifier.md) only loads plugins signed by a publisher you trust. Unlike a [lock file](verify-plugins-with-a-lock-file.md), nothing changes on the host when a plugin is updated: the publisher signs the new version, and the host keeps trusting the publisher.
 
 The complete, runnable project is in `samples/SignedPlugins` in the repository. It creates a sample certificate authority during the build.
 
@@ -36,7 +36,9 @@ Register the verifier with at least one trusted certificate. There are two ways 
 
 Trust every certificate that a certificate authority issues to a given subject. This survives certificate renewal: a renewed certificate with the same subject from the same authority is trusted without changes on the host.
 
-[!code-csharp[](../../samples/SignedPlugins/App/Program.cs?name=host)]
+```csharp
+--8<-- "samples/SignedPlugins/App/Program.cs:host"
+```
 
 `IssuerCertificate` is the certificate of the root authority, as a PEM or DER file. The signing certificate must chain up to it; intermediate certificates come from the signature. `Subject` is compared as a distinguished name, so spacing and case do not matter.
 
@@ -104,4 +106,4 @@ You can register both verifiers. A plugin then has to pass both: it must be sign
 
 - [Security model](../explanation/security-model.md)
 - [CLI reference](../reference/cli.md#plugwright-sign)
-- <xref:Plugwright.CertificateVerifierOptions>
+- [`CertificateVerifierOptions`](../api/Plugwright.CertificateVerifierOptions.md)

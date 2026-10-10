@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using Plugwright;
 
-#region host
+// --8<-- [start:host]
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Plugins.AddFromDirectory(Path.Combine(AppContext.BaseDirectory, "plugins"));
@@ -19,4 +19,4 @@ var app = builder.Build();
 app.UsePlugins();
 
 await app.RunAsync();
-#endregion
+// --8<-- [end:host]

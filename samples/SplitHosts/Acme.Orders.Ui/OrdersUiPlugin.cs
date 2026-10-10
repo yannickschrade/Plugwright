@@ -5,7 +5,7 @@ using Plugwright;
 
 namespace Acme.Orders.Ui;
 
-#region plugin
+// --8<-- [start:plugin]
 /// <summary>
 /// The UI part of the orders feature, plugin ID Acme.Orders.Ui. It calls the backend part through the API.
 /// </summary>
@@ -18,7 +18,7 @@ public sealed class OrdersUiPlugin : IPlugin, IBlazorPlugin
         context.Builder.Services.AddHttpClient<OrdersClient>(client => client.BaseAddress = new Uri(apiAddress));
     }
 }
-#endregion
+// --8<-- [end:plugin]
 
 public sealed class OrdersClient(HttpClient http)
 {

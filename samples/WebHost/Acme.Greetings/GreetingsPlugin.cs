@@ -6,7 +6,7 @@ using Plugwright;
 
 namespace Acme.Greetings;
 
-#region plugin
+// --8<-- [start:plugin]
 /// <summary>
 /// Registers a service, maps an endpoint and adds middleware. The controller in this assembly is found automatically.
 /// </summary>
@@ -28,4 +28,4 @@ public sealed class GreetingsPlugin : IPlugin, IWebPlugin
     public void MapEndpoints(IEndpointRouteBuilder endpoints) =>
         endpoints.MapGet("/greetings/{name}", (string name, IGreeter greeter) => greeter.Greet(name));
 }
-#endregion
+// --8<-- [end:plugin]

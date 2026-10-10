@@ -3,7 +3,7 @@ using Plugwright;
 
 namespace SplitHosts.Web;
 
-#region backend
+// --8<-- [start:backend]
 /// <summary>
 /// Reads the plugin catalog of the API host once at startup and turns off UI plugins whose backend plugin is not loaded
 /// there. The decision lasts until the next start, like every change to the plugins.
@@ -43,4 +43,4 @@ internal static class BackendPlugins
         }
     }
 }
-#endregion
+// --8<-- [end:backend]

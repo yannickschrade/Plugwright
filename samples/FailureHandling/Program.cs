@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Plugwright;
 
-#region host
+// --8<-- [start:host]
 var builder = Host.CreateApplicationBuilder(args);
 
 // Skip plugins that fail and log an error, instead of stopping the application.
@@ -15,15 +15,15 @@ builder.Plugins.Add<WorkingPlugin>();
 builder.ApplyPlugins();
 var app = builder.Build();
 app.UsePlugins();
-#endregion
+// --8<-- [end:host]
 
-#region report
+// --8<-- [start:report]
 // The catalog tells the state of every plugin, for example for a status page.
 var catalog = app.Services.GetRequiredService<IPluginCatalog>();
 foreach (var plugin in catalog.Plugins.Where(plugin => plugin.State != PluginState.Loaded))
 {
     Console.WriteLine($"Not loaded: {plugin.Id} ({plugin.Source}): {plugin.State}, {plugin.Reason}");
 }
-#endregion
+// --8<-- [end:report]
 
 await app.RunAsync();

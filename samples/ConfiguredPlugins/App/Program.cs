@@ -2,7 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Plugwright;
 
-#region host
+// --8<-- [start:host]
 // The content root is the application's folder, so that relative paths in appsettings.json point there.
 var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
 {
@@ -23,4 +23,4 @@ var app = builder.Build();
 app.UsePlugins();
 
 await app.RunAsync();
-#endregion
+// --8<-- [end:host]

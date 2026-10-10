@@ -8,7 +8,9 @@ The complete, runnable project is in `samples/ConfiguredPlugins` in the reposito
 
 Read the `Plugwright` section with two calls:
 
-[!code-csharp[](../../samples/ConfiguredPlugins/App/Program.cs?name=host)]
+```csharp
+--8<-- "samples/ConfiguredPlugins/App/Program.cs:host"
+```
 
 - `builder.Plugins.AddFromConfiguration` reads the failure mode and the plugin sources.
 - `builder.PluginVerifiers.AddFromConfiguration` turns on the verifiers the configuration names, or none.
@@ -18,7 +20,9 @@ Both calls are explicit: without them, the configuration has no say. You can com
 
 ## Write the configuration
 
-[!code-json[](../../samples/ConfiguredPlugins/App/appsettings.json)]
+```json
+--8<-- "samples/ConfiguredPlugins/App/appsettings.json"
+```
 
 | Key | Meaning |
 | --- | --- |
@@ -38,9 +42,9 @@ Every key in `Verification` turns on one verifier, with the settings of its own 
 
 | Key | Verifier | Settings |
 | --- | --- | --- |
-| `Hash` | <xref:Plugwright.HashVerifier> | <xref:Plugwright.HashVerifierOptions> |
-| `Certificate` | <xref:Plugwright.CertificateVerifier> | <xref:Plugwright.CertificateVerifierOptions> |
-| `PackageSignature` | <xref:Plugwright.PackageSignatureVerifier> (Plugwright.NuGet) | <xref:Plugwright.CertificateVerifierOptions> |
+| `Hash` | [`HashVerifier`](../api/Plugwright.HashVerifier.md) | [`HashVerifierOptions`](../api/Plugwright.HashVerifierOptions.md) |
+| `Certificate` | [`CertificateVerifier`](../api/Plugwright.CertificateVerifier.md) | [`CertificateVerifierOptions`](../api/Plugwright.CertificateVerifierOptions.md) |
+| `PackageSignature` | [`PackageSignatureVerifier`](../api/Plugwright.PackageSignatureVerifier.md) (Plugwright.NuGet) | [`CertificateVerifierOptions`](../api/Plugwright.CertificateVerifierOptions.md) |
 
 A verifier is on when its section has settings, or is `true`. `"Hash": true` turns on the hash verifier with its default lock file, `plugins.lock.json` in the content root; an empty object `"Hash": {}` does not work, because .NET configuration ignores it. `false` turns a verifier off, which is useful in environment-specific files or environment variables such as `Plugwright__Verification__Hash=false`.
 
@@ -81,8 +85,9 @@ Packages in the package folder itself are still verified.
 
 ## Protect the configuration
 
-> [!IMPORTANT]
-> Whoever can change this configuration decides which plugins run and whether they are verified. Protect `appsettings.json`, environment-specific files and environment variables of the application from whoever can write to the plugin directory. The application-managed plugin settings can never change these keys.
+!!! warning "Important"
+
+    Whoever can change this configuration decides which plugins run and whether they are verified. Protect `appsettings.json`, environment-specific files and environment variables of the application from whoever can write to the plugin directory. The application-managed plugin settings can never change these keys.
 
 ## See also
 
