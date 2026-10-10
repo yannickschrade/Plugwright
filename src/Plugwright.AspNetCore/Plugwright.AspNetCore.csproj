@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>ASP.NET Core and Blazor support for Plugwright: plugin handlers for controllers, endpoints, middleware and Razor components.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Plugwright\Plugwright.csproj" />
+    <ProjectReference Include="..\Plugwright.AspNetCore.Abstractions\Plugwright.AspNetCore.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Plugwright.Tests" />
+    <InternalsVisibleTo Include="Plugwright.IntegrationTests" />
+  </ItemGroup>
+
+</Project>

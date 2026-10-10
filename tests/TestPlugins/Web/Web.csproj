@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <!-- A plugin of all three kinds: services (IPlugin), controller, endpoint and middleware (IWebPlugin), page (IBlazorPlugin). -->
+  <PropertyGroup>
+    <AssemblyName>Plugwright.TestPlugins.Web</AssemblyName>
+    <RootNamespace>Plugwright.TestPlugins.Web</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugwright.AspNetCore.Abstractions\Plugwright.AspNetCore.Abstractions.csproj" Private="false" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+</Project>

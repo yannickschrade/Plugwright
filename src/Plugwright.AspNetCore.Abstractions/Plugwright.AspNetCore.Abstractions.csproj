@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Plugwright</RootNamespace>
+    <Description>Plugin contracts for ASP.NET Core and Blazor hosts using Plugwright: IWebPlugin and IBlazorPlugin. Reference this package from plugin projects.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Plugwright.Abstractions\Plugwright.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -38,6 +38,8 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Plugwright.Abstractions/Plugwright.Abstractions.csproj" />
+    <Project Path="src/Plugwright.AspNetCore.Abstractions/Plugwright.AspNetCore.Abstractions.csproj" />
+    <Project Path="src/Plugwright.AspNetCore/Plugwright.AspNetCore.csproj" />
     <Project Path="src/Plugwright.Cli/Plugwright.Cli.csproj" />
     <Project Path="src/Plugwright.NuGet/Plugwright.NuGet.csproj" />
     <Project Path="src/Plugwright/Plugwright.csproj" />
@@ -45,6 +47,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Plugwright.IntegrationTests/Plugwright.IntegrationTests.csproj" />
     <Project Path="tests/Plugwright.Tests/Plugwright.Tests.csproj" />
+    <Project Path="tests/TestWebHost/TestWebHost.csproj" />
   </Folder>
   <Folder Name="/tests/TestPackages/">
     <Project Path="tests/TestPackages/Greeter/Greeter.csproj" />
@@ -63,5 +66,6 @@
     <Project Path="tests/TestPlugins/NoPlugins/NoPlugins.csproj" />
     <Project Path="tests/TestPlugins/TextLibV1/TextLibV1.csproj" />
     <Project Path="tests/TestPlugins/TextLibV2/TextLibV2.csproj" />
+    <Project Path="tests/TestPlugins/Web/Web.csproj" />
   </Folder>
 </Solution>

@@ -9,11 +9,13 @@
     <PackageReference Include="Shouldly" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Plugwright\Plugwright.csproj" />
     <ProjectReference Include="..\..\src\Plugwright.NuGet\Plugwright.NuGet.csproj" />
+    <ProjectReference Include="..\..\src\Plugwright.AspNetCore\Plugwright.AspNetCore.csproj" />
   </ItemGroup>
 
   <ItemGroup>

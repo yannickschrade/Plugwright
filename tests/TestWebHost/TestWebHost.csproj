@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!-- A web host for the integration tests. It knows no plugin; the tests choose plugin directories through configuration. -->
+  <PropertyGroup>
+    <RootNamespace>Plugwright.TestWebHost</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Plugwright.AspNetCore\Plugwright.AspNetCore.csproj" />
+  </ItemGroup>
+
+</Project>

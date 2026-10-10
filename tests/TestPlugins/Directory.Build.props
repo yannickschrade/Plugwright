@@ -7,6 +7,8 @@
     and the integration tests copy them into plugin directories.
   -->
   <PropertyGroup>
+    <!-- The Razor SDK sets the default configuration after this file, but the output folder needs it. -->
+    <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
     <OutDir>$(MSBuildThisFileDirectory)../../artifacts/test-plugins/$(Configuration)/$(MSBuildProjectName)/</OutDir>
     <EnableDynamicLoading>true</EnableDynamicLoading>
   </PropertyGroup>
