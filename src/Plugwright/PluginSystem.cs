@@ -74,6 +74,11 @@ internal sealed class PluginSystem
         _applied = true;
 
         var handlers = Handlers.CreateHandlers();
+        foreach (var handler in handlers.OfType<IPluginHandlerSetup>())
+        {
+            handler.Setup(builder);
+        }
+
         var units = DiscoverUnits(builder);
 
         ThrowOnDuplicateIds(units);

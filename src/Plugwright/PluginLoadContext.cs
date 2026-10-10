@@ -27,11 +27,17 @@ internal sealed class PluginLoadContext : AssemblyLoadContext
         _dependencies = dependencies;
     }
 
+    /// <summary>
+    /// Returns whether an assembly always comes from the host: the plugin contracts, <c>Microsoft.Extensions.*</c> and
+    /// <c>Microsoft.AspNetCore.*</c>, so that their types are the same in the host and in every plugin.
+    /// </summary>
     public static bool IsShared(AssemblyName assemblyName)
     {
         var name = assemblyName.Name;
-        return name is "Plugwright" or "Plugwright.Abstractions"
-            || (name is not null && name.StartsWith("Microsoft.Extensions.", StringComparison.Ordinal));
+        return name is "Plugwright" or "Plugwright.Abstractions" or "Plugwright.AspNetCore" or "Plugwright.AspNetCore.Abstractions"
+            || (name is not null
+                && (name.StartsWith("Microsoft.Extensions.", StringComparison.Ordinal)
+                    || name.StartsWith("Microsoft.AspNetCore.", StringComparison.Ordinal)));
     }
 
     public Assembly LoadMainAssembly() => _assemblies.LoadMainAssembly(this);

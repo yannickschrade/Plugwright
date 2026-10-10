@@ -14,6 +14,8 @@
     <InternalsVisibleTo Include="Plugwright.Tests" />
     <InternalsVisibleTo Include="Plugwright.Cli" />
     <InternalsVisibleTo Include="Plugwright.NuGet" />
+    <InternalsVisibleTo Include="Plugwright.AspNetCore" />
+    <InternalsVisibleTo Include="Plugwright.IntegrationTests" />
   </ItemGroup>
 
   <ItemGroup>
