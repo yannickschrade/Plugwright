@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Plugin catalog: `IPluginCatalog`, `PluginInfo` and `PluginState` with the state of every plugin, also those not loaded. Log event 1008 `PluginStatus`, meter `Plugwright` with the gauge `plugwright.plugins`.
 - Turn plugins off with `Plugwright:Plugins:{PluginId}:Enabled`. Disabled plugins are neither verified nor loaded; plugins that depend on them are `DependencyUnavailable`.
 - Required plugins and a failure mode per plugin: `PluginPolicy`, `builder.Plugins.Add<T>(policy => …)`, `Configure(pluginId, …)` and `Require(pluginId)`. All problems of required plugins are reported in one exception.
+- Startup tasks: `IPluginStartup` and `PluginContext.AddStartup<T>()` run after `Build()`, before every hosted service and the web server, in dependency order, each in its own scope. Log events 1009–1011, activities in the `ActivitySource` `Plugwright`.
 - `MapPluginCatalog()` in `Plugwright.AspNetCore`: read-only endpoint with `PluginStatus` (in `Plugwright.Abstractions`).
  checked before loading, applied in dependency order, with shared types across load contexts. Dependents of skipped plugins are skipped.
 - Per-plugin settings section `Plugwright:Plugins:{PluginId}:Settings`.
