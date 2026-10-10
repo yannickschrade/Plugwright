@@ -23,6 +23,9 @@ public sealed class OrdersPlugin : IPlugin, IWebPlugin
         var services = context.Builder.Services;
         services.AddSingleton<OrderRepository>();
 
+        // Runs before the API answers its first request.
+        context.AddStartup<LoadOrdersStartup>();
+
         // Appears under /health together with the host's own checks.
         services.AddHealthChecks().AddCheck<OrderRepositoryHealthCheck>("orders");
 
@@ -41,10 +44,26 @@ public sealed class OrdersPlugin : IPlugin, IWebPlugin
 
 internal sealed class OrderRepository
 {
-    private readonly OrderDto[] _orders = [new(1001, "Coffee beans", Shipped: true), new(1002, "Espresso machine", Shipped: false)];
+    private OrderDto[] _orders = [];
 
     public IReadOnlyList<OrderDto> GetAll() => _orders;
+
+    public void Replace(IEnumerable<OrderDto> orders) => _orders = [.. orders];
 }
+
+#region startup
+/// <summary>
+/// Loads the orders before the application starts. A real plugin would migrate its database here.
+/// </summary>
+internal sealed class LoadOrdersStartup(OrderRepository orders) : IPluginStartup
+{
+    public async Task StartAsync(CancellationToken cancellationToken)
+    {
+        await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);   // stands for a database query
+        orders.Replace([new(1001, "Coffee beans", Shipped: true), new(1002, "Espresso machine", Shipped: false)]);
+    }
+}
+#endregion
 
 internal sealed class OrderRepositoryHealthCheck(OrderRepository orders) : IHealthCheck
 {
