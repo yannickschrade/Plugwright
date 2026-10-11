@@ -78,6 +78,10 @@
     <Project Path="tests/Plugwright.Tests/Plugwright.Tests.csproj" />
     <Project Path="tests/TestWebHost/TestWebHost.csproj" />
   </Folder>
+  <Folder Name="/tests/ScannedPlugins/">
+    <Project Path="tests/ScannedPlugins/Contracts/ScannedContracts.csproj" />
+    <Project Path="tests/ScannedPlugins/Plugins/ScannedPlugins.csproj" />
+  </Folder>
   <Folder Name="/tests/TestPackages/">
     <Project Path="tests/TestPackages/Greeter/Greeter.csproj" />
     <Project Path="tests/TestPackages/LibraryV1/LibraryV1.csproj" />

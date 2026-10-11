@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- A referenced assembly that matches the scan prefix but contains no plugins. -->
+  <PropertyGroup>
+    <AssemblyName>Plugwright.Scanned.Contracts</AssemblyName>
+    <RootNamespace>Plugwright.Scanned.Contracts</RootNamespace>
+  </PropertyGroup>
+
+</Project>

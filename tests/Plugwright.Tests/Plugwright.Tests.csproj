@@ -16,6 +16,9 @@
     <ProjectReference Include="..\..\src\Plugwright\Plugwright.csproj" />
     <ProjectReference Include="..\..\src\Plugwright.NuGet\Plugwright.NuGet.csproj" />
     <ProjectReference Include="..\..\src\Plugwright.AspNetCore\Plugwright.AspNetCore.csproj" />
+    <!-- Referenced assemblies for the assembly scan. Contracts is referenced but never used in code. -->
+    <ProjectReference Include="..\ScannedPlugins\Plugins\ScannedPlugins.csproj" />
+    <ProjectReference Include="..\ScannedPlugins\Contracts\ScannedContracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

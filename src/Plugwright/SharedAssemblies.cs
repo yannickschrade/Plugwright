@@ -31,11 +31,5 @@ internal sealed class SharedAssemblies
     /// Returns whether plugins take this assembly from the host.
     /// </summary>
     public bool Contains(AssemblyName assemblyName) =>
-        assemblyName.Name is { } name && (_names.Contains(name) || _prefixes.Any(prefix => MatchesPrefix(name, prefix)));
-
-    // "Microsoft.EntityFrameworkCore" matches itself and "Microsoft.EntityFrameworkCore.SqlServer",
-    // but not "Microsoft.EntityFrameworkCoreX".
-    private static bool MatchesPrefix(string name, string prefix) =>
-        name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
-        && (name.Length == prefix.Length || name[prefix.Length] == '.');
+        assemblyName.Name is { } name && (_names.Contains(name) || _prefixes.Any(prefix => AssemblyNamePrefix.Matches(name, prefix)));
 }

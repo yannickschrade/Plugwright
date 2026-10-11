@@ -200,16 +200,8 @@ public sealed class PluginCollection : IReadOnlyCollection<PluginSource>
     /// </example>
     public PluginCollection ShareAssemblies(string prefix)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(prefix);
+        AssemblyNamePrefix.ThrowIfInvalid(prefix, nameof(prefix));
         _system.ThrowIfApplied("Assemblies cannot be shared");
-
-        if (prefix.StartsWith('.') || prefix.EndsWith('.'))
-        {
-            throw new ArgumentException(
-                $"The prefix '{prefix}' must not start or end with a dot. It is compared at dots: "
-                + "'Acme' shares 'Acme' and 'Acme.Contracts'.",
-                nameof(prefix));
-        }
 
         SharedAssemblies.AddPrefix(prefix);
         return this;
@@ -299,6 +291,91 @@ public sealed class PluginCollection : IReadOnlyCollection<PluginSource>
         _system.ThrowIfApplied("Plugins cannot be added");
 
         _sources.Add(new PluginDirectorySource(path));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds all plugin types of an assembly of the application or one it references: every public, non-abstract
+    /// class that a registered handler can handle.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The assembly's plugins count as plugins added in code: they run in the host's load context, are never verified,
+    /// and can only depend on other plugins added in code. Their types are found when <c>builder.ApplyPlugins()</c> runs.
+    /// </para>
+    /// <para>
+    /// An assembly without plugin types is a plugin failure. Types also added with <see cref="Add{TPlugin}()"/> are
+    /// applied once.
+    /// </para>
+    /// </remarks>
+    /// <param name="assembly">The assembly, usually <c>typeof(SomePlugin).Assembly</c>.</param>
+    /// <returns>This collection, for chaining.</returns>
+    /// <exception cref="InvalidOperationException"><c>builder.ApplyPlugins()</c> has already been called.</exception>
+    /// <exception cref="ArgumentException">
+    /// The assembly is not in the host's default load context, or it has already been added.
+    /// </exception>
+    /// <example>
+    /// <code language="csharp">
+    /// builder.Plugins.AddFromAssembly(typeof(OrdersPlugin).Assembly);
+    /// </code>
+    /// </example>
+    public PluginCollection AddFromAssembly(Assembly assembly)
+    {
+        ArgumentNullException.ThrowIfNull(assembly);
+        _system.ThrowIfApplied("Plugins cannot be added");
+
+        if (AssemblyLoadContext.GetLoadContext(assembly) != AssemblyLoadContext.Default)
+        {
+            throw new ArgumentException(
+                $"Assembly '{assembly.GetName().Name}' is not in the host's default load context. "
+                + "Load plugins from other places with AddFromDirectory.",
+                nameof(assembly));
+        }
+
+        if (_sources.OfType<PluginAssemblySource>().Any(source => source.Assembly == assembly))
+        {
+            throw new ArgumentException($"Assembly '{assembly.GetName().Name}' has already been added.", nameof(assembly));
+        }
+
+        _sources.Add(new PluginAssemblySource(assembly));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds the plugin types of all assemblies the application references whose names start with a prefix, as with
+    /// <see cref="AddFromAssembly"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The referenced assemblies are read from the application's <c>.deps.json</c> file when <c>builder.ApplyPlugins()</c>
+    /// runs, and matching ones are loaded. That covers project and package references, including assemblies the
+    /// application does not use otherwise. Matching assemblies without plugin types, such as contract libraries, are
+    /// skipped.
+    /// </para>
+    /// <para>
+    /// The application needs its <c>.deps.json</c> file, which <c>dotnet build</c> and <c>dotnet publish</c> create.
+    /// Without it, <c>builder.ApplyPlugins()</c> throws. Trimming can remove plugin types that nothing references; use
+    /// <see cref="Add{TPlugin}()"/> in trimmed applications.
+    /// </para>
+    /// </remarks>
+    /// <param name="prefix">
+    /// The start of the assembly names, compared without case and only at a dot: <c>Acme.Plugins</c> matches
+    /// <c>Acme.Plugins</c> and <c>Acme.Plugins.Orders</c>, but not <c>Acme.PluginsX</c>.
+    /// </param>
+    /// <returns>This collection, for chaining.</returns>
+    /// <exception cref="InvalidOperationException"><c>builder.ApplyPlugins()</c> has already been called.</exception>
+    /// <exception cref="ArgumentException">The prefix is empty, or starts or ends with a dot.</exception>
+    /// <example>
+    /// <code language="csharp">
+    /// builder.Plugins.AddFromReferencedAssemblies("Acme.Plugins");
+    /// </code>
+    /// </example>
+    public PluginCollection AddFromReferencedAssemblies(string prefix)
+    {
+        AssemblyNamePrefix.ThrowIfInvalid(prefix, nameof(prefix));
+        _system.ThrowIfApplied("Plugins cannot be added");
+
+        _sources.Add(new PluginReferencedAssembliesSource(prefix));
         return this;
     }
 

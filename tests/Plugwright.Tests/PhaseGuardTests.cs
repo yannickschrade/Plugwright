@@ -55,6 +55,16 @@ public sealed class PhaseGuardTests
     }
 
     [Fact]
+    public void Adding_assemblies_after_ApplyPlugins_throws()
+    {
+        var builder = TestHost.CreateBuilder();
+        builder.ApplyPlugins();
+
+        Should.Throw<InvalidOperationException>(() => builder.Plugins.AddFromAssembly(typeof(PhaseGuardTests).Assembly));
+        Should.Throw<InvalidOperationException>(() => builder.Plugins.AddFromReferencedAssemblies("Acme"));
+    }
+
+    [Fact]
     public void Sharing_assemblies_after_ApplyPlugins_throws()
     {
         var builder = TestHost.CreateBuilder();

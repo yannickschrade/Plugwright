@@ -1,7 +1,9 @@
 using System.Diagnostics.Metrics;
 using System.Reflection;
+using System.Runtime.Loader;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyModel;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -85,7 +87,7 @@ internal sealed class PluginSystem
             handler.Setup(builder);
         }
 
-        var units = DiscoverUnits(builder);
+        var units = DiscoverUnits(builder, handlers);
 
         ThrowOnDuplicateIds(units);
         FindRequiredPlugins(units);
@@ -203,9 +205,9 @@ internal sealed class PluginSystem
     /// Creates one unit per plugin assembly, in the order the sources were added. Plugin folders are verified
     /// and read, but not loaded for execution.
     /// </summary>
-    private List<PluginUnit> DiscoverUnits(IHostApplicationBuilder builder)
+    private List<PluginUnit> DiscoverUnits(IHostApplicationBuilder builder, List<IPluginHandler> handlers)
     {
-        if (Verifiers.Count == 0 && Plugins.Any(source => source is not PluginTypeSource))
+        if (Verifiers.Count == 0 && Plugins.Any(source => source is PluginDirectorySource or IDiscoveringPluginSource))
         {
             PluginLog.PluginVerificationDisabled(Logger);
         }
@@ -224,19 +226,17 @@ internal sealed class PluginSystem
             switch (source)
             {
                 case PluginTypeSource typeSource:
-                    var assembly = typeSource.PluginType.Assembly;
-                    PluginUnit? unit = units.FirstOrDefault(unit => unit.Assembly == assembly);
-                    if (unit is null)
-                    {
-                        unit = PluginUnit.FromCode(assembly);
-                        units.Add(unit);
-                    }
+                    AddCodePluginTypes(units, typeSource.PluginType.Assembly, [typeSource.PluginType], builder.Configuration);
+                    break;
 
-                    unit.PluginTypes.Add(typeSource.PluginType);
-                    if (unit.State is null && PluginConfiguration.IsDisabled(builder.Configuration, unit.Id))
+                case PluginAssemblySource assemblySource:
+                    DiscoverAssembly(units, assemblySource.Assembly, handlers, builder.Configuration, mustHavePluginTypes: true);
+                    break;
+
+                case PluginReferencedAssembliesSource referencedSource:
+                    foreach (var assembly in LoadReferencedAssemblies(referencedSource.Prefix))
                     {
-                        unit.State = PluginState.Disabled;
-                        unit.Reason = PluginConfiguration.DisabledReason(unit.Id);
+                        DiscoverAssembly(units, assembly, handlers, builder.Configuration, mustHavePluginTypes: false);
                     }
 
                     break;
@@ -254,6 +254,104 @@ internal sealed class PluginSystem
 
         return units;
     }
+
+    /// <summary>
+    /// Adds plugin types of an assembly the host has loaded to its unit, which plugins added in code share.
+    /// </summary>
+    private static void AddCodePluginTypes(
+        List<PluginUnit> units, Assembly assembly, IEnumerable<Type> pluginTypes, IConfiguration configuration)
+    {
+        var unit = units.FirstOrDefault(unit => unit.Assembly == assembly);
+        if (unit is null)
+        {
+            unit = PluginUnit.FromCode(assembly);
+            units.Add(unit);
+        }
+
+        unit.PluginTypes.AddRange(pluginTypes.Where(type => !unit.PluginTypes.Contains(type)));
+        if (unit.State is null && PluginConfiguration.IsDisabled(configuration, unit.Id))
+        {
+            unit.State = PluginState.Disabled;
+            unit.Reason = PluginConfiguration.DisabledReason(unit.Id);
+        }
+    }
+
+    /// <summary>
+    /// Finds the plugin types of an assembly the host has loaded. An assembly that was added explicitly must have some.
+    /// </summary>
+    private void DiscoverAssembly(
+        List<PluginUnit> units, Assembly assembly, List<IPluginHandler> handlers, IConfiguration configuration, bool mustHavePluginTypes)
+    {
+        List<Type> pluginTypes;
+        try
+        {
+            pluginTypes = FindPluginTypes(assembly.GetExportedTypes(), handlers);
+        }
+        catch (Exception exception)
+        {
+            Fail(
+                PluginMetadataReader.Read(assembly).Metadata.Id,
+                PluginUnit.CodeSource,
+                PluginState.Failed,
+                $"The types of assembly '{assembly.GetName().Name}' could not be read: {exception.Message}",
+                exception);
+            return;
+        }
+
+        if (pluginTypes.Count > 0)
+        {
+            AddCodePluginTypes(units, assembly, pluginTypes, configuration);
+        }
+        else if (mustHavePluginTypes)
+        {
+            Fail(
+                PluginMetadataReader.Read(assembly).Metadata.Id,
+                PluginUnit.CodeSource,
+                PluginState.NoHandler,
+                $"Assembly '{assembly.GetName().Name}' contains no public plugin type that a registered handler can handle.",
+                exception: null);
+        }
+    }
+
+    /// <summary>
+    /// Loads the assemblies from the application's .deps.json file whose names start with the prefix.
+    /// </summary>
+    private List<Assembly> LoadReferencedAssemblies(string prefix)
+    {
+        var dependencyContext = DependencyContext.Default
+            ?? throw new InvalidOperationException(
+                $"builder.Plugins.AddFromReferencedAssemblies(\"{prefix}\") needs the application's .deps.json file, "
+                + "which was not found. Add the plugins with builder.Plugins.Add<T>() or AddFromAssembly() instead.");
+
+        var names = dependencyContext.RuntimeLibraries
+            .SelectMany(library => library.GetDefaultAssemblyNames(dependencyContext))
+            .Where(name => name.Name is { } simpleName && AssemblyNamePrefix.Matches(simpleName, prefix))
+            .DistinctBy(name => name.Name, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(name => name.Name, StringComparer.Ordinal);
+
+        List<Assembly> assemblies = [];
+        foreach (var name in names)
+        {
+            try
+            {
+                assemblies.Add(AssemblyLoadContext.Default.LoadFromAssemblyName(name));
+            }
+            catch (Exception exception)
+            {
+                Fail(name.Name!, PluginUnit.CodeSource, PluginState.Failed, $"Assembly '{name.Name}' could not be loaded: {exception.Message}", exception);
+            }
+        }
+
+        return assemblies;
+    }
+
+    /// <summary>
+    /// Returns the public, non-abstract classes that some handler can handle.
+    /// </summary>
+    private static List<Type> FindPluginTypes(IEnumerable<Type> types, List<IPluginHandler> handlers) =>
+        [.. types
+            .Where(type => type.IsClass && !type.IsAbstract && !type.ContainsGenericParameters)
+            .Where(type => handlers.Any(handler => handler.CanHandle(type)))];
 
     private List<PluginUnit> DiscoverDirectory(string directory, PluginDirectorySource source, IConfiguration configuration)
     {
@@ -575,9 +673,7 @@ internal sealed class PluginSystem
             return false;
         }
 
-        unit.PluginTypes.AddRange(exportedTypes
-            .Where(type => type.IsClass && !type.IsAbstract && !type.ContainsGenericParameters)
-            .Where(type => handlers.Any(handler => handler.CanHandle(type))));
+        unit.PluginTypes.AddRange(FindPluginTypes(exportedTypes, handlers));
 
         if (unit.PluginTypes.Count == 0)
         {
