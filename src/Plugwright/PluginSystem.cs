@@ -22,6 +22,7 @@ internal sealed class PluginSystem
     private readonly List<ActivePlugin> _activePlugins = [];
     private readonly List<PluginVerification> _verifications = [];
     private readonly List<(string PluginId, string Problem, Exception? Exception)> _requiredProblems = [];
+    private readonly HashSet<string> _unavailableBecauseDisabled = new(StringComparer.OrdinalIgnoreCase);
     private bool _applied;
     private bool _used;
 
@@ -64,6 +65,16 @@ internal sealed class PluginSystem
                 $"{action} after builder.ApplyPlugins() has been called. Add plugins and handlers before calling ApplyPlugins().");
         }
     }
+
+    /// <summary>
+    /// Returns whether a plugin does not run because of an error, not because it or a plugin it depends on is turned off.
+    /// </summary>
+    public bool IsNotRunningBecauseOfError(PluginInfo plugin) => plugin.State switch
+    {
+        PluginState.Loaded or PluginState.Disabled => false,
+        PluginState.DependencyUnavailable => !_unavailableBecauseDisabled.Contains(plugin.Id),
+        _ => true,
+    };
 
     /// <summary>
     /// Phase 1: reads the metadata of all plugins, resolves their dependencies, then loads and applies them
@@ -462,6 +473,7 @@ internal sealed class PluginSystem
                 unit.State = PluginState.DependencyUnavailable;
                 unit.Reason = reason;
                 unit.UnavailableBecauseDisabled = true;
+                _unavailableBecauseDisabled.Add(unit.Id);
                 Catalog.Set(unit.ToInfo());
                 if (unit.IsRequired)
                 {
