@@ -51,6 +51,8 @@ info: Plugwright[1000]
       Plugin Heartbeat 0.1.0.0 loaded (Heartbeat.HeartbeatPlugin, added in code)
 ```
 
+To add all plugins of referenced assemblies at once, see [Find plugins in referenced assemblies](find-plugins-in-referenced-assemblies.md).
+
 ## See also
 
 - [`PluginHostApplicationBuilderExtensions`](../api/Plugwright.PluginHostApplicationBuilderExtensions.md)

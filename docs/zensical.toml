@@ -23,6 +23,7 @@ nav = [
   { "How-to guides" = [
     { "Plugins" = [
       { "Add a plugin" = "how-to/add-a-plugin.md" },
+      { "Find plugins in referenced assemblies" = "how-to/find-plugins-in-referenced-assemblies.md" },
       { "Declare plugin dependencies" = "how-to/declare-plugin-dependencies.md" },
       { "Offer extension points to plugins" = "how-to/offer-extension-points.md" },
       { "Write a plugin handler" = "how-to/write-a-plugin-handler.md" },

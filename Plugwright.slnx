@@ -38,6 +38,11 @@
     <Project Path="samples/PluginPolicies/Acme.Reports/Acme.Reports.csproj" />
     <Project Path="samples/PluginPolicies/App/PluginPolicies.App.csproj" />
   </Folder>
+  <Folder Name="/samples/ReferencedPlugins/">
+    <Project Path="samples/ReferencedPlugins/Acme.Plugins.Invoices/Acme.Plugins.Invoices.csproj" />
+    <Project Path="samples/ReferencedPlugins/Acme.Plugins.Orders/Acme.Plugins.Orders.csproj" />
+    <Project Path="samples/ReferencedPlugins/App/ReferencedPlugins.App.csproj" />
+  </Folder>
   <Folder Name="/samples/SharedAssemblies/">
     <Project Path="samples/SharedAssemblies/Acme.Uptime/Acme.Uptime.csproj" />
     <Project Path="samples/SharedAssemblies/App/SharedAssemblies.App.csproj" />
