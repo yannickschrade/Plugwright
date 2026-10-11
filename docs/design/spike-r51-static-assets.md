@@ -1,35 +1,35 @@
-# Spike R-51: Statische Web-Assets dynamisch geladener Blazor-Plugins
+# Spike R-51: Static Web Assets of Dynamically Loaded Blazor Plugins
 
-Stand 2026-10-11. Ziel laut Entscheidungslog: volle Gleichwertigkeit mit Projektreferenzen (`MapStaticAssets`, Fingerprinting, Kompression, `@Assets`, `ImportMap`, Scoped CSS). Getestet mit einer Razor Class Library (`wwwroot/plugin.css`, `wwwroot/logo.svg`, `Hello.razor.css`, `Hello.razor.js`) und einem Blazor-Host (.NET 10, `dotnet new blazor --interactivity Server`), Plugin nicht referenziert.
+As of 2026-10-11. Goal according to the decision log: full parity with project references (`MapStaticAssets`, fingerprinting, compression, `@Assets`, `ImportMap`, scoped CSS). Tested with a Razor class library (`wwwroot/plugin.css`, `wwwroot/logo.svg`, `Hello.razor.css`, `Hello.razor.js`) and a Blazor host (.NET 10, `dotnet new blazor --interactivity Server`), plugin not referenced.
 
-## Was die Plugin-Formate enthalten
+## What the plugin formats contain
 
-| Format | Endpunkte | Dateien | Kompression | Scoped CSS |
+| Format | Endpoints | Files | Compression | Scoped CSS |
 | --- | --- | --- | --- | --- |
-| `dotnet build` | `{Id}.staticwebassets.endpoints.json` (Build) | **nicht** in der Ausgabe, nur über `staticwebassets.runtime.json` im Quellordner | nein | nur in `obj/` |
-| `dotnet publish` | `{Id}.staticwebassets.endpoints.json` (Publish), Routen **ohne** `_content/{Id}/` | `wwwroot/` | `.br` und `.gz` | `wwwroot/{Id}.styles.css` |
-| `dotnet pack` | MSBuild-Items in `build/Microsoft.AspNetCore.StaticWebAssetEndpoints.props`, Routen **mit** `_content/{Id}/` | `staticwebassets/` | nein | `staticwebassets/{Id}.{fingerprint}.bundle.scp.css` |
+| `dotnet build` | `{Id}.staticwebassets.endpoints.json` (build) | **not** in the output, only via `staticwebassets.runtime.json` in the source folder | no | only in `obj/` |
+| `dotnet publish` | `{Id}.staticwebassets.endpoints.json` (publish), routes **without** `_content/{Id}/` | `wwwroot/` | `.br` and `.gz` | `wwwroot/{Id}.styles.css` |
+| `dotnet pack` | MSBuild items in `build/Microsoft.AspNetCore.StaticWebAssetEndpoints.props`, routes **with** `_content/{Id}/` | `staticwebassets/` | no | `staticwebassets/{Id}.{fingerprint}.bundle.scp.css` |
 
-Alle Formate mit Endpunkten enthalten Fingerprints, SRI-Hashes, ETags und Cache-Header.
+All formats with endpoints contain fingerprints, SRI hashes, ETags and cache headers.
 
-## Was funktioniert
+## What works
 
-1. **`MapStaticAssets(manifestPath)` liest die Dateien über `IWebHostEnvironment.WebRootFileProvider`**, nicht relativ zum Manifest. Ohne passenden File-Provider liefert eine gemappte Route 200 mit leerem Inhalt.
-2. **Umschreiben + File-Provider**: Route, `AssetFile` und Eigenschaft `label` mit `_content/{Id}/` präfixen, `wwwroot` des Plugins über einen Präfix-File-Provider in einen `CompositeFileProvider` vor `WebRootFileProvider` hängen. Ergebnis: Inhalt, `Content-Encoding: br`, ETag, Fingerprint-Route mit `max-age=31536000, immutable`, Scoped CSS und JS-Modul werden korrekt ausgeliefert.
-3. **Aus dem Speicher** (eigener `IFileProvider`, `PhysicalPath = null`): alles wie bei Dateien von der Platte, auch `Range` (206) und `If-None-Match` (304).
-4. **`@Assets` und `ImportMap`**: `WithStaticAssets(pluginManifest)` **ersetzt** die Sammlung des Hosts (Host-Dateien verlieren ihre Fingerprints). Mehrere Manifeste werden nicht zusammengeführt. Funktioniert: **ein zusammengeführtes Manifest** (Host + alle Plugins), einmal `MapStaticAssets(merged)` und `WithStaticAssets(merged)`. Dann haben Host- und Plugin-Dateien Fingerprints, `ImportMap` enthält die JS-Module der Plugins, `_framework/blazor.web.js` funktioniert weiter.
-5. **Development** (Host aus `bin/Debug`, Build-Manifest des Hosts): zusammengeführtes Manifest funktioniert ebenso.
-6. Ohne `WithStaticAssets` liefert `@Assets["_content/{Id}/x.css"]` den Pfad ohne Fingerprint; die Datei wird trotzdem ausgeliefert (ETag, `must-revalidate`), nur ohne Langzeit-Cache.
+1. **`MapStaticAssets(manifestPath)` reads the files via `IWebHostEnvironment.WebRootFileProvider`**, not relative to the manifest. Without a matching file provider, a mapped route returns 200 with empty content.
+2. **Rewriting + file provider**: prefix the route, `AssetFile` and the `label` property with `_content/{Id}/`, attach the plugin's `wwwroot` via a prefix file provider into a `CompositeFileProvider` in front of `WebRootFileProvider`. Result: content, `Content-Encoding: br`, ETag, fingerprinted route with `max-age=31536000, immutable`, scoped CSS and JS module are served correctly.
+3. **From memory** (custom `IFileProvider`, `PhysicalPath = null`): everything as with files from disk, including `Range` (206) and `If-None-Match` (304).
+4. **`@Assets` and `ImportMap`**: `WithStaticAssets(pluginManifest)` **replaces** the host's collection (host files lose their fingerprints). Several manifests are not merged. What works: **one merged manifest** (host + all plugins), `MapStaticAssets(merged)` and `WithStaticAssets(merged)` once. Then host and plugin files have fingerprints, `ImportMap` contains the plugins' JS modules, `_framework/blazor.web.js` keeps working.
+5. **Development** (host from `bin/Debug`, the host's build manifest): the merged manifest works as well.
+6. Without `WithStaticAssets`, `@Assets["_content/{Id}/x.css"]` returns the path without a fingerprint; the file is served anyway (ETag, `must-revalidate`), just without long-term caching.
 
-## Was zu beachten ist
+## What to keep in mind
 
-- `app.MapStaticAssets()` des Hosts und ein zusammengeführtes Manifest dürfen nicht beide gemappt werden (doppelte Routen). Für volle Gleichwertigkeit muss die App ihren `MapStaticAssets()`-Aufruf ersetzen.
-- `MapStaticAssets` nimmt nur einen Dateipfad: das zusammengeführte Manifest muss als Datei existieren (z. B. im Temp-Ordner des Prozesses wie native Bibliotheken).
-- Verzeichnis-Plugins brauchen **Publish-Ausgabe**; Build-Ausgabe enthält die Dateien nicht.
-- Pakete: Endpunkte aus MSBuild-XML lesen und nach JSON übersetzen; keine vorkomprimierten Varianten.
-- Scoped CSS: Plugins aus Verzeichnissen/Paketen sind nicht in `{App}.styles.css` enthalten; ihr Bündel muss im Layout per `<link>` eingebunden werden. Bei Projektreferenzen ist es schon enthalten und darf nicht doppelt eingebunden werden.
-- Integrität: Manifest und `wwwroot` sind Teil der Plugin-Dateien und damit von Lock-Datei bzw. Manifest abgedeckt. Aus dem Speicher ausgeliefert, gelten die geprüften Bytes; von der Platte könnten Dateien nach der Prüfung getauscht werden.
+- The host's `app.MapStaticAssets()` and a merged manifest must not both be mapped (duplicate routes). For full parity, the app has to replace its `MapStaticAssets()` call.
+- `MapStaticAssets` only takes a file path: the merged manifest has to exist as a file (e.g. in the process's temp folder, like native libraries).
+- Directory plugins need **publish output**; build output does not contain the files.
+- Packages: read endpoints from MSBuild XML and translate them to JSON; no precompressed variants.
+- Scoped CSS: plugins from directories/packages are not included in `{App}.styles.css`; their bundle has to be linked in the layout with a `<link>`. With project references it is already included and must not be linked twice.
+- Integrity: manifest and `wwwroot` are part of the plugin files and thus covered by the lock file or manifest. Served from memory, the verified bytes apply; from disk, files could be swapped after verification.
 
-## Nachtrag: `@Assets` ohne zusammengeführtes Manifest
+## Addendum: `@Assets` without a merged manifest
 
-Die `ResourceAssetCollection` und die `ImportMapDefinition` hängen als Metadaten an den Razor-Components-Endpunkten; Blazor nimmt die zuletzt hinzugefügte. In einem `Finally`-Callback des `RazorComponentsEndpointConventionBuilder` liegt die Sammlung des Hosts bereits vor (getestet: 30 Einträge). Eine neue Sammlung aus Host-Einträgen plus Plugin-Einträgen (je Endpunkt ohne Selektoren, nur `label` und `integrity`, wie Blazor sie bildet) und eine daraus erzeugte `ImportMapDefinition` liefern Fingerprints für Host- und Plugin-Dateien und eine Import-Map mit den Modulen beider.
+The `ResourceAssetCollection` and the `ImportMapDefinition` are attached as metadata to the Razor components endpoints; Blazor takes the most recently added one. In a `Finally` callback of the `RazorComponentsEndpointConventionBuilder`, the host's collection is already present (tested: 30 entries). A new collection made of host entries plus plugin entries (per endpoint without selectors, only `label` and `integrity`, the way Blazor builds them) and an `ImportMapDefinition` created from it provide fingerprints for host and plugin files and an import map with the modules of both.

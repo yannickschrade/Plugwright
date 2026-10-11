@@ -1,76 +1,76 @@
-# Plugwright – Anforderungen: Web-Hosts, Plugin-Zustand und Startablauf
+# Plugwright – Requirements: Web Hosts, Plugin State and Startup
 
-Stand: 10.10.2026 · Status: freigegeben zur Umsetzung
+Date: 2026-10-10 · Status: approved for implementation
 
-Diese Datei erweitert die bestehende Spezifikation (`docs/SPEC.md`, Stand 06.10.2026). Sie beschreibt, was Plugwright zusätzlich können muss, damit eine **ASP.NET-Core-/Blazor-Server-Anwendung** mit fachlichen Plugins darauf aufbauen kann. Wo diese Datei der Spezifikation widerspricht, gilt diese Datei. Die Abweichungen sind unten aufgelistet und werden bei der Umsetzung ins Entscheidungslog der Spezifikation übernommen.
+This file extends the existing specification (`docs/SPEC.md`, as of 2026-10-06). It describes what Plugwright must additionally be able to do so that an **ASP.NET Core / Blazor Server application** with business plugins can build on it. Where this file contradicts the specification, this file applies. The deviations are listed below and are added to the specification's decision log during implementation.
 
-## 1. Ausgangslage
+## 1. Starting point
 
-Eine typische Zielanwendung:
+A typical target application:
 
-- **Zwei getrennte Hosts**, beide mit Plugwright:
-  - **API-Host** (ASP.NET Core): REST/OData-API, Fachlogik, Datenbank, Hintergrunddienste.
-  - **Web-Host** (Blazor, Interactive Server): Oberfläche, ruft die API per HTTP auf und hat keinen Datenbankzugriff.
-  - Optional mit .NET Aspire (`AddServiceDefaults()`), das beide Hosts startet.
-- Fachliche Funktionen kommen als Plugins. Ein fachliches Plugin besteht meist aus **drei Projekten**:
-  - **Backend-Teil** (Dienste, API-Controller), geladen im API-Host
-  - **Abstractions** (DTOs, Schnittstellen), von beiden genutzt
-  - **UI-Teil** (Razor Class Library), geladen im Web-Host
+- **Two separate hosts**, both with Plugwright:
+  - **API host** (ASP.NET Core): REST/OData API, business logic, database, background services.
+  - **Web host** (Blazor, Interactive Server): user interface, calls the API via HTTP and has no database access.
+  - Optionally with .NET Aspire (`AddServiceDefaults()`), which starts both hosts.
+- Business features come as plugins. A business plugin usually consists of **three projects**:
+  - **Backend part** (services, API controllers), loaded in the API host
+  - **Abstractions** (DTOs, interfaces), used by both
+  - **UI part** (Razor class library), loaded in the web host
 
-  Backend- und UI-Teil sind für Plugwright zwei eigene Plugins in zwei Prozessen.
-- Der Web-Host muss wissen, welche Backend-Plugins in der API aktiv sind, um zugehörige UI-Plugins auszublenden.
-- Plugins sind per **Projektreferenz** eingebunden (`Plugins.Add<T>()`). Dynamisches Laden aus Verzeichnissen kommt später.
-- Manche Plugins sind **Pflicht** (die App darf ohne sie nicht starten), andere **optional** (die App startet ohne sie und zeigt den Zustand an).
-- Plugins müssen beim Start **asynchrone Vorbereitungen** treffen können, z. B. Datenbankschemata registrieren oder Daten migrieren, bevor die App Anfragen annimmt.
-- Plugins werden über die Konfiguration **aktiviert und deaktiviert**. Die Änderung wirkt nach einem Neustart.
+  For Plugwright, the backend and UI parts are two separate plugins in two processes.
+- The web host must know which backend plugins are active in the API in order to hide the corresponding UI plugins.
+- Plugins are included via **project reference** (`Plugins.Add<T>()`). Dynamic loading from directories comes later.
+- Some plugins are **required** (the app must not start without them), others are **optional** (the app starts without them and shows their state).
+- Plugins must be able to perform **asynchronous preparations** at startup, e.g. register database schemas or migrate data, before the app accepts requests.
+- Plugins are **enabled and disabled** via configuration. The change takes effect after a restart.
 
-## 2. Arbeitsanweisung für Claude Code
+## 2. Instructions for Claude Code
 
-1. Lies `docs/SPEC.md` und diese Datei vollständig, bevor du anfängst.
-2. Setze die Meilensteine **in der angegebenen Reihenfolge** um. Innerhalb eines Meilensteins gilt die Reihenfolge der Anforderungen.
-3. Jede Anforderung ist erst fertig, wenn **Code, Tests, XML-Doku, Doku-Seite (DocFX, Englisch) und ggf. Sample** vorliegen und alle Akzeptanzkriterien erfüllt sind (Regel „Funktion = Code + Tests + Doku + Beispiel“ aus der Spezifikation).
-4. Bestehende Regeln gelten weiter: Nullable aktiv, Warnungen als Fehler, öffentliche API klein, nur Abhängigkeiten auf `Microsoft.*`-Pakete bzw. das ASP.NET-Core-Shared-Framework, xUnit v3.
-5. API-Namen in dieser Datei sind **Vorschläge**. Weichst du ab, begründe es im Entscheidungslog.
-6. Am Ende jedes Meilensteins: Akzeptanzkriterien als Checkliste ausgeben, `CHANGELOG.md` und Entscheidungslog in `docs/SPEC.md` aktualisieren.
-7. Bei Unklarheiten, die das öffentliche API betreffen: nachfragen, nicht raten.
+1. Read `docs/SPEC.md` and this file completely before you start.
+2. Implement the milestones **in the given order**. Within a milestone, the order of the requirements applies.
+3. A requirement is only done when **code, tests, XML docs, a doc page (DocFX, English) and, if applicable, a sample** exist and all acceptance criteria are met (rule "feature = code + tests + docs + sample" from the specification).
+4. Existing rules still apply: nullable enabled, warnings as errors, small public API, dependencies only on `Microsoft.*` packages or the ASP.NET Core shared framework, xUnit v3.
+5. API names in this file are **proposals**. If you deviate, explain why in the decision log.
+6. At the end of every milestone: output the acceptance criteria as a checklist, update `CHANGELOG.md` and the decision log in `docs/SPEC.md`.
+7. For ambiguities that affect the public API: ask, do not guess.
 
-## 3. Änderungen an bisherigen Festlegungen
+## 3. Changes to previous decisions
 
-| Bisher (SPEC.md) | Neu |
+| Previously (SPEC.md) | New |
 |---|---|
-| ASP.NET Core erst nach v1 („Andere Host-Typen nicht in v1“) | ASP.NET-Core- und Blazor-Unterstützung kommen in **v1** (Meilenstein M1) |
-| Aktivieren/Deaktivieren erst in v2 | Aktivieren/Deaktivieren über Konfiguration in **v1** (M2). Neustart-Dienst und Admin-Speicherung bleiben später. |
-| Fehler-Policy nur global (Fail-fast, optional „überspringen und loggen“) | Zusätzlich **je Plugin** einstellbar, plus Kennzeichnung als Pflicht-Plugin |
-| „Bei Überspringen werden abhängige Plugins mit übersprungen“ als Vorschlag | **Entschieden** (R-11) |
-| Laufzeitverhalten nur über normale DI-Mittel, keine Plugin-Hooks | Zusätzlich **ein** asynchroner Start-Hook mit fester Reihenfolge (R-31). Begründung: Reihenfolge und „fertig vor dem ersten Request“ lassen sich mit Hosted Services allein nicht zuverlässig garantieren. |
+| ASP.NET Core only after v1 ("Other host types not in v1") | ASP.NET Core and Blazor support come in **v1** (milestone M1) |
+| Enabling/disabling only in v2 | Enabling/disabling via configuration in **v1** (M2). Restart service and admin storage remain for later. |
+| Failure policy only global (fail-fast, optionally "skip and log") | Additionally configurable **per plugin**, plus marking as a required plugin |
+| "When skipping, dependent plugins are skipped as well" as a proposal | **Decided** (R-11) |
+| Runtime behavior only through normal DI means, no plugin hooks | Additionally **one** asynchronous startup hook with a fixed order (R-31). Rationale: order and "done before the first request" cannot be guaranteed reliably with hosted services alone. |
 
-## 4. Neue Pakete
+## 4. New packages
 
-| Paket | Inhalt | Abhängigkeiten |
+| Package | Content | Dependencies |
 |---|---|---|
-| `Plugwright.AspNetCore` | Handler für Web-Plugins (Controller, Endpunkte, Middleware), Health Check | `Plugwright`, Shared Framework `Microsoft.AspNetCore.App` |
-| `Plugwright.Blazor` | Handler für Blazor-Plugins (Komponenten-Assemblies für den Router) | `Plugwright.AspNetCore` |
+| `Plugwright.AspNetCore` | Handler for web plugins (controllers, endpoints, middleware), health check | `Plugwright`, shared framework `Microsoft.AspNetCore.App` |
+| `Plugwright.Blazor` | Handler for Blazor plugins (component assemblies for the router) | `Plugwright.AspNetCore` |
 
-Die Plugin-Verträge der neuen Pakete (`IWebPlugin`, `IBlazorPlugin`) liegen in `Plugwright.Abstractions` oder in eigenen `*.Abstractions`-Paketen, damit Plugins nicht das ganze Hauptpaket referenzieren müssen. Entscheide nach dem bestehenden Paketschnitt und dokumentiere die Wahl.
+The plugin contracts of the new packages (`IWebPlugin`, `IBlazorPlugin`) live in `Plugwright.Abstractions` or in their own `*.Abstractions` packages, so plugins do not have to reference the whole main package. Decide based on the existing package split and document the choice.
 
-## 5. Meilensteine
+## 5. Milestones
 
-| Meilenstein | Anforderungen | Ergebnis |
+| Milestone | Requirements | Result |
 |---|---|---|
-| **M1 Web-Grundlage** | R-01, R-02, R-03, R-04, R-05 | Web-App mit Plugins, die Dienste, API und Blazor-Seiten mitbringen |
-| **M2 Zustand und Fehler** | R-10, R-11, R-12, R-13, R-16 | Aktivieren/Deaktivieren, Pflicht-Plugins, Katalog mit Zustand, Katalog als Endpunkt für andere Hosts |
-| **M3 Start und Test** | R-31, R-40, R-41 | Start-Hook, Testunterstützung, Doku für den Entwicklungsalltag |
-| **M4 später** | R-14, R-15, R-17, R-32, R-50, R-51, R-52, R-53 | erst nach Rücksprache beginnen |
+| **M1 Web foundation** | R-01, R-02, R-03, R-04, R-05 | Web app with plugins that bring services, API and Blazor pages |
+| **M2 State and failures** | R-10, R-11, R-12, R-13, R-16 | Enabling/disabling, required plugins, catalog with state, catalog as an endpoint for other hosts |
+| **M3 Startup and testing** | R-31, R-40, R-41 | Startup hook, testing support, docs for everyday development |
+| **M4 Later** | R-14, R-15, R-17, R-32, R-50, R-51, R-52, R-53 | only start after consultation |
 
 ---
 
-## M1 Web-Grundlage
+## M1 Web foundation
 
-### R-01 ASP.NET Core als Host
+### R-01 ASP.NET Core as host
 
-**Beschreibung:** `builder.Plugins`, `builder.ApplyPlugins()` und `app.UsePlugins()` funktionieren mit `WebApplicationBuilder` bzw. `WebApplication`, ohne Sonderweg für den Nutzer.
+**Description:** `builder.Plugins`, `builder.ApplyPlugins()` and `app.UsePlugins()` work with `WebApplicationBuilder` and `WebApplication`, without a special path for the user.
 
-**Nutzung:**
+**Usage:**
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
@@ -84,83 +84,83 @@ builder.ApplyPlugins();                    // Phase 1
 
 var app = builder.Build();
 app.UseAntiforgery();
-app.UsePlugins();                          // Phase 2: Middleware/Endpunkte der Plugins
+app.UsePlugins();                          // Phase 2: middleware/endpoints of the plugins
 app.MapRazorComponents<App>()
    .AddInteractiveServerRenderMode()
-   .AddPluginAssemblies(app);              // aus R-04
+   .AddPluginAssemblies(app);              // from R-04
 app.Run();
 ```
 
-**Regeln:**
+**Rules:**
 
-- `WebApplicationBuilder` implementiert `IHostApplicationBuilder`, `WebApplication` implementiert `IHost`. Die bestehenden Extension Members sollen ohne Änderung greifen. Ist das nicht der Fall, wird es behoben, nicht umgangen.
-- Die Position von `UsePlugins()` bestimmt die Position der Plugin-Middleware in der Pipeline. Das wird dokumentiert.
-- Handler, die Web-Funktionen brauchen, prüfen in Phase 2, ob `app` eine `WebApplication` (bzw. `IApplicationBuilder` und `IEndpointRouteBuilder`) ist. Wenn nicht, gibt es eine verständliche Exception mit Hinweis auf den Host-Typ.
+- `WebApplicationBuilder` implements `IHostApplicationBuilder`, `WebApplication` implements `IHost`. The existing extension members should apply without changes. If they do not, this is fixed, not worked around.
+- The position of `UsePlugins()` determines the position of the plugin middleware in the pipeline. This is documented.
+- Handlers that need web features check in phase 2 whether `app` is a `WebApplication` (or `IApplicationBuilder` and `IEndpointRouteBuilder`). If not, they throw a clear exception pointing to the host type.
 
-**Akzeptanzkriterien:**
+**Acceptance criteria:**
 
-- [ ] Sample `samples/WebHost` startet mit einem Plugin, das einen Dienst registriert, der in einem Endpunkt genutzt wird.
-- [ ] Integrationstest mit `WebApplicationFactory<Program>` bestätigt den Endpunkt.
-- [ ] Die Konsolen-Samples laufen unverändert weiter.
+- [ ] Sample `samples/WebHost` starts with a plugin that registers a service used in an endpoint.
+- [ ] Integration test with `WebApplicationFactory<Program>` confirms the endpoint.
+- [ ] The console samples keep working unchanged.
 
-### R-02 Zusammenspiel mit .NET Aspire
+### R-02 Working with .NET Aspire
 
-**Beschreibung:** Plugwright funktioniert zusammen mit `AddServiceDefaults()` aus einem Aspire-ServiceDefaults-Projekt. Plugins können eigene Health Checks und OpenTelemetry-Quellen registrieren.
+**Description:** Plugwright works together with `AddServiceDefaults()` from an Aspire ServiceDefaults project. Plugins can register their own health checks and OpenTelemetry sources.
 
-**Regeln:**
+**Rules:**
 
-- Die empfohlene Reihenfolge ist `AddServiceDefaults()` vor `ApplyPlugins()`. Sie wird dokumentiert, die umgekehrte Reihenfolge darf aber nicht brechen.
-- Plugwright-Logs nutzen eine eigene, dokumentierte Kategorie (z. B. `Plugwright`), damit sie im Aspire-Dashboard filterbar sind.
-- Plugwright bekommt eine `ActivitySource` bzw. einen `Meter` mit dem Namen `Plugwright`, sofern das ohne zusätzliche Abhängigkeiten möglich ist (`System.Diagnostics`). Sonst als Folgeanforderung notieren.
+- The recommended order is `AddServiceDefaults()` before `ApplyPlugins()`. It is documented, but the reverse order must not break.
+- Plugwright logs use their own documented category (e.g. `Plugwright`) so they can be filtered in the Aspire dashboard.
+- Plugwright gets an `ActivitySource` or a `Meter` named `Plugwright`, if that is possible without additional dependencies (`System.Diagnostics`). Otherwise note it as a follow-up requirement.
 
-**Akzeptanzkriterien:**
+**Acceptance criteria:**
 
-- [ ] How-to-Seite „Using Plugwright with .NET Aspire“ mit lauffähigem Sample `samples/SplitHosts`:
+- [ ] How-to page "Using Plugwright with .NET Aspire" with a runnable sample `samples/SplitHosts`:
   - AppHost, ServiceDefaults
-  - API-Host mit Backend-Plugin
-  - Blazor-Web-Host mit UI-Plugin, der die API über Service Discovery aufruft
-  - Abstractions-Projekt des Plugins, von beiden Hosts genutzt
-- [ ] Ein Plugin registriert einen Health Check, der unter `/health` erscheint.
+  - API host with a backend plugin
+  - Blazor web host with a UI plugin that calls the API via service discovery
+  - The plugin's Abstractions project, used by both hosts
+- [ ] A plugin registers a health check that appears under `/health`.
 
-### R-03 Web-Plugins: Controller, Endpunkte, Middleware
+### R-03 Web plugins: controllers, endpoints, middleware
 
-**Beschreibung:** Neuer Handler `WebPluginHandler` im Paket `Plugwright.AspNetCore`. Er macht Controller aus Plugin-Assemblies auffindbar und lässt Plugins Endpunkte und Middleware beitragen.
+**Description:** New handler `WebPluginHandler` in the package `Plugwright.AspNetCore`. It makes controllers from plugin assemblies discoverable and lets plugins contribute endpoints and middleware.
 
-**Vertrag (Vorschlag):**
+**Contract (proposal):**
 
 ```csharp
 public interface IWebPlugin
 {
-    // Phase 2: Endpunkte (Minimal APIs, Hubs …)
+    // Phase 2: endpoints (minimal APIs, hubs …)
     void MapEndpoints(IEndpointRouteBuilder endpoints) { }
 
-    // Phase 2: Middleware an der Stelle von app.UsePlugins()
+    // Phase 2: middleware at the position of app.UsePlugins()
     void ConfigurePipeline(IApplicationBuilder app) { }
 }
 ```
 
-**Regeln:**
+**Rules:**
 
-- Phase 1: Für jede Assembly eines Plugins, das `IWebPlugin` implementiert, wird ein `ApplicationPart` registriert, damit MVC-Controller (auch OData-Controller) gefunden werden. Der Handler darf `AddControllers()` nicht selbst erzwingen. Ruft der Host `AddControllers()` nicht auf, werden die Parts trotzdem bereitgestellt (über `ApplicationPartManager`, sobald MVC registriert ist).
-- Plugins ohne Controller dürfen `IWebPlugin` trotzdem implementieren (nur Endpunkte bzw. Middleware).
-- Phase 2: zuerst `ConfigurePipeline` aller Plugins, dann `MapEndpoints`, jeweils in Abhängigkeitsreihenfolge.
-- Plugin-Instanz: dieselbe Instanz wie in Phase 1 (Standard-Handler). Ist das nicht möglich, dokumentieren, wie Zustand zwischen den Phasen geteilt wird.
+- Phase 1: For every assembly of a plugin that implements `IWebPlugin`, an `ApplicationPart` is registered so that MVC controllers (including OData controllers) are found. The handler must not force `AddControllers()` itself. If the host does not call `AddControllers()`, the parts are provided anyway (via `ApplicationPartManager`, as soon as MVC is registered).
+- Plugins without controllers may still implement `IWebPlugin` (endpoints or middleware only).
+- Phase 2: first `ConfigurePipeline` of all plugins, then `MapEndpoints`, each in dependency order.
+- Plugin instance: the same instance as in phase 1 (default handler). If that is not possible, document how state is shared between the phases.
 
-**Akzeptanzkriterien:**
+**Acceptance criteria:**
 
-- [ ] Ein Controller in einer Plugin-Assembly ist erreichbar, ohne dass der Host die Assembly kennt.
-- [ ] Ein Minimal-API-Endpunkt aus `MapEndpoints` ist erreichbar.
-- [ ] Middleware aus `ConfigurePipeline` läuft an der Position von `UsePlugins()` (Test mit Reihenfolge-Header).
-- [ ] Integrationstests für alle drei Fälle.
+- [ ] A controller in a plugin assembly is reachable without the host knowing the assembly.
+- [ ] A minimal API endpoint from `MapEndpoints` is reachable.
+- [ ] Middleware from `ConfigurePipeline` runs at the position of `UsePlugins()` (test with an order header).
+- [ ] Integration tests for all three cases.
 
-### R-04 Blazor-Plugins: Seiten und Komponenten
+### R-04 Blazor plugins: pages and components
 
-**Beschreibung:** Neuer Handler `BlazorPluginHandler` im Paket `Plugwright.Blazor`. Er sammelt die Komponenten-Assemblies der Plugins, damit Router und `MapRazorComponents` Plugin-Seiten finden.
+**Description:** New handler `BlazorPluginHandler` in the package `Plugwright.Blazor`. It collects the component assemblies of the plugins so that the router and `MapRazorComponents` find plugin pages.
 
-**Vertrag (Vorschlag):**
+**Contract (proposal):**
 
 ```csharp
-public interface IBlazorPlugin { }   // Marker; Assemblies des Plugins enthalten Razor-Komponenten
+public interface IBlazorPlugin { }   // Marker; the plugin's assemblies contain Razor components
 
 public interface IPluginComponentAssemblies
 {
@@ -168,47 +168,47 @@ public interface IPluginComponentAssemblies
 }
 ```
 
-**Regeln:**
+**Rules:**
 
-- Phase 1: Der Handler registriert `IPluginComponentAssemblies` als Singleton mit allen Assemblies von Plugins, die `IBlazorPlugin` implementieren, in Abhängigkeitsreihenfolge und ohne Duplikate.
-- Erweiterung `AddPluginAssemblies(this RazorComponentsEndpointConventionBuilder, IHost app)` ruft `AddAdditionalAssemblies(...)` mit diesen Assemblies auf.
-- Für den `<Router>` dokumentiert das Sample, wie `AdditionalAssemblies` per `@inject IPluginComponentAssemblies` befüllt wird.
-- Navigationseinträge, Menüs oder Seitenabschnitte sind **app-spezifische Verträge**. Plugwright liefert dafür keine eigenen Typen. Das Sample zeigt, wie ein Plugin solche app-eigenen Dienste über DI registriert.
-- Statische Web-Assets (`_content/<Assembly>/…`) funktionieren bei Projektreferenz automatisch. Das wird im Sample nachgewiesen. Dynamisch geladene Plugins: siehe R-51.
+- Phase 1: The handler registers `IPluginComponentAssemblies` as a singleton with all assemblies of plugins that implement `IBlazorPlugin`, in dependency order and without duplicates.
+- The extension `AddPluginAssemblies(this RazorComponentsEndpointConventionBuilder, IHost app)` calls `AddAdditionalAssemblies(...)` with these assemblies.
+- For the `<Router>`, the sample documents how `AdditionalAssemblies` is filled via `@inject IPluginComponentAssemblies`.
+- Navigation entries, menus or page sections are **app-specific contracts**. Plugwright provides no types of its own for them. The sample shows how a plugin registers such app-owned services via DI.
+- Static web assets (`_content/<Assembly>/…`) work automatically with a project reference. The sample demonstrates this. Dynamically loaded plugins: see R-51.
 
-**Akzeptanzkriterien:**
+**Acceptance criteria:**
 
-- [ ] Sample `samples/BlazorHost` (Blazor Web App, Interactive Server, **ohne** eigene API und ohne Datenbank) mit einem Plugin als Razor Class Library, das eine Seite `/orders` und eine CSS-Datei mitbringt.
-- [ ] Der Blazor-Handler hat keine Abhängigkeit auf MVC bzw. den Web-Plugin-Handler zur Laufzeit. Ein Web-Host ohne `AddControllers()` funktioniert.
-- [ ] Die Seite ist per Navigation und per Direktaufruf erreichbar, die CSS-Datei wird geladen.
-- [ ] Test (bUnit oder Integrationstest), dass die Plugin-Route aufgelöst wird.
+- [ ] Sample `samples/BlazorHost` (Blazor Web App, Interactive Server, **without** its own API and without a database) with a plugin as a Razor class library that brings a page `/orders` and a CSS file.
+- [ ] The Blazor handler has no runtime dependency on MVC or the web plugin handler. A web host without `AddControllers()` works.
+- [ ] The page is reachable via navigation and via direct access, the CSS file is loaded.
+- [ ] Test (bUnit or integration test) that the plugin route is resolved.
 
-### R-05 Mehrere Plugin-Arten und Plugins über mehrere Hosts
+### R-05 Several plugin kinds and plugins across several hosts
 
-**Beschreibung:**
+**Description:**
 
-- Ein Plugin kann gleichzeitig `IPlugin`, `IWebPlugin` und `IBlazorPlugin` sein. Alle zuständigen Handler verarbeiten es (bestehende Regel „alle passenden Handler laufen“).
-- Häufiger ist der getrennte Aufbau: Backend-Teil (`IPlugin` + `IWebPlugin`) im API-Host, UI-Teil (`IPlugin` + `IBlazorPlugin`) im Web-Host, ein Abstractions-Projekt mit den DTOs dazwischen.
-- Beide Aufbauten werden abgesichert und dokumentiert.
+- A plugin can be `IPlugin`, `IWebPlugin` and `IBlazorPlugin` at the same time. All responsible handlers process it (existing rule "all matching handlers run").
+- More common is the split setup: backend part (`IPlugin` + `IWebPlugin`) in the API host, UI part (`IPlugin` + `IBlazorPlugin`) in the web host, an Abstractions project with the DTOs in between.
+- Both setups are covered by tests and documented.
 
-**Regeln:**
+**Rules:**
 
-- Backend- und UI-Teil sind eigene Plugins mit eigener Id. Empfohlene Konvention: `<id>` und `<id>.ui`. Plugwright erzwingt die Konvention nicht.
-- Abstractions-Assemblies der App bzw. eines Plugins sind keine Plugins. Sie werden normal referenziert.
+- Backend and UI parts are separate plugins with their own ID. Recommended convention: `<id>` and `<id>.ui`. Plugwright does not enforce the convention.
+- Abstractions assemblies of the app or a plugin are not plugins. They are referenced normally.
 
-**Akzeptanzkriterien:**
+**Acceptance criteria:**
 
-- [ ] Ein Test-Plugin implementiert alle drei Verträge. Dienste, Controller und Seite funktionieren gleichzeitig in einem Host.
-- [ ] `samples/SplitHosts` (aus R-02) zeigt den getrennten Aufbau.
-- [ ] Doku-Seiten „One plugin, several kinds“ und „Splitting a plugin across an API host and a UI host“.
+- [ ] A test plugin implements all three contracts. Services, controller and page work simultaneously in one host.
+- [ ] `samples/SplitHosts` (from R-02) shows the split setup.
+- [ ] Doc pages "One plugin, several kinds" and "Splitting a plugin across an API host and a UI host".
 
 ---
 
-## M2 Zustand und Fehler
+## M2 State and failures
 
-### R-10 Aktivieren und Deaktivieren über Konfiguration
+### R-10 Enabling and disabling via configuration
 
-**Beschreibung:** Jedes Plugin lässt sich über `Plugwright:Plugins:{Id}:Enabled` (Standard `true`) deaktivieren. `ApplyPlugins()` lädt deaktivierte Plugins nicht. Die Änderung wirkt beim nächsten Start.
+**Description:** Every plugin can be disabled via `Plugwright:Plugins:{Id}:Enabled` (default `true`). `ApplyPlugins()` does not load disabled plugins. The change takes effect on the next start.
 
 ```json
 {
@@ -220,40 +220,40 @@ public interface IPluginComponentAssemblies
 }
 ```
 
-**Regeln:**
+**Rules:**
 
-- Gelesen wird aus der zusammengeführten Konfiguration (appsettings.json, pluginsettings.json, Umgebungsvariablen) nach der bestehenden Regel der Spezifikation.
-- Deaktiviert bedeutet: Kein Handler läuft für das Plugin, keine Dienste werden registriert, keine Assemblies werden dem Router oder MVC bekannt gemacht.
-- Die Metadaten des Plugins werden trotzdem gelesen, damit es im Katalog (R-12) erscheint.
-- Plugins, die von einem deaktivierten Plugin abhängen, werden nach R-11 behandelt.
-- Ein Pflicht-Plugin (R-13) kann nicht deaktiviert werden. `Enabled: false` bei einem Pflicht-Plugin führt beim Start zu einer Exception mit klarer Meldung.
+- The value is read from the merged configuration (appsettings.json, pluginsettings.json, environment variables) according to the existing rule of the specification.
+- Disabled means: no handler runs for the plugin, no services are registered, no assemblies are made known to the router or MVC.
+- The plugin's metadata is still read so that it appears in the catalog (R-12).
+- Plugins that depend on a disabled plugin are handled according to R-11.
+- A required plugin (R-13) cannot be disabled. `Enabled: false` for a required plugin leads to an exception with a clear message at startup.
 
-**Akzeptanzkriterien:**
+**Acceptance criteria:**
 
-- [ ] Test: Plugin mit `Enabled: false` registriert keine Dienste und erscheint im Katalog als `Disabled`.
-- [ ] Test: Umgebungsvariable überschreibt den Wert aus appsettings.json (bzw. Reihenfolge nach Spezifikation).
-- [ ] Doku-Seite „Enabling and disabling plugins“.
+- [ ] Test: a plugin with `Enabled: false` registers no services and appears in the catalog as `Disabled`.
+- [ ] Test: an environment variable overrides the value from appsettings.json (or the order according to the specification).
+- [ ] Doc page "Enabling and disabling plugins".
 
-### R-11 Abhängige Plugins bei Ausfall mit überspringen
+### R-11 Skip dependent plugins on failure
 
-**Beschreibung:** Wird ein Plugin nicht geladen (deaktiviert, übersprungen nach Fehler, Prüfung fehlgeschlagen, Abhängigkeit fehlt), werden alle Plugins, die direkt oder indirekt davon abhängen, ebenfalls nicht geladen.
+**Description:** If a plugin is not loaded (disabled, skipped after an error, verification failed, dependency missing), all plugins that depend on it directly or indirectly are not loaded either.
 
-**Regeln:**
+**Rules:**
 
-- Grund im Katalog: `DependencyUnavailable`, mit Id der auslösenden Abhängigkeit und deren Zustand.
-- Ist ein abhängiges Plugin Pflicht, gibt es eine Exception, die die ganze Kette nennt (z. B. „Required plugin B cannot start because dependency A is disabled“).
-- Die Auflösung erfolgt vor Phase 1, also bevor irgendein Plugin `Configure` ausführt. Ausnahme: Fehler in `Configure` selbst (siehe R-13); dann werden abhängige Plugins, deren `Configure` noch nicht lief, übersprungen.
+- Reason in the catalog: `DependencyUnavailable`, with the ID of the triggering dependency and its state.
+- If a dependent plugin is required, an exception names the whole chain (e.g. "Required plugin B cannot start because dependency A is disabled").
+- The resolution happens before phase 1, i.e. before any plugin runs `Configure`. Exception: errors in `Configure` itself (see R-13); then dependent plugins whose `Configure` has not run yet are skipped.
 
-**Akzeptanzkriterien:**
+**Acceptance criteria:**
 
-- [ ] Test: A deaktiviert, B hängt von A ab, C von B → B und C erscheinen als `DependencyUnavailable`.
-- [ ] Test: B ist Pflicht → Exception nennt A und B.
+- [ ] Test: A disabled, B depends on A, C on B → B and C appear as `DependencyUnavailable`.
+- [ ] Test: B is required → the exception names A and B.
 
-### R-12 Plugin-Katalog
+### R-12 Plugin catalog
 
-**Beschreibung:** Ein Dienst `IPluginCatalog` (Singleton im DI-Container) liefert **alle bekannten** Plugins mit Metadaten und Zustand, auch nicht geladene.
+**Description:** A service `IPluginCatalog` (singleton in the DI container) provides **all known** plugins with metadata and state, including those not loaded.
 
-**Vertrag (Vorschlag):**
+**Contract (proposal):**
 
 ```csharp
 public interface IPluginCatalog
@@ -268,8 +268,8 @@ public sealed record PluginInfo(
     string? Description,
     PluginSource Source,                 // Direct, Directory, Package
     PluginState State,
-    string? Reason,                      // für Menschen lesbar
-    string? ErrorMessage,                // Exception-Nachricht, ohne Stacktrace
+    string? Reason,                      // human-readable
+    string? ErrorMessage,                // exception message, without stack trace
     bool IsRequired,
     IReadOnlyList<string> Dependencies,
     IReadOnlyList<string> AppliedHandlers);
@@ -279,84 +279,84 @@ public enum PluginState
     Loaded,
     Disabled,
     DependencyUnavailable,
-    Failed,                // Fehler in Configure oder im Start-Hook (R-31)
+    Failed,                // error in Configure or in the startup hook (R-31)
     VerificationFailed,
     NoHandler
 }
 ```
 
-**Regeln:**
+**Rules:**
 
-- Der Katalog ersetzt bzw. erweitert die bestehende „Plugin-Liste als Singleton“. Ist die bestehende Liste schon öffentlich, bleibt sie kompatibel oder wird als veraltet markiert.
-- Prüfergebnisse der Integritätsprüfung sind über den Katalog erreichbar oder verlinkt (bestehende API wiederverwenden).
-- Zustandsänderungen nach dem Start (R-31: Fehler im Start-Hook) werden im Katalog nachgetragen. Der Katalog ist threadsicher.
-- Ein strukturiertes Log-Event mit fester Event-ID je Plugin beim Start (Id, Version, Zustand, Grund).
+- The catalog replaces or extends the existing "plugin list as a singleton". If the existing list is already public, it stays compatible or is marked obsolete.
+- Results of the integrity verification are reachable or linked via the catalog (reuse the existing API).
+- State changes after startup (R-31: error in the startup hook) are recorded in the catalog. The catalog is thread-safe.
+- A structured log event with a fixed EventId per plugin at startup (ID, version, state, reason).
 
-**Akzeptanzkriterien:**
+**Acceptance criteria:**
 
-- [ ] Tests für jeden `PluginState`.
-- [ ] Sample-Seite im `samples/BlazorHost`, die den Katalog als Tabelle zeigt.
-- [ ] Doku-Seite „Inspecting plugins at runtime“.
+- [ ] Tests for every `PluginState`.
+- [ ] Sample page in `samples/BlazorHost` that shows the catalog as a table.
+- [ ] Doc page "Inspecting plugins at runtime".
 
-### R-13 Fehler-Policy je Plugin und Pflicht-Plugins
+### R-13 Failure policy per plugin and required plugins
 
-**Beschreibung:** Zusätzlich zur globalen Fehler-Policy kann der Host je Plugin festlegen, ob es **Pflicht** ist (Fail-fast) oder **optional** (überspringen und loggen).
+**Description:** In addition to the global failure policy, the host can decide per plugin whether it is **required** (fail-fast) or **optional** (skip and log).
 
-**Nutzung (Vorschlag):**
+**Usage (proposal):**
 
 ```csharp
-builder.Plugins.Options.DefaultFailurePolicy = PluginFailurePolicy.FailFast;   // bestehend, Standard
+builder.Plugins.Options.DefaultFailurePolicy = PluginFailurePolicy.FailFast;   // existing, default
 
 builder.Plugins.Add<OrdersPlugin>(o => o.IsRequired = true);
 builder.Plugins.Add<ReportsPlugin>(o => o.FailurePolicy = PluginFailurePolicy.SkipAndLog);
-builder.Plugins.Require("Acme.Billing");      // für Plugins aus Verzeichnis/Paket
+builder.Plugins.Require("Acme.Billing");      // for plugins from a directory/package
 ```
 
-**Regeln:**
+**Rules:**
 
-- Pflicht ist eine Eigenschaft, die **nur der Code** setzt, nie die Konfiguration. Eine beschreibbare Datei darf Pflicht-Plugins nicht abschalten können (gleiches Prinzip wie bei den Prüfer-Einstellungen).
-- Pflicht-Plugin fehlt, ist deaktiviert, hat eine nicht verfügbare Abhängigkeit, besteht die Prüfung nicht oder wirft in `Configure` → Exception beim `ApplyPlugins()`. Die Meldung nennt **alle** Pflicht-Plugins mit Problemen auf einmal, nicht nur das erste.
-- Optionales Plugin wirft in `Configure` → Zustand `Failed`, abhängige Plugins nach R-11, Start läuft weiter. Bereits von diesem Plugin registrierte Dienste werden nach Möglichkeit wieder entfernt. Geht das nicht zuverlässig, wird das dokumentiert und das Plugin wird zusätzlich als „teilweise registriert“ geloggt.
-- `Require(id)` für eine Id, die keine Quelle liefert → Exception „Required plugin not found“.
+- Required is a property that **only code** sets, never configuration. A writable file must not be able to turn off required plugins (same principle as for the verifier settings).
+- A required plugin is missing, disabled, has an unavailable dependency, fails verification or throws in `Configure` → exception in `ApplyPlugins()`. The message names **all** required plugins with problems at once, not only the first.
+- An optional plugin throws in `Configure` → state `Failed`, dependent plugins according to R-11, startup continues. Services this plugin already registered are removed again if possible. If that is not reliably possible, this is documented and the plugin is additionally logged as "partially registered".
+- `Require(id)` for an ID that no source provides → exception "Required plugin not found".
 
-**Akzeptanzkriterien:**
+**Acceptance criteria:**
 
-- [ ] Tests: Pflicht fehlt, Pflicht deaktiviert, Pflicht wirft, optional wirft (App startet, Katalog `Failed`), mehrere Pflicht-Fehler in einer Meldung.
-- [ ] Test: `Enabled: false` in pluginsettings.json für ein Pflicht-Plugin → Exception.
-- [ ] Doku-Seite „Required and optional plugins“.
+- [ ] Tests: required missing, required disabled, required throws, optional throws (app starts, catalog `Failed`), several required failures in one message.
+- [ ] Test: `Enabled: false` in pluginsettings.json for a required plugin → exception.
+- [ ] Doc page "Required and optional plugins".
 
-### R-16 Plugin-Katalog als Endpunkt
+### R-16 Plugin catalog as an endpoint
 
-**Beschreibung:** Der API-Host kann seinen Plugin-Katalog (R-12) über einen lesenden HTTP-Endpunkt bereitstellen. So erfährt ein anderer Host, z. B. der Web-Host, welche Backend-Plugins aktiv sind, und kann zugehörige UI-Plugins ausblenden.
+**Description:** The API host can expose its plugin catalog (R-12) via a read-only HTTP endpoint. This way another host, e.g. the web host, learns which backend plugins are active and can hide the corresponding UI plugins.
 
-**Nutzung (Vorschlag, Paket `Plugwright.AspNetCore`):**
+**Usage (proposal, package `Plugwright.AspNetCore`):**
 
 ```csharp
 app.MapPluginCatalog("/_plugwright/plugins")
-   .RequireAuthorization();          // normaler Endpoint-Builder
+   .RequireAuthorization();          // normal endpoint builder
 ```
 
-**Regeln:**
+**Rules:**
 
-- Antwort: JSON-Liste mit Id, Version, Zustand und Grund. Fehlermeldungen und Stacktraces werden nicht ausgegeben. Ob `ErrorMessage` enthalten ist, ist per Option einstellbar, Standard `false`.
-- Der Rückgabetyp liegt als DTO in einem Abstractions-Paket, damit ein Client ihn ohne das Hauptpaket deserialisieren kann.
-- Kein Schreiben über den Endpunkt (kein Aktivieren/Deaktivieren).
-- Der Endpunkt ist nicht automatisch registriert und nicht automatisch öffentlich. Die Doku weist auf Autorisierung hin.
+- Response: JSON list with ID, version, state and reason. Error messages and stack traces are not returned. Whether `ErrorMessage` is included is configurable via an option, default `false`.
+- The return type lives as a DTO in an Abstractions package, so a client can deserialize it without the main package.
+- No writing via the endpoint (no enabling/disabling).
+- The endpoint is not registered automatically and is not public automatically. The docs point out authorization.
 
-**Akzeptanzkriterien:**
+**Acceptance criteria:**
 
-- [ ] Integrationstest: Endpunkt liefert alle Plugins mit Zustand, ohne Fehlermeldungen im Standard.
-- [ ] `samples/SplitHosts`: Der Web-Host liest den Katalog der API beim Start und blendet ein UI-Plugin aus, dessen Backend-Teil deaktiviert ist (gelöst im Sample-Code, nicht in Plugwright; siehe R-17).
+- [ ] Integration test: the endpoint returns all plugins with their state, without error messages by default.
+- [ ] `samples/SplitHosts`: the web host reads the API's catalog at startup and hides a UI plugin whose backend part is disabled (solved in the sample code, not in Plugwright; see R-17).
 
 ---
 
-## M3 Start und Test
+## M3 Startup and testing
 
-### R-31 Asynchroner Start-Hook
+### R-31 Asynchronous startup hook
 
-**Beschreibung:** Plugins können asynchrone Startaufgaben registrieren, die nach `Build()`, in Abhängigkeitsreihenfolge und **vor** allen anderen Hosted Services (auch vor dem Webserver) laufen.
+**Description:** Plugins can register asynchronous startup tasks that run after `Build()`, in dependency order and **before** all other hosted services (including the web server).
 
-**Vertrag (Vorschlag):**
+**Contract (proposal):**
 
 ```csharp
 public interface IPluginStartup
@@ -365,93 +365,93 @@ public interface IPluginStartup
 }
 
 // in Configure(PluginContext context)
-context.AddStartup<MigrateDataStartup>();   // Typ wird aus DI aufgelöst (Scope je Aufgabe)
+context.AddStartup<MigrateDataStartup>();   // type is resolved from DI (one scope per task)
 ```
 
-**Regeln:**
+**Rules:**
 
-- Umsetzung über **einen** internen Dienst mit `IHostedLifecycleService.StartingAsync`, damit alle Startaufgaben vor jedem `StartAsync` anderer Hosted Services laufen. Prüfe per Test, dass der Webserver vorher keine Anfragen annimmt.
-- Reihenfolge: Abhängigkeitsreihenfolge der Plugins, innerhalb eines Plugins Registrierungsreihenfolge. Streng nacheinander, nicht parallel.
-- Jede Aufgabe läuft in einem eigenen DI-Scope.
-- Fehler: Pflicht-Plugin → Exception, Host startet nicht. Optionales Plugin → Katalog `Failed`, Startaufgaben abhängiger Plugins werden übersprungen (deren Zustand ebenfalls `DependencyUnavailable`). Ihre Dienste bleiben registriert, weil der Container unveränderlich ist. Das wird dokumentiert; Plugins können ihren Zustand über `IPluginCatalog` prüfen.
-- Abbruch über das `CancellationToken` des Hosts. Dauer jeder Aufgabe wird geloggt.
-- Ausdrücklich **kein** Stopp-Hook. Aufräumen läuft über normale Hosted Services oder `IAsyncDisposable`.
+- Implemented via **one** internal service with `IHostedLifecycleService.StartingAsync`, so that all startup tasks run before any `StartAsync` of other hosted services. Verify with a test that the web server does not accept requests before.
+- Order: dependency order of the plugins, within a plugin registration order. Strictly sequential, not parallel.
+- Every task runs in its own DI scope.
+- Errors: required plugin → exception, the host does not start. Optional plugin → catalog `Failed`, startup tasks of dependent plugins are skipped (their state also `DependencyUnavailable`). Their services stay registered because the container is immutable. This is documented; plugins can check their state via `IPluginCatalog`.
+- Cancellation via the host's `CancellationToken`. The duration of every task is logged.
+- Explicitly **no** stop hook. Cleanup runs via normal hosted services or `IAsyncDisposable`.
 
-**Akzeptanzkriterien:**
+**Acceptance criteria:**
 
-- [ ] Test: Startaufgaben von A, B (abhängig von A) laufen in der Reihenfolge A, B.
-- [ ] Test: Webserver beantwortet keine Anfrage, bevor alle Startaufgaben fertig sind.
-- [ ] Test: Fehler in optionalem Plugin → App läuft, Katalog `Failed`, abhängige Aufgabe übersprungen.
-- [ ] Test: Fehler in Pflicht-Plugin → Host-Start schlägt fehl.
-- [ ] Doku-Seite „Startup tasks“, mit Abgrenzung zu `IHostedService`.
+- [ ] Test: startup tasks of A and B (depends on A) run in the order A, B.
+- [ ] Test: the web server answers no request before all startup tasks are done.
+- [ ] Test: error in an optional plugin → app runs, catalog `Failed`, dependent task skipped.
+- [ ] Test: error in a required plugin → host start fails.
+- [ ] Doc page "Startup tasks", with the distinction from `IHostedService`.
 
-### R-40 Testunterstützung für Web-Hosts
+### R-40 Testing support for web hosts
 
-**Beschreibung:** Hosts mit Plugwright lassen sich mit `WebApplicationFactory` testen, inklusive gezielt deaktivierter oder fehlerhafter Plugins.
+**Description:** Hosts with Plugwright can be tested with `WebApplicationFactory`, including deliberately disabled or failing plugins.
 
-**Regeln:**
+**Rules:**
 
-- Deaktivieren im Test über die normale Konfiguration (`ConfigureAppConfiguration` bzw. `UseSetting("Plugwright:Plugins:{Id}:Enabled", "false")`). Dafür ist keine eigene Test-API nötig, aber es muss funktionieren und dokumentiert sein.
-- Für Fehlerszenarien liefert `tests/TestPlugins` ein Plugin, das per Einstellung in `Configure` bzw. im Start-Hook wirft. Es wird als Muster in der Doku gezeigt.
-- Prüfe, ob ein kleines Paket `Plugwright.Testing` nötig ist. Nur anlegen, wenn sich ein echter Mehrwert ergibt, und die Entscheidung ins Entscheidungslog schreiben.
+- Disabling in tests via normal configuration (`ConfigureAppConfiguration` or `UseSetting("Plugwright:Plugins:{Id}:Enabled", "false")`). No separate test API is needed for this, but it must work and be documented.
+- For failure scenarios, `tests/TestPlugins` provides a plugin that throws in `Configure` or in the startup hook depending on a setting. It is shown as a pattern in the docs.
+- Check whether a small package `Plugwright.Testing` is needed. Only create it if there is real added value, and record the decision in the decision log.
 
-**Akzeptanzkriterien:**
+**Acceptance criteria:**
 
-- [ ] Integrationstests in `Plugwright.IntegrationTests` nutzen `WebApplicationFactory` für die Szenarien aus R-10 bis R-13 und R-31.
-- [ ] Doku-Seite „Testing apps that use Plugwright“.
+- [ ] Integration tests in `Plugwright.IntegrationTests` use `WebApplicationFactory` for the scenarios from R-10 to R-13 and R-31.
+- [ ] Doc page "Testing apps that use Plugwright".
 
-### R-41 Doku für den Entwicklungsalltag
+### R-41 Docs for everyday development
 
-**Beschreibung:** Anleitung für Plugins per Projektreferenz in einer Solution.
+**Description:** Guide for plugins via project reference in one solution.
 
-**Inhalt:**
+**Content:**
 
-- Solution-Aufbau mit getrenntem API- und Web-Host: Backend-Teile als Klassenbibliotheken, UI-Teile als Razor Class Libraries, gemeinsame Abstractions-Projekte (DTOs) dazwischen.
-- Debuggen mit Breakpoints in Plugins, `dotnet watch` und Hot Reload für Razor-Komponenten in Plugins.
-- Wie ein Plugin app-eigene Erweiterungspunkte bereitstellt (Beispiel: Menüeinträge über ein app-eigenes `INavigationItem`).
-- Plugwright als Git-Submodul mit Projektreferenz statt NuGet-Paket während gemeinsamer Entwicklung.
+- Solution layout with separate API and web hosts: backend parts as class libraries, UI parts as Razor class libraries, shared Abstractions projects (DTOs) in between.
+- Debugging with breakpoints in plugins, `dotnet watch` and hot reload for Razor components in plugins.
+- How a plugin provides app-owned extension points (example: menu entries via an app-owned `INavigationItem`).
+- Plugwright as a Git submodule with a project reference instead of a NuGet package during joint development.
 
-**Akzeptanzkriterien:**
+**Acceptance criteria:**
 
-- [ ] How-to-Seiten vorhanden, Codebeispiele aus `samples/` eingebunden und im CI gebaut.
+- [ ] How-to pages exist, code samples included from `samples/` and built in CI.
 
 ---
 
-## M4 Später (erst nach Rücksprache)
+## M4 Later (only after consultation)
 
-Entschieden am 2026-10-11, Details im Entscheidungslog der Spezifikation. Umgesetzt am 2026-10-11: R-52, R-53, R-50, R-15, R-32 und R-51 (nach Spike, `spike-r51-static-assets.md`); R-14 und R-17 als Anleitungen. Die Tabelle zeigt den ursprünglichen Wunsch.
+Decided on 2026-10-11, details in the specification's decision log. Implemented on 2026-10-11: R-52, R-53, R-50, R-15, R-32 and R-51 (after a spike, `spike-r51-static-assets.md`); R-14 and R-17 as guides. The table shows the original request.
 
-| Id | Anforderung | Kurzbeschreibung |
+| ID | Requirement | Summary |
 |---|---|---|
-| R-14 | Austauschbare Quelle für den Aktivierungszustand | `IPluginActivationSource`, ausgewertet in `ApplyPlugins()`, Standard ist die Konfiguration aus R-10. Damit kann der Host den Zustand z. B. aus einer eigenen Verwaltung lesen. Pflicht-Plugins bleiben unberührt. |
-| R-17 | Gegenstück in einem anderen Host | Ein Plugin deklariert, dass es ein Gegenstück in einem anderen Host braucht (z. B. UI-Teil → Backend-Id). Der Host prüft das beim Start über R-16 und behandelt ein fehlendes Gegenstück wie eine nicht verfügbare Abhängigkeit (R-11). Offene Frage: Verhalten, wenn der andere Host beim Start nicht erreichbar ist. |
-| R-15 | Optionale Abhängigkeiten | bereits als v2 geplant; Plugin lädt auch ohne die Abhängigkeit, erfährt über den Katalog, ob sie da ist |
-| R-32 | Neustart anstoßen, auch unter IIS | bestehender v2-Plan (Neustart-Dienst) um IIS ergänzen: `StopApplication()` beendet den Prozess, IIS startet beim nächsten Request neu; Verhalten für in-process und out-of-process dokumentieren |
-| R-50 | Health Check „Plugins“ | `AddPlugwrightHealthCheck()`: `Healthy`, wenn alle Plugins geladen sind; `Degraded`, wenn optionale fehlen oder fehlgeschlagen sind; Daten je Plugin im Ergebnis |
-| R-51 | Statische Web-Assets dynamisch geladener Plugins | `_content/…` aus Plugin-Verzeichnissen bzw. Paketen ausliefern, inkl. Integritätsprüfung der Dateien |
-| R-52 | Vom Host festgelegte geteilte Assemblies | `builder.Plugins.ShareAssembly(typeof(X).Assembly)` bzw. Präfixe; diese werden beim dynamischen Laden aus dem Standard-Kontext genommen (z. B. App-Abstractions, UI-Bibliotheken, EF Core) |
-| R-53 | Assembly-Scan | bereits in der Roadmap; alle Plugins aus referenzierten Assemblies finden |
+| R-14 | Replaceable source for the activation state | `IPluginActivationSource`, evaluated in `ApplyPlugins()`, the default is the configuration from R-10. This lets the host read the state e.g. from its own administration. Required plugins stay unaffected. |
+| R-17 | Counterpart in another host | A plugin declares that it needs a counterpart in another host (e.g. UI part → backend ID). The host checks this at startup via R-16 and treats a missing counterpart like an unavailable dependency (R-11). Open question: behavior when the other host is unreachable at startup. |
+| R-15 | Optional dependencies | already planned for v2; the plugin loads even without the dependency and learns via the catalog whether it is present |
+| R-32 | Trigger a restart, also under IIS | extend the existing v2 plan (restart service) with IIS: `StopApplication()` ends the process, IIS restarts on the next request; document the behavior for in-process and out-of-process |
+| R-50 | Health check "Plugins" | `AddPlugwrightHealthCheck()`: `Healthy` if all plugins are loaded; `Degraded` if optional ones are missing or failed; data per plugin in the result |
+| R-51 | Static web assets of dynamically loaded plugins | Serve `_content/…` from plugin directories or packages, including integrity verification of the files |
+| R-52 | Shared assemblies defined by the host | `builder.Plugins.ShareAssembly(typeof(X).Assembly)` or prefixes; these are taken from the default context during dynamic loading (e.g. app abstractions, UI libraries, EF Core) |
+| R-53 | Assembly scan | already on the roadmap; find all plugins from referenced assemblies |
 
-## 6. Nicht im Umfang
+## 6. Out of scope
 
-- Hot Reload oder Entladen von Plugins zur Laufzeit (bleibt ausgeschlossen).
-- App-spezifische Erweiterungspunkte wie Menüs, Datentypen oder Rechte. Die definiert die Host-Anwendung selbst, Plugwright transportiert sie nur über DI.
-- Datenhaltung von Plugins (Datenbankschemata, Migrationen). Plugwright stellt nur den Start-Hook (R-31) bereit.
-- Blazor WebAssembly. Nur Blazor Server bzw. Interactive Server ist Ziel.
+- Hot reload or unloading of plugins at runtime (stays excluded).
+- App-specific extension points such as menus, data types or permissions. The host application defines them itself; Plugwright only transports them via DI.
+- Data storage of plugins (database schemas, migrations). Plugwright only provides the startup hook (R-31).
+- Blazor WebAssembly. Only Blazor Server or Interactive Server is the target.
 
-## 7. Offene Punkte zur Entscheidung während der Umsetzung
+## 7. Open points to decide during implementation
 
-1. Liegen `IWebPlugin` und `IBlazorPlugin` in `Plugwright.Abstractions` oder in eigenen Abstractions-Paketen?
-2. Werden Plugin-Instanzen zwischen Phase 1 und Phase 2 geteilt (R-03)? Bisher instanziiert der Standard-Handler in Phase 1.
-3. Lassen sich Dienste eines in `Configure` fehlgeschlagenen optionalen Plugins zuverlässig zurücknehmen (R-13), z. B. über eine Zwischen-`ServiceCollection`?
-4. Event-IDs und Kategorienamen für die neuen Log-Events.
+1. Do `IWebPlugin` and `IBlazorPlugin` live in `Plugwright.Abstractions` or in their own Abstractions packages?
+2. Are plugin instances shared between phase 1 and phase 2 (R-03)? So far the default handler instantiates in phase 1.
+3. Can services of an optional plugin that failed in `Configure` be taken back reliably (R-13), e.g. via an intermediate `ServiceCollection`?
+4. EventIds and category names for the new log events.
 
-## 8. Startprompt für Claude Code
+## 8. Start prompt for Claude Code
 
 ```text
-Lies CLAUDE.md, docs/SPEC.md und docs/requirements/REQUIREMENTS-web-host.md vollständig.
-Erstelle einen Umsetzungsplan für Meilenstein M1 (R-01 bis R-05): betroffene Projekte,
-neue Pakete, öffentliche API mit Signaturen, Tests, Samples und Doku-Seiten.
-Beantworte dabei die offenen Punkte 1 und 2 aus Abschnitt 7 mit einer Empfehlung.
-Warte auf meine Freigabe, bevor du Code schreibst.
+Read CLAUDE.md, docs/SPEC.md and docs/requirements/REQUIREMENTS-web-host.md completely.
+Create an implementation plan for milestone M1 (R-01 to R-05): affected projects,
+new packages, public API with signatures, tests, samples and doc pages.
+Answer open points 1 and 2 from section 7 with a recommendation.
+Wait for my approval before you write code.
 ```

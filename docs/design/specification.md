@@ -1,150 +1,150 @@
-# Plugwright – Spezifikation des Plugin-Systems für den .NET Generic Host
+# Plugwright – Specification of the Plugin System for the .NET Generic Host
 
 Oct 6, 2026 · @Yannick
 
-## Zweck und Vision
+## Purpose and vision
 
-Ziel ist eine öffentliche C#-Bibliothek, die ein generisches Plugin-System auf Basis von `IHost` und `IHostApplicationBuilder` bereitstellt. Dieses Dokument ist die Spezifikation dafür und dient später als Ausgangspunkt für die Umsetzung mit Claude Code.
+The goal is a public C# library that provides a generic plugin system based on `IHost` and `IHostApplicationBuilder`. This document is its specification and later serves as the starting point for the implementation with Claude Code.
 
-- Plugins erweitern eine Host-Anwendung über Dependency Injection, z. B. durch zusätzliche Services oder Hosted Services.
-- Der Einstieg ist bewusst klein: eine Konsolenanwendung mit dem .NET Generic Host.
-- Die Bibliothek baut auf den Standard-Abstraktionen von Microsoft auf, statt eigene Host-Konzepte zu erfinden.
-- Eine sehr gute, ausführliche Anwenderdokumentation ist Kernanforderung, nicht Beiwerk.
+- Plugins extend a host application through dependency injection, e.g. with additional services or hosted services.
+- The entry point is deliberately small: a console application with the .NET Generic Host.
+- The library builds on Microsoft's standard abstractions instead of inventing its own host concepts.
+- Excellent, thorough user documentation is a core requirement, not an afterthought.
 
-Erweiterung für Web-Hosts, Plugin-Zustand und Startablauf: `requirements-web-host.md` im selben Ordner. Das Dokument ist ein Arbeitsstand und wird über mehrere Sessions ergänzt. Einträge mit **Vorschlag** sind noch nicht entschieden.
+Extension for web hosts, plugin state and startup: `requirements-web-host.md` in the same folder. This document is a work in progress and is extended over several sessions. Entries marked **Proposal** are not decided yet.
 
-## Rahmenbedingungen
+## Constraints
 
-Fest steht: C#-Klassenbibliothek, öffentlich auf GitHub, aufgebaut auf `Microsoft.Extensions.Hosting`. Alles andere ist noch Vorschlag.
+Fixed: C# class library, public on GitHub, built on `Microsoft.Extensions.Hosting`. Everything else is still a proposal.
 
-| Thema | Stand | Inhalt |
+| Topic | Status | Content |
 | --- | --- | --- |
-| Sprache | Festgelegt | C# |
-| Projektart | Festgelegt | Klassenbibliothek, verteilt als NuGet-Paket(e) |
-| Veröffentlichung | Festgelegt | Öffentliches GitHub-Repository |
-| Basis | Festgelegt | `IHost`, `IHostApplicationBuilder` aus `Microsoft.Extensions.Hosting` |
-| Ziel-Framework | Festgelegt | .NET 10 (LTS); ermöglicht C# 14 Extension Members |
-| Lizenz | Festgelegt | MIT |
-| CI/CD | Festgelegt | GitHub Actions ab dem ersten Tag: Build, Tests und DocFX-Build (Codebeispiele werden mitkompiliert) bei jedem Push und PR; NuGet-Publish folgt später |
-| Paketschnitt | Festgelegt | `*.Abstractions` nur mit Plugin-Vertrag (`IPlugin`, `PluginContext`, Metadaten, Attribute, Plugin-Katalog); Hauptpaket mit Extensions, `IPluginHandler`, `PluginDescriptor`, `IPluginVerifier` und Laden; NuGet-Quelle als eigenes Paket \*.NuGet; Web und Blazor in `Plugwright.AspNetCore` mit Verträgen in `Plugwright.AspNetCore.Abstractions` |
-| Projektname | Festgelegt | Plugwright; Pakete z. B. Plugwright, Plugwright.Abstractions, Plugwright.NuGet, Plugwright.Cli |
+| Language | Fixed | C# |
+| Project type | Fixed | Class library, distributed as NuGet package(s) |
+| Publication | Fixed | Public GitHub repository |
+| Foundation | Fixed | `IHost`, `IHostApplicationBuilder` from `Microsoft.Extensions.Hosting` |
+| Target framework | Fixed | .NET 10 (LTS); enables C# 14 extension members |
+| License | Fixed | MIT |
+| CI/CD | Fixed | GitHub Actions from day one: build, tests and DocFX build (code samples are compiled too) on every push and PR; NuGet publishing follows later |
+| Package split | Fixed | `*.Abstractions` only with the plugin contract (`IPlugin`, `PluginContext`, metadata, attributes, plugin catalog); main package with extensions, `IPluginHandler`, `PluginDescriptor`, `IPluginVerifier` and loading; NuGet source as its own package \*.NuGet; web and Blazor in `Plugwright.AspNetCore` with contracts in `Plugwright.AspNetCore.Abstractions` |
+| Project name | Fixed | Plugwright; packages e.g. Plugwright, Plugwright.Abstractions, Plugwright.NuGet, Plugwright.Cli |
 
-## Begriffe
+## Terms
 
-Diese Begriffe gelten im gesamten Projekt, auch in Code, Doku und Issues.
+These terms apply throughout the project, including code, docs and issues.
 
-| Begriff | Bedeutung |
+| Term | Meaning |
 | --- | --- |
-| Host-Anwendung | Die Anwendung, die das Plugin-System nutzt und Plugins lädt |
-| Plugin | Eine Klasse, die ein Handler verarbeitet; im Standardfall implementiert sie `IPlugin` |
-| Plugin-Assembly | Eine DLL, die ein oder mehrere Plugins enthält; trägt deren gemeinsame Identität, Version und Abhängigkeiten |
-| Plugin-Quelle | Woher Plugins kommen: direkt in Program.cs, DLL-Verzeichnis oder NuGet-Ordner |
-| Handler | Komponente, die weiß, was mit einem Plugin-Typ in Phase 1 und Phase 2 passiert |
-| `builder.Plugins` | Extension Property; legt fest, welche Plugins geladen werden |
-| Phase 1 (`ApplyPlugins`) | Vor `Build()`: Handler registrieren Services, der Container existiert noch nicht |
-| Phase 2 (`UsePlugins`) | Nach `Build()`: Container steht, Handler arbeiten mit der fertigen App |
+| Host application | The application that uses the plugin system and loads plugins |
+| Plugin | A class that a handler processes; in the default case it implements `IPlugin` |
+| Plugin assembly | A DLL that contains one or more plugins; carries their shared identity, version and dependencies |
+| Plugin source | Where plugins come from: directly in Program.cs, DLL directory or NuGet folder |
+| Handler | Component that knows what happens with a plugin type in phase 1 and phase 2 |
+| `builder.Plugins` | Extension property; defines which plugins are loaded |
+| Phase 1 (`ApplyPlugins`) | Before `Build()`: handlers register services, the container does not exist yet |
+| Phase 2 (`UsePlugins`) | After `Build()`: the container exists, handlers work with the finished app |
 
-## Architektur: Extension Members und zwei Phasen
+## Architecture: extension members and two phases
 
-**Entschieden:** Das Plugin-System besteht nur aus C# 14 Extension Members auf `IHostApplicationBuilder` und `IHost`, ohne eigene Builder- oder App-Klasse. Jede Anwendung, ob Konsole, Worker oder Web, nutzt ihren normalen Builder und ruft das Plugin-System an zwei festen Stellen explizit auf.
+**Decided:** The plugin system consists only of C# 14 extension members on `IHostApplicationBuilder` and `IHost`, without its own builder or app class. Every application, whether console, worker or web, uses its normal builder and calls the plugin system explicitly at two fixed points.
 
-### Betrachtete Varianten
+### Variants considered
 
-| Variante | Idee | Vorteile | Nachteile |
+| Variant | Idea | Advantages | Disadvantages |
 | --- | --- | --- | --- |
-| A: Wrapper-Klassen | `PluginAppBuilder : IHostApplicationBuilder` kapselt `HostApplicationBuilder`; `PluginApp : IHost` kapselt den gebauten Host | Klarer Einstieg, eigene Properties wie `Plugins` möglich, bekanntes Muster aus ASP.NET Core | Delegationscode für alle Interface-Member; Nutzer mit eigenem Builder müssen umsteigen |
-| B: Extension Methods | `builder.AddPlugins(...)` auf jedem `IHostApplicationBuilder` | Funktioniert mit jedem Builder (auch Web, Worker) | Kein Ort für Zustand; Plugin-Liste muss über `Properties` oder DI transportiert werden |
-| C: C# 14 Extension Members | Extension-Property `builder.Plugins` auf `IHostApplicationBuilder` | Sieht aus wie ein echtes Property, funktioniert mit jedem Builder | Braucht C# 14 / .NET 10; Zustand liegt trotzdem in `Properties` |
-| A + C kombiniert | Wrapper als Standardweg, Extension Members für fremde Builder | Beide Zielgruppen bedient | Zwei Wege, die gleich dokumentiert und getestet werden müssen |
+| A: Wrapper classes | `PluginAppBuilder : IHostApplicationBuilder` wraps `HostApplicationBuilder`; `PluginApp : IHost` wraps the built host | Clear entry point, own properties like `Plugins` possible, familiar pattern from ASP.NET Core | Delegation code for all interface members; users with their own builder have to switch |
+| B: Extension methods | `builder.AddPlugins(...)` on every `IHostApplicationBuilder` | Works with every builder (including web, worker) | No place for state; the plugin list has to travel via `Properties` or DI |
+| C: C# 14 extension members | Extension property `builder.Plugins` on `IHostApplicationBuilder` | Looks like a real property, works with every builder | Needs C# 14 / .NET 10; state still lives in `Properties` |
+| A + C combined | Wrapper as the default way, extension members for other builders | Serves both audiences | Two ways that must be documented and tested equally |
 
-Gewählt wurde C. Wrapper-Klassen (A) hätten nur den Vorteil gehabt, `Build()` selbst zu kontrollieren; der entfällt durch die expliziten Aufrufe.
+C was chosen. Wrapper classes (A) would only have had the advantage of controlling `Build()` themselves; that disappears with the explicit calls.
 
-### Nutzung, gleich für alle Host-Typen
+### Usage, the same for all host types
 
 ```csharp
-var builder = Host.CreateApplicationBuilder(args); // oder WebApplication.CreateBuilder(args)
+var builder = Host.CreateApplicationBuilder(args); // or WebApplication.CreateBuilder(args)
 
 builder.Plugins.Add<MyPlugin>();
 builder.Plugins.AddFromDirectory("plugins");
 
-builder.ApplyPlugins();   // Phase 1: vor Build()
+builder.ApplyPlugins();   // Phase 1: before Build()
 
 var app = builder.Build();
-app.UsePlugins();         // Phase 2: nach Build()
+app.UsePlugins();         // Phase 2: after Build()
 
 await app.RunAsync();
 ```
 
-| Aufruf | Erweitert | Aufgabe |
+| Call | Extends | Task |
 | --- | --- | --- |
-| `builder.Plugins` | `IHostApplicationBuilder` (Extension Property) | Legt fest, welche Plugins es gibt; speichert nur Typen und Quellen |
-| `builder.ApplyPlugins()` | `IHostApplicationBuilder` | Phase 1: Handler registrieren Services; Plugin-Liste wird als Singleton im DI-Container abgelegt |
-| `app.UsePlugins()` | `IHost` | Phase 2: Handler arbeiten mit der gebauten App, z. B. Middleware oder Endpoints |
+| `builder.Plugins` | `IHostApplicationBuilder` (extension property) | Defines which plugins exist; only stores types and sources |
+| `builder.ApplyPlugins()` | `IHostApplicationBuilder` | Phase 1: handlers register services; the plugin list is stored as a singleton in the DI container |
+| `app.UsePlugins()` | `IHost` | Phase 2: handlers work with the built app, e.g. middleware or endpoints |
 
-### Warum explizit, auch bei der Konsole
+### Why explicit, even for the console
 
-- `Build()` gehört dem jeweiligen Builder; Extension Members können den Aufruf nicht abfangen.
-- Bei Web bestimmt die Position von `UsePlugins()` die Reihenfolge in der Middleware-Pipeline.
-- Ein Muster für alle Host-Typen, passend zur .NET-Konvention `AddX` / `UseX` / `MapX`.
-- Verworfen: automatische Auslösung über eine eigene `IServiceProviderFactory`. Sie kollidiert mit Containern wie Autofac und ist für Nutzer schwer zu durchschauen.
+- `Build()` belongs to the respective builder; extension members cannot intercept the call.
+- For web, the position of `UsePlugins()` determines the order in the middleware pipeline.
+- One pattern for all host types, matching the .NET convention `AddX` / `UseX` / `MapX`.
+- Rejected: automatic triggering via a custom `IServiceProviderFactory`. It collides with containers like Autofac and is hard for users to understand.
 
-### Schutz vor Fehlbedienung
+### Guarding against misuse
 
-- `UsePlugins()` ohne vorheriges `ApplyPlugins()` wirft eine verständliche Exception.
-- `Plugins.Add…()` nach `ApplyPlugins()` wirft eine Exception.
-- Doppelter Aufruf von `ApplyPlugins()` oder `UsePlugins()` wirft ebenfalls.
+- `UsePlugins()` without a prior `ApplyPlugins()` throws a clear exception.
+- `Plugins.Add…()` after `ApplyPlugins()` throws an exception.
+- Calling `ApplyPlugins()` or `UsePlugins()` twice throws as well.
 
-### Später für Web
+### Later for web
 
-Möglich ist eine Aufteilung in `UsePlugins()` für Middleware und `MapPlugins()` für Endpoints, analog zu ASP.NET Core. Für v1 reicht ein Aufruf.
+A split into `UsePlugins()` for middleware and `MapPlugins()` for endpoints, analogous to ASP.NET Core, is possible. For v1 one call is enough.
 
-### Was `IHostApplicationBuilder` bereits bietet
+### What `IHostApplicationBuilder` already offers
 
-`Services`, `Configuration`, `Environment`, `Logging`, `Metrics`, `Properties` und `ConfigureContainer`. Handler und Plugins nutzen genau diese Member, statt eigene Parallelwege zu bekommen.
+`Services`, `Configuration`, `Environment`, `Logging`, `Metrics`, `Properties` and `ConfigureContainer`. Handlers and plugins use exactly these members instead of getting their own parallel paths.
 
-## Handler-Pipeline
+## Handler pipeline
 
-`Plugins.Add…()` speichert nur Plugin-Typen. **Entschieden:** Austauschbare Handler entscheiden, was mit einem Typ in Phase 1 und Phase 2 passiert. Neue Plugin-Arten wie Web, Blazor oder eigene kommen als neue Handler dazu, ohne den Kern zu ändern.
+`Plugins.Add…()` only stores plugin types. **Decided:** Replaceable handlers decide what happens with a type in phase 1 and phase 2. New plugin kinds such as web, Blazor or custom ones are added as new handlers without changing the core.
 
 ```csharp
 public interface IPluginHandler
 {
     bool CanHandle(Type pluginType);
 
-    // Phase 1, aufgerufen von builder.ApplyPlugins()
+    // Phase 1, called by builder.ApplyPlugins()
     void Apply(PluginDescriptor plugin, IHostApplicationBuilder builder);
 
-    // Phase 2, aufgerufen von app.UsePlugins()
+    // Phase 2, called by app.UsePlugins()
     void Use(PluginDescriptor plugin, IHost app);
 }
 ```
 
-| Handler | Paket | Phase 1 (`ApplyPlugins`) | Phase 2 (`UsePlugins`) |
+| Handler | Package | Phase 1 (`ApplyPlugins`) | Phase 2 (`UsePlugins`) |
 | --- | --- | --- | --- |
-| Standard | Kern | Instanziiert `IPlugin` und ruft `Configure(context)` auf | – |
-| Web | `*.AspNetCore`, später | Services registrieren | Middleware und Endpoints an `WebApplication` |
-| Blazor | später | Nav-Items als DI-Services registrieren | Komponenten-Assemblies für das Routing bekannt machen |
-| Eigene | Nutzer | Frei | Frei |
+| Default | Core | Instantiates `IPlugin` and calls `Configure(context)` | – |
+| Web | `*.AspNetCore`, later | Register services | Middleware and endpoints on `WebApplication` |
+| Blazor | later | Register nav items as DI services | Make component assemblies known to routing |
+| Custom | User | Free | Free |
 
-### Regeln
+### Rules
 
-- Handler werden getrennt von Plugins direkt am Builder registriert: `builder.PluginHandlers.Add<T>()`. Der Standard-Handler für `IPlugin` ist immer registriert.
-- Handler laufen in Phase 1 vor dem Container und werden daher direkt instanziiert, nicht aus DI aufgelöst.
-- Alle passenden Handler verarbeiten einen Plugin-Typ, in Registrierungsreihenfolge, der Standard-Handler zuerst.
-- Beim Laden aus einem Verzeichnis gelten nur Typen als Plugin, die mindestens ein Handler verarbeiten kann.
-- Ein explizit hinzugefügter Typ ohne zuständigen Handler führt zu einer Exception mit Hinweis auf die fehlende Handler-Registrierung. Die Option „überspringen und loggen“ gilt auch hier.
-- In v1 kommen Handler nur aus der Host-Anwendung, nicht aus Plugin-Assemblies. Sonst würde ein geladenes Plugin bestimmen, wie andere Plugins behandelt werden.
-- Die Pipeline erzeugt genau eine Instanz je Plugin-Typ (parameterloser Konstruktor) und hält sie in `PluginDescriptor.Instance`. Alle Handler nutzen diese Instanz in beiden Phasen.
-- `IPluginHandler` und `PluginDescriptor` liegen im Hauptpaket, nicht in Abstractions, da Handler nur aus der Host-Anwendung kommen.
-- `PluginDescriptor.Instance` ist vom Typ `object`, da Plugins nicht `IPlugin` implementieren müssen. Für Handler, die ein bestimmtes Interface verarbeiten, gibt es die Basisklasse `PluginHandler<TPlugin>`: Sie implementiert `CanHandle` und übergibt die Instanz typisiert.
+- Handlers are registered separately from plugins, directly on the builder: `builder.PluginHandlers.Add<T>()`. The default handler for `IPlugin` is always registered.
+- Handlers run in phase 1 before the container exists and are therefore instantiated directly, not resolved from DI.
+- All matching handlers process a plugin type, in registration order, the default handler first.
+- When loading from a directory, only types that at least one handler can process count as plugins.
+- An explicitly added type without a responsible handler leads to an exception pointing to the missing handler registration. The skip-and-log option applies here too.
+- In v1, handlers come only from the host application, not from plugin assemblies. Otherwise a loaded plugin would decide how other plugins are treated.
+- The pipeline creates exactly one instance per plugin type (parameterless constructor) and keeps it in `PluginDescriptor.Instance`. All handlers use this instance in both phases.
+- `IPluginHandler` and `PluginDescriptor` live in the main package, not in Abstractions, since handlers only come from the host application.
+- `PluginDescriptor.Instance` is of type `object`, since plugins do not have to implement `IPlugin`. For handlers that process a specific interface there is the base class `PluginHandler<TPlugin>`: it implements `CanHandle` and passes the instance typed.
 
-### Logging in Phase 1
+### Logging in phase 1
 
-In Phase 1 existiert noch kein `ILoggerFactory`. **Entschieden:** Log-Einträge aus Phase 1 (Pipeline, Prüfer, `PluginContext.Logger`) werden gepuffert und ausgegeben, sobald der Container steht, in `UsePlugins()`. Bricht Phase 1 per Fail-fast ab, trägt die Exception alle nötigen Informationen selbst.
+In phase 1 there is no `ILoggerFactory` yet. **Decided:** Log entries from phase 1 (pipeline, verifiers, `PluginContext.Logger`) are buffered and written once the container exists, in `UsePlugins()`. If phase 1 aborts with fail-fast, the exception carries all necessary information itself.
 
-## Plugin-Vertrag und Lebenszyklus
+## Plugin contract and lifecycle
 
-**Entschieden:** Ein schlankes Interface mit genau einer Pflichtmethode, die in Phase 1 ein Kontextobjekt erhält. Laufzeitverhalten kommt über normale DI-Mittel wie `IHostedService`, nicht über eigene Plugin-Hooks.
+**Decided:** A lean interface with exactly one required method that receives a context object in phase 1. Runtime behavior comes through normal DI means such as `IHostedService`, not through custom plugin hooks.
 
 ```csharp
 public interface IPlugin
@@ -158,7 +158,7 @@ public sealed class HeartbeatPlugin : IPlugin
     {
         context.Builder.Services
             .AddOptions<HeartbeatOptions>()
-            .Bind(context.Configuration)   // eigener Settings-Abschnitt
+            .Bind(context.Configuration)   // own settings section
             .ValidateOnStart();
 
         context.Builder.Services.AddHostedService<HeartbeatService>();
@@ -166,26 +166,26 @@ public sealed class HeartbeatPlugin : IPlugin
 }
 ```
 
-`PluginContext` enthält den Builder, den eigenen Konfigurationsabschnitt, die Metadaten des Plugins und einen `ILogger` (gepuffert, siehe Logging in Phase 1). Neue Eigenschaften lassen sich später ergänzen, ohne `IPlugin` zu brechen. Deshalb steht diese Signatur vor 1.0 fest.
+`PluginContext` contains the builder, the plugin's own configuration section, the plugin's metadata and an `ILogger` (buffered, see Logging in phase 1). New properties can be added later without breaking `IPlugin`. That is why this signature is fixed before 1.0.
 
-### Ablauf
+### Flow
 
-1. `builder.Plugins.Add…()` speichert Plugin-Typen und Quellen.
-2. `builder.ApplyPlugins()` findet die Typen und lädt bei Bedarf ihre Assemblies.
-3. Die Pipeline instanziiert jedes Plugin genau einmal (parameterloser Konstruktor, da der Container noch nicht existiert). Die zuständigen Handler führen Phase 1 aus; der Standard-Handler ruft `Configure(context)` auf.
-4. `builder.Build()` erzeugt Host und Container.
-5. `app.UsePlugins()` lässt Handler Phase 2 ausführen, sofern sie eine haben.
-6. Start und Stopp laufen über den normalen Host-Lebenszyklus der registrierten Hosted Services.
+1. `builder.Plugins.Add…()` stores plugin types and sources.
+2. `builder.ApplyPlugins()` finds the types and loads their assemblies if needed.
+3. The pipeline instantiates each plugin exactly once (parameterless constructor, since the container does not exist yet). The responsible handlers run phase 1; the default handler calls `Configure(context)`.
+4. `builder.Build()` creates the host and container.
+5. `app.UsePlugins()` lets handlers run phase 2, if they have one.
+6. Start and stop run through the normal host lifecycle of the registered hosted services.
 
-### Offene Punkte
+### Open points
 
-- Metadaten und Abhängigkeiten: siehe Abschnitt Plugin-Metadaten und Abhängigkeiten.
-- Verhalten bei Fehlern in `Configure`: entschieden – Fail-fast als Standard, per Option überspringen und loggen.
-- Die Option ist ein globaler Schalter, z. B. `builder.Plugins.Options.FailureMode = PluginFailureMode.SkipAndLog`. Er gilt für Fehler in `Configure`, fehlende Handler und fehlgeschlagene Prüfung. Der genaue Name ist vorläufig.
+- Metadata and dependencies: see section Plugin metadata and dependencies.
+- Behavior on errors in `Configure`: decided – fail-fast by default, skip-and-log via option.
+- The option is a global switch, e.g. `builder.Plugins.Options.FailureMode = PluginFailureMode.SkipAndLog`. It applies to errors in `Configure`, missing handlers and failed verification. The exact name is provisional.
 
-## Konfiguration je Plugin
+## Configuration per plugin
 
-**Entschieden:** Jedes Plugin hat einen eigenen Konfigurationsabschnitt. Plugin-Einstellungen liegen in einer eigenen Datei `pluginsettings.json`, die die App selbst verwaltet. `appsettings.json` bleibt Sache von Entwicklung und Betrieb.
+**Decided:** Every plugin has its own configuration section. Plugin settings live in a separate file `pluginsettings.json` that the app manages itself. `appsettings.json` stays the business of development and operations.
 
 ```json
 {
@@ -199,453 +199,454 @@ public sealed class HeartbeatPlugin : IPlugin
 }
 ```
 
-### Regeln
+### Rules
 
-- Struktur `Plugwright:Plugins:{Plugin-ID}`. Plugin-eigene Werte liegen unter `Settings`; daneben ist Platz für Werte des Plugin-Systems wie `Enabled` in v2.
-- `ApplyPlugins()` bindet `pluginsettings.json` als JSON-Konfigurationsanbieter ein. Derselbe Abschnitt darf auch in `appsettings.json` stehen; beides wird zusammengeführt.
-- `pluginsettings.json` wird zuletzt eingebunden und gewinnt bei Konflikten, auch gegenüber Umgebungsvariablen. Die Doku nennt diese Abweichung von der üblichen Reihenfolge deutlich.
-- Der Anbieter für `pluginsettings.json` übernimmt nur Schlüssel unter `Plugwright:Plugins`. So kann die von der App beschreibbare Datei weder andere Einstellungen noch Prüfer-Einstellungen überschreiben.
-- Der Pfad ist konfigurierbar, Standard ist neben der App. Die Doku zeigt beschreibbare Orte, z. B. `ProgramData` unter Windows oder `/var/lib` unter Linux.
-- Gespeichert wird über `IPluginSettingsStore`. Die Datei gilt als maschinenverwaltet; Kommentare gehen beim Speichern verloren.
-- Änderungen werden live erkannt (`reloadOnChange`). Plugins mit `IOptionsMonitor` sehen neue Werte ohne Neustart. Neu geladen werden nur Einstellungen, keine Plugins.
-- Plugins lesen ihren Abschnitt über `PluginContext.Configuration` und binden ihn per Options-Pattern.
-- Mehrere Plugin-Klassen einer Assembly teilen sich ihren Abschnitt, da die ID auf Ebene der Assembly liegt. Bei Bedarf nutzen sie Unterschlüssel.
-- Plugin-IDs mit Punkten sind in Linux-Umgebungsvariablen umständlich; die Doku zeigt Alternativen.
+- Structure `Plugwright:Plugins:{PluginId}`. The plugin's own values live under `Settings`; next to it there is room for values of the plugin system such as `Enabled` in v2.
+- `ApplyPlugins()` adds `pluginsettings.json` as a JSON configuration provider. The same section may also be in `appsettings.json`; both are merged.
+- `pluginsettings.json` is added last and wins on conflicts, even over environment variables. The docs state this deviation from the usual order clearly.
+- The provider for `pluginsettings.json` only accepts keys under `Plugwright:Plugins`. This way the file the app can write to can override neither other settings nor verifier settings.
+- The path is configurable, the default is next to the app. The docs show writable locations, e.g. `ProgramData` on Windows or `/var/lib` on Linux.
+- Saving happens via `IPluginSettingsStore`. The file counts as machine-managed; comments are lost on save.
+- Changes are detected live (`reloadOnChange`). Plugins with `IOptionsMonitor` see new values without a restart. Only settings are reloaded, not plugins.
+- Plugins read their section via `PluginContext.Configuration` and bind it with the options pattern.
+- Several plugin classes of one assembly share their section, since the ID lives at assembly level. If needed they use subkeys.
+- Plugin IDs with dots are awkward in Linux environment variables; the docs show alternatives.
 
-## Plugin-Discovery und Laden
+## Plugin discovery and loading
 
-**Entschieden:** v1 unterstützt drei Plugin-Quellen: direkt in `Program.cs`, DLLs aus einem Verzeichnis und NuGet-Pakete aus einem Ordner. DLL- und NuGet-Quellen bekommen eine Integritätsprüfung beim Laden (Hash, optional Zertifikat), siehe Abschnitt Integritätsprüfung. Die API-Namen sind vorläufig.
+**Decided:** v1 supports three plugin sources: directly in `Program.cs`, DLLs from a directory and NuGet packages from a folder. DLL and NuGet sources get an integrity check on load (hash, optionally certificate), see section Integrity verification. The API names are provisional.
 
-| Quelle | Beispiel-API | Laden | Einsatz |
+| Source | Example API | Loading | Use |
 | --- | --- | --- | --- |
-| Direkt | `Plugins.Add<MyPlugin>()` | Kein dynamisches Laden | Plugins im selben Projekt oder als Paket referenziert |
-| DLL-Verzeichnis | `Plugins.AddFromDirectory("plugins")` | Eigener `AssemblyLoadContext` je Plugin-Ordner | Erweiterung ohne Neukompilieren |
-| NuGet-Ordner | `Plugins.AddFromPackages("packages")` | `.nupkg` wird entpackt, dann wie DLL geladen | Plugins mit Version und Paketmetadaten ausliefern |
+| Direct | `Plugins.Add<MyPlugin>()` | No dynamic loading | Plugins in the same project or referenced as a package |
+| DLL directory | `Plugins.AddFromDirectory("plugins")` | Own `AssemblyLoadContext` per plugin folder | Extension without recompiling |
+| NuGet folder | `Plugins.AddFromPackages("packages")` | `.nupkg` is extracted, then loaded like a DLL | Ship plugins with version and package metadata |
 
-### NuGet-Ordner
+### NuGet folder
 
 - API: `builder.Plugins.AddFromPackages(path)` in `Plugwright.NuGet`.
-- Plugin-Pakete tragen den Package-Type `PlugwrightPlugin`; alle anderen Pakete im Ordner sind Bibliothekspakete. Ein Plugin-Paket enthält eine Assembly mit der Paket-ID.
-- Kein Entpacken: Pakete werden einmal in den Speicher gelesen (und geprüft), Assemblies daraus geladen. Nur native Bibliotheken kommen in einen temporären Ordner je Prozess, werden vor dem Laden gegen den Paketinhalt geprüft und beim Beenden gelöscht.
-- Abhängigkeiten aus der `.nuspec`: Plugin-Pakete werden Plugin-Abhängigkeiten mit Versionsbereich; Bibliothekspakete kommen aus dem Ordner in der niedrigsten passenden Version; was der Host bereits hat (z. B. `Microsoft.Extensions.*`, `Plugwright.Abstractions`, .NET-Pakete), braucht kein Paket.
-- Optional ein Feed für fehlende Pakete (`NuGet.Protocol`, nur in `Plugwright.NuGet`): `AddFromPackages(path, options => options.Feed = …)`, Feed als URL, lokaler Ordner oder Name aus NuGet.Config (mit dessen Zugangsdaten). Nur Bibliothekspakete werden geladen, niedrigste passende Version, gespeichert im Download-Verzeichnis (Standard `plugin-package-downloads` im Content Root). Nicht erreichbarer Feed, fehlende Version oder Zeitüberschreitung (`DownloadTimeout`, Standard 30 s) sind Plugin-Fehler. Log-Event 1007 je Download.
-- `plugwright lock` nimmt mehrere Verzeichnisse für eine Lock-Datei an, etwa Paketordner und Download-Verzeichnis.
-- Mit registrierten Prüfern werden alle Pakete geprüft, auch Bibliothekspakete und Downloads.
-- `HashVerifier` prüft jede Quelle außer Plugins aus dem Code. Ein Paket steht in der Lock-Datei unter seinem Dateinamen ohne `.nupkg`, mit der `.nupkg` als einziger Datei; `plugwright lock` nimmt `.nupkg`-Dateien auf.
-- `PackageSignatureVerifier` (in `Plugwright.NuGet`, `AddPackageSignatureVerifier`) prüft die primäre NuGet-Signatur (Autor oder Repository), die Integrität des Pakets und den Unterzeichner mit denselben Vertrauenseinstellungen wie der `CertificateVerifier`. Zeitstempel werden nicht ausgewertet; das Zertifikat muss zum Prüfzeitpunkt gültig sein.
+- Plugin packages carry the package type `PlugwrightPlugin`; all other packages in the folder are library packages. A plugin package contains an assembly named like the package ID.
+- No extraction: packages are read into memory once (and verified), assemblies are loaded from there. Only native libraries go to a temporary folder per process, are checked against the package content before loading and deleted on exit.
+- Dependencies from the `.nuspec`: plugin packages become plugin dependencies with a version range; library packages come from the folder in the lowest matching version; whatever the host already has (e.g. `Microsoft.Extensions.*`, `Plugwright.Abstractions`, .NET packages) needs no package.
+- Optionally a feed for missing packages (`NuGet.Protocol`, only in `Plugwright.NuGet`): `AddFromPackages(path, options => options.Feed = …)`, feed as a URL, local folder or name from NuGet.Config (with its credentials). Only library packages are downloaded, lowest matching version, stored in the download directory (default `plugin-package-downloads` in the content root). An unreachable feed, a missing version or a timeout (`DownloadTimeout`, default 30 s) is a plugin failure. Log event 1007 per download.
+- `plugwright lock` accepts several directories for one lock file, e.g. the package folder and the download directory.
+- With registered verifiers, all packages are verified, including library packages and downloads.
+- `HashVerifier` verifies every source except plugins added in code. A package is listed in the lock file under its file name without `.nupkg`, with the `.nupkg` as its only file; `plugwright lock` picks up `.nupkg` files.
+- `PackageSignatureVerifier` (in `Plugwright.NuGet`, `AddPackageSignatureVerifier`) verifies the primary NuGet signature (author or repository), the package's integrity and the signer with the same trust settings as the `CertificateVerifier`. Timestamps are not evaluated; the certificate must be valid at verification time.
 
-### Aufbau des DLL-Verzeichnisses
+### Layout of the DLL directory
 
-**Entschieden:** Jedes Plugin liegt in einem eigenen Unterordner, die Haupt-Assembly trägt den Namen des Ordners: `plugins/<Name>/<Name>.dll`. Der Ordner ist die Einheit für Hashes, Manifest und Ladekontext. DLLs direkt in `plugins/` werden ignoriert, mit Hinweis im Log.
+**Decided:** Every plugin lives in its own subfolder, the main assembly is named after the folder: `plugins/<Name>/<Name>.dll`. The folder is the unit for hashes, manifest and load context. DLLs directly in `plugins/` are ignored, with a note in the log.
 
-- Ein relativer Pfad bezieht sich auf `builder.Environment.ContentRootPath`, wie `appsettings.json`.
-- Fehlt das Verzeichnis, gibt es eine Warnung im Log und es werden keine Plugins daraus geladen.
-- Ein Unterordner ohne `<Name>.dll`, mit nicht ladbarer Assembly oder ohne Plugin-Typ ist ein Plugin-Fehler (Exception bzw. überspringen und loggen).
-- Plugin-Typen sind die öffentlichen, nicht abstrakten Klassen der Haupt-Assembly, die ein registrierter Handler verarbeiten kann.
-- Gemeinsame Assemblies (`Plugwright*`, `Microsoft.Extensions.*`) kommen aus dem Standard-Kontext in der Version des Hosts, auch wenn das Plugin eigene Kopien mitbringt. Hat der Host eine solche Assembly nicht, wird die Kopie des Plugins geladen.
-- Plugins werden in der Reihenfolge der Quellen verarbeitet, innerhalb eines Verzeichnisses alphabetisch nach Ordnername.
+- A relative path resolves against `builder.Environment.ContentRootPath`, like `appsettings.json`.
+- If the directory is missing, a warning is logged and no plugins are loaded from it.
+- A subfolder without `<Name>.dll`, with an unloadable assembly or without a plugin type is a plugin failure (exception or skip and log).
+- Plugin types are the public, non-abstract classes of the main assembly that a registered handler can process.
+- Shared assemblies (`Plugwright*`, `Microsoft.Extensions.*`) come from the default context in the host's version, even if the plugin ships its own copies. If the host lacks such an assembly, the plugin's copy is loaded.
+- Plugins are processed in the order of the sources, within a directory alphabetically by folder name.
 
-### Ladeweg
+### Load path
 
-**Entschieden:**
+**Decided:**
 
-- Ohne registrierte Prüfer wird per `LoadFromAssemblyPath` geladen; `Assembly.Location` funktioniert.
-- Mit Prüfern wird per `LoadFromStream` aus den geprüften Bytes geladen; `Assembly.Location` ist dann leer. Die Doku nennt das.
-- Native Bibliotheken werden per Hash geprüft und direkt danach vom Pfad geladen. Das verbleibende kleine Zeitfenster nennt die Doku.
+- Without registered verifiers, assemblies are loaded with `LoadFromAssemblyPath`; `Assembly.Location` works.
+- With verifiers, assemblies are loaded with `LoadFromStream` from the verified bytes; `Assembly.Location` is then empty. The docs mention this.
+- Native libraries are hash-verified and loaded from their path right afterwards. The docs mention the small remaining time window.
 
-### Wichtige Punkte beim dynamischen Laden
+### Important points for dynamic loading
 
-- Geteilte Typen wie der Plugin-Vertrag und `Microsoft.Extensions.*` müssen aus dem Standard-Kontext kommen. Sonst sind Typen zwar gleich benannt, aber nicht kompatibel.
-- Abhängigkeiten eines Plugins werden über `AssemblyDependencyResolver` und dessen `.deps.json` aufgelöst.
-- Entladen von Plugins zur Laufzeit ist nicht geplant; Aktivieren und Deaktivieren wirkt nach Neustart (siehe Roadmap v2).
-- Plugins laufen mit voller Vertrauensstellung im Prozess. Das muss die Doku klar sagen.
+- Shared types such as the plugin contract and `Microsoft.Extensions.*` must come from the default context. Otherwise types have the same names but are not compatible.
+- A plugin's dependencies are resolved via `AssemblyDependencyResolver` and its `.deps.json`.
+- Unloading plugins at runtime is not planned; enabling and disabling takes effect after a restart (see roadmap v2).
+- Plugins run with full trust in the process. The docs must say so clearly.
 
-## Plugin-Metadaten und Abhängigkeiten
+## Plugin metadata and dependencies
 
-**Entschieden:** Identität, Version und Abhängigkeiten liegen auf Ebene von Assembly bzw. NuGet-Paket und kommen primär aus deren eigenen Metadaten. Code-Attribute sind nur der Fallback für das, was Paket und Assembly nicht ausdrücken.
+**Decided:** Identity, version and dependencies live at the level of the assembly or NuGet package and come primarily from their own metadata. Code attributes are only the fallback for what package and assembly cannot express.
 
-### Herkunft der Metadaten
+### Origin of the metadata
 
-| Quelle | Identität und Version | Beschreibung, Autor | Abhängigkeiten |
+| Source | Identity and version | Description, author | Dependencies |
 | --- | --- | --- | --- |
-| NuGet-Ordner | `.nuspec`: ID, Version | `.nuspec` | `.nuspec` inkl. Versionsbereichen, plus Assembly-Referenzen |
-| DLL-Verzeichnis | Assembly-Name, Assembly-Version | Assembly-Attribute aus der `.csproj` | Assembly-Referenzen |
-| Direkt in `Program.cs` | Assembly-Name, Assembly-Version | Assembly-Attribute aus der `.csproj` | Assembly-Referenzen |
-| Fallback, alle Quellen | – | `[Plugin(...)]` | `[PluginDependency(...)]` für Abhängigkeiten ohne Assembly-Referenz |
+| NuGet folder | `.nuspec`: ID, version | `.nuspec` | `.nuspec` including version ranges, plus assembly references |
+| DLL directory | Assembly name, assembly version | Assembly attributes from the `.csproj` | Assembly references |
+| Direct in `Program.cs` | Assembly name, assembly version | Assembly attributes from the `.csproj` | Assembly references |
+| Fallback, all sources | – | `[Plugin(...)]` | `[PluginDependency(...)]` for dependencies without an assembly reference |
 
-Metadaten und Referenzen werden gelesen, ohne Plugin-Code auszuführen, über `MetadataLoadContext` (Paket `System.Reflection.MetadataLoadContext`, als Abhängigkeit erlaubt). Abhängigkeiten und Integrität sind damit geprüft, bevor Code läuft.
+Metadata and references are read without executing plugin code, via `MetadataLoadContext` (package `System.Reflection.MetadataLoadContext`, allowed as a dependency). Dependencies and integrity are thus checked before any code runs.
 
 ```csharp
-// Nur nötig, wenn Acme.Logging nicht direkt referenziert wird oder eine Mindestversion gelten soll
+// Only needed if Acme.Logging is not referenced directly or a minimum version should apply
 [assembly: PluginDependency("Acme.Logging", MinVersion = "1.2.0")]
 ```
 
-- `[Plugin]` und `[PluginDependency]` gelten nur auf Assembly-Ebene.
-- Die Version ist eine semantische Version aus `<Version>` (`AssemblyInformationalVersion` ohne `+…`), verglichen nach SemVer 2.0. `[PluginDependency]` kennt nur `MinVersion`.
-- Eine Referenz auf die Assembly eines anderen Plugins ist eine Abhängigkeit; geprüft wird zusätzlich, dass dessen `AssemblyVersion` mindestens der referenzierten entspricht.
-- Setzt das Projekt weder `<Authors>` noch `<Company>`, trägt das SDK den Assembly-Namen ein; das gilt als nicht gesetzt, `[Plugin(Authors = …)]` füllt dann die Lücke.
-- Plugins aus dem Code können nur von Plugins aus dem Code abhängen.
+- `[Plugin]` and `[PluginDependency]` apply at assembly level only.
+- The version is a semantic version from `<Version>` (`AssemblyInformationalVersion` without `+…`), compared according to SemVer 2.0. `[PluginDependency]` only knows `MinVersion`.
+- A reference to another plugin's assembly is a dependency; in addition, its `AssemblyVersion` must be at least the referenced one.
+- If the project sets neither `<Authors>` nor `<Company>`, the SDK fills in the assembly name; that counts as not set, and `[Plugin(Authors = …)]` then fills the gap.
+- Plugins added in code can only depend on plugins added in code.
 
-### Regeln für Abhängigkeiten
+### Rules for dependencies
 
-- Eine Abhängigkeit bedeutet Vorhandensein, Reihenfolge und Typen teilen.
-- **Vorhandensein:** Fehlt eine Abhängigkeit oder passt ihre Version nicht, gibt es eine Exception.
-- **Reihenfolge:** Abhängigkeiten werden in Phase 1 und 2 vor dem abhängigen Plugin verarbeitet. Zyklen führen zu einer Exception, die den Zyklus nennt.
-- **Typen teilen:** Der Ladekontext eines Plugins reicht Assemblies seiner Abhängigkeiten an deren Ladekontext weiter, damit Typen kompatibel sind.
-- NuGet-Abhängigkeiten müssen im Ordner gefunden werden, entweder als Plugin-Paket oder als Bibliothekspaket.
-- Mehrere Plugin-Klassen in einer Assembly teilen Identität und Abhängigkeiten und werden gemeinsam geladen.
-- Doppelte IDs, etwa dasselbe Plugin in zwei Verzeichnissen oder im Code und im Verzeichnis, führen immer zu einer Exception, die beide Quellen nennt; „überspringen und loggen“ gilt hier nicht. IDs werden ohne Beachtung der Groß-/Kleinschreibung verglichen, wie Konfigurationsschlüssel.
-- Bei „überspringen und loggen“ wird ein Plugin samt aller (transitiv) davon abhängigen Plugins übersprungen, jedes mit eigenem Log-Eintrag.
-- Optionale Abhängigkeiten kommen erst in v2.
+- A dependency means presence, order and type sharing.
+- **Presence:** If a dependency is missing or its version does not match, an exception is thrown.
+- **Order:** Dependencies are processed before the dependent plugin in phases 1 and 2. Cycles lead to an exception that names the cycle.
+- **Type sharing:** A plugin's load context forwards assemblies of its dependencies to their load context so that types are compatible.
+- NuGet dependencies must be found in the folder, either as a plugin package or as a library package.
+- Several plugin classes in one assembly share identity and dependencies and are loaded together.
+- Duplicate IDs, e.g. the same plugin in two directories or in code and in a directory, always lead to an exception that names both sources; skip-and-log does not apply here. IDs are compared case-insensitively, like configuration keys.
+- With skip-and-log, a plugin is skipped together with all plugins that (transitively) depend on it, each with its own log entry.
+- Optional dependencies only come in v2.
 
-### Weitere Festlegungen
+### Further decisions
 
-- Attribute ergänzen nur, sie überschreiben nie. Nennen Paket und Attribut dieselbe Abhängigkeit mit unterschiedlichen Versionen, müssen beide Bedingungen erfüllt sein. Bei beschreibenden Feldern gewinnt Paket bzw. Assembly.
-- NuGet-Pakete werden mit `NuGet.Packaging` gelesen (Versionsbereiche, Auswahl des `lib/`-Ordners, Paketsignaturen). Die NuGet-Quelle liegt in einem eigenen Paket `*.NuGet`, damit der Kern ohne NuGet-Abhängigkeiten bleibt.
+- Attributes only add, they never override. If package and attribute name the same dependency with different versions, both conditions must be satisfied. For descriptive fields, the package or assembly wins.
+- NuGet packages are read with `NuGet.Packaging` (version ranges, selection of the `lib/` folder, package signatures). The NuGet source lives in its own package `*.NuGet`, so the core stays free of NuGet dependencies.
 
-## Integritätsprüfung
+## Integrity verification
 
-**Entschieden:** Integritätsprüfung ist optional. Der Anwender registriert Prüfer explizit, auch die mitgelieferten Hash- und Zertifikatsprüfer. Ist kein Prüfer registriert, findet keine Prüfung statt; beim Start erscheint ein Hinweis im Log.
+**Decided:** Integrity verification is optional. The user registers verifiers explicitly, including the built-in hash and certificate verifiers. If no verifier is registered, no verification takes place; a notice appears in the log at startup.
 
 ```csharp
 builder.PluginVerifiers.AddHashVerifier(options => options.LockFile = "/etc/myapp/plugins.lock.json");
 builder.PluginVerifiers.AddCertificateVerifier(options => ...);
-builder.PluginVerifiers.Add(new MyCompanyVerifier());   // eigener Prüfer
+builder.PluginVerifiers.Add(new MyCompanyVerifier());   // custom verifier
 ```
 
-| Modus | NuGet-Ordner | DLL-Verzeichnis | Pflege bei Updates |
+| Mode | NuGet folder | DLL directory | Maintenance on updates |
 | --- | --- | --- | --- |
-| Hash | Paket-Hash in einer Lock-Datei auf Host-Seite | SHA-256 aller Dateien des Plugin-Ordners in der Lock-Datei | Lock-Datei bei jedem Update neu erzeugen |
-| Zertifikat | NuGet-Paketsignatur, geprüft über `NuGet.Packaging` | Signiertes Manifest je Plugin-Ordner: SHA-256 aller Dateien, CMS-signiert über `System.Security.Cryptography.Pkcs` | Keine, solange derselbe Herausgeber signiert |
+| Hash | Package hash in a lock file on the host side | SHA-256 of all files of the plugin folder in the lock file | Regenerate the lock file on every update |
+| Certificate | NuGet package signature, verified via `NuGet.Packaging` | Signed manifest per plugin folder: SHA-256 of all files, CMS-signed via `System.Security.Cryptography.Pkcs` | None, as long as the same publisher signs |
 
-### Regeln
+### Rules
 
-- Vertraut wird über Herausgeber-Zertifikate bzw. über die Lock-Datei. Beides liegt auf Host-Seite, nicht im Plugin-Ordner.
-- Zertifikate werden per Fingerabdruck oder über einen vertrauenswürdigen Aussteller (z. B. Firmen-CA) plus Einschränkung auf den Antragsteller (Subject) akzeptiert. So bricht eine Zertifikatserneuerung nichts.
-- Das signierte Manifest enthält Plugin-ID, Version und alle Dateien. Dateien im Plugin-Ordner, die nicht im Manifest stehen, führen zum Fehler.
-- Geprüft werden alle Dateien eines Plugins, nicht nur die Haupt-DLL.
-- Geladen wird aus den geprüften Bytes, z. B. per `LoadFromStream`, damit zwischen Prüfung und Laden nichts getauscht werden kann.
-- Der entpackte NuGet-Cache wird bei jedem Start gegen die Hashes aus dem geprüften Paket geprüft oder neu entpackt.
-- Hashes tragen eine Algorithmus-Kennung, z. B. `sha256-…`, damit der Algorithmus später wechseln kann.
-- Die Prüfung läuft vor dem Lesen der Metadaten per `MetadataLoadContext`.
-- Fehlgeschlagene Prüfung führt zu einer Exception; „überspringen und loggen“ gilt wie bei anderen Ladefehlern.
-- Alle Prüfer implementieren `IPluginVerifier`, mitgelieferte und eigene gleichermaßen. Jeder Prüfer gibt über `CanVerify` an, welche Quellen er prüfen kann. Alle zuständigen Prüfer müssen bestehen. Sind Prüfer registriert, aber keiner ist für ein Plugin zuständig, gibt es eine Exception. Prüfer-Einstellungen wie Lock-Datei-Pfad und vertrauenswürdige Zertifikate kommen standardmäßig aus dem Code. Optional bindet der Entwickler sie ausdrücklich an einen Konfigurationsabschnitt, z. B. `builder.PluginVerifiers.Add<CertificateVerifier>(builder.Configuration.GetSection("Plugwright:Verification:Certificate"))`. Welche Prüfer es gibt, legt immer der Code fest.
-- Jede Prüfung erzeugt ein strukturiertes Log-Event mit fester Event-ID (Plugin, Version, Modus, Zertifikat, Ergebnis). Die Ergebnisse sind zusätzlich per API abrufbar.
-- Strong-Name-Signaturen werden nicht genutzt; laut Microsoft sind sie kein Sicherheitsmerkmal.
+- Trust comes from publisher certificates or the lock file. Both live on the host side, not in the plugin folder.
+- Certificates are accepted by thumbprint or via a trusted issuer (e.g. a company CA) plus a restriction on the subject. This way a certificate renewal breaks nothing.
+- The signed manifest contains plugin ID, version and all files. Files in the plugin folder that are not listed in the manifest cause a failure.
+- All files of a plugin are verified, not only the main DLL.
+- Assemblies are loaded from the verified bytes, e.g. with `LoadFromStream`, so nothing can be swapped between verification and loading.
+- The extracted NuGet cache is checked against the hashes from the verified package on every start, or extracted again.
+- Hashes carry an algorithm identifier, e.g. `sha256-…`, so the algorithm can change later.
+- Verification runs before metadata is read via `MetadataLoadContext`.
+- Failed verification leads to an exception; skip-and-log applies as for other load errors.
+- All verifiers implement `IPluginVerifier`, built-in and custom ones alike. Each verifier states via `CanVerify` which sources it can verify. All responsible verifiers must pass. If verifiers are registered but none is responsible for a plugin, an exception is thrown. Verifier settings such as the lock file path and trusted certificates come from code by default. Optionally the developer binds them explicitly to a configuration section, e.g. `builder.PluginVerifiers.Add<CertificateVerifier>(builder.Configuration.GetSection("Plugwright:Verification:Certificate"))`. Which verifiers exist is always decided by the code.
+- Every check emits a structured log event with a fixed EventId (plugin, version, mode, certificate, result). The results are also available via API.
+- Strong-name signatures are not used; according to Microsoft they are not a security feature.
 
-### Hinweis für die Doku
+### Note for the docs
 
-Die Prüfung schützt nur, wenn Lock-Datei und Vertrauenskonfiguration nicht von denselben Personen geändert werden können wie der Plugin-Ordner. Liegen Prüfer-Einstellungen in `appsettings.json`, gilt das auch für diese Datei.
+Verification only protects if the lock file and trust configuration cannot be changed by the same people who can change the plugin folder. If verifier settings live in `appsettings.json`, this applies to that file too.
 
-### CLI-Tool
+### CLI tool
 
-v1 enthält ein CLI-Tool als `dotnet tool` mit drei Aufgaben:
+v1 contains a CLI tool as a `dotnet tool` with three tasks:
 
-1. Lock-Datei für den Hash-Modus erzeugen.
-2. Manifest eines Plugin-Ordners signieren.
-3. `verify`: Plugin-Ordner gegen die Prüfkonfiguration prüfen, ohne die App zu starten, z. B. in CI oder beim Deployment.
+1. Generate a lock file for hash mode.
+2. Sign the manifest of a plugin folder.
+3. `verify`: check plugin folders against the verification configuration without starting the app, e.g. in CI or during deployment.
 
-### Weitere Festlegungen
+### Further decisions
 
-- Mitgelieferte Prüfer haben eigene Registrierungsmethoden (`AddHashVerifier`, `AddCertificateVerifier`) mit Einstellungen per Delegate oder per ausdrücklich übergebenem Konfigurationsabschnitt. Eigene Prüfer über `Add(instance)` oder `Add<T>()`. Je Typ ein Prüfer.
-- Plugins aus dem Code werden nie geprüft; die Regel „kein zuständiger Prüfer → Fehler“ gilt nur für Plugin-Ordner (und später NuGet).
-- Prüffehler, fehlender zuständiger Prüfer, Ausnahmen eines Prüfers und eine fehlende oder ungültige Lock-Datei sind Plugin-Fehler (Exception bzw. überspringen und loggen).
-- Lock-Datei: JSON mit `version` und je Plugin-Ordner (Name ohne Beachtung der Groß-/Kleinschreibung) allen Dateien mit `sha256-{base64}`. Standardpfad `plugins.lock.json` im Content Root.
-- Ergebnisse per API: `PluginReport` im DI-Container mit aktiven, übersprungenen Plugins und allen Prüfergebnissen.
-- Zertifikate: in v1 keine Zeitstempel; das Zertifikat muss zum Prüfzeitpunkt gültig sein. Sperrlistenprüfung einstellbar (`NoCheck`, `Online`, `Offline`), Standard `NoCheck`.
-- Signiertes Manifest: eine Datei `plugwright.manifest.p7s` im Plugin-Ordner, CMS-Signatur mit eingebettetem JSON (Version, Plugin-ID, Plugin-Version, Hashes aller übrigen Dateien). Die Plugin-ID muss zum Ordnernamen passen; die Version ist über den Hash der Haupt-Assembly gebunden.
-- Vertrauen per Fingerabdruck (SHA-256 oder SHA-1) oder als Herausgeber: Stamm-Zertifikat als Datei plus Antragsteller (Distinguished Name, unabhängig von Schreibweise). Zwischenzertifikate kommen aus der Signatur. Die Sperrlistenprüfung gilt nur für Herausgeber.
-- `plugwright sign` liest das Zertifikat aus einer PKCS#12-Datei; Passwort per Option oder Umgebungsvariable `PLUGWRIGHT_CERTIFICATE_PASSWORD`.
-- CLI: Paket `Plugwright.Cli`, Befehl `plugwright`. `lock` wurde vorgezogen, damit Doku und Beispiele zur Prüfung ein echtes Werkzeug nutzen. Argumente werden ohne zusätzliche Bibliothek ausgewertet.
+- Built-in verifiers have their own registration methods (`AddHashVerifier`, `AddCertificateVerifier`) with settings via delegate or via an explicitly passed configuration section. Custom verifiers via `Add(instance)` or `Add<T>()`. One verifier per type.
+- Plugins added in code are never verified; the rule "no responsible verifier → failure" only applies to plugin folders (and later NuGet).
+- Verification failures, a missing responsible verifier, exceptions from a verifier and a missing or invalid lock file are plugin failures (exception or skip and log).
+- Lock file: JSON with `version` and, per plugin folder (name compared case-insensitively), all files with `sha256-{base64}`. Default path `plugins.lock.json` in the content root.
+- Results via API: `PluginReport` in the DI container with active and skipped plugins and all verification results.
+- Certificates: no timestamps in v1; the certificate must be valid at verification time. Revocation check configurable (`NoCheck`, `Online`, `Offline`), default `NoCheck`.
+- Signed manifest: one file `plugwright.manifest.p7s` in the plugin folder, CMS signature with embedded JSON (version, plugin ID, plugin version, hashes of all other files). The plugin ID must match the folder name; the version is bound via the hash of the main assembly.
+- Trust by thumbprint (SHA-256 or SHA-1) or as a publisher: root certificate as a file plus subject (distinguished name, independent of notation). Intermediate certificates come from the signature. The revocation check applies to publishers only.
+- `plugwright sign` reads the certificate from a PKCS#12 file; password via option or environment variable `PLUGWRIGHT_CERTIFICATE_PASSWORD`.
+- CLI: package `Plugwright.Cli`, command `plugwright`. `lock` was brought forward so that docs and samples for verification use a real tool. Arguments are parsed without an additional library.
 
-## Scope v1 und Roadmap
+## Scope v1 and roadmap
 
-**Vorschlag:** v1 liefert eine Konsolen-App mit Plugins aus Program.cs, DLL-Verzeichnis und NuGet-Ordner, vollständig dokumentiert.
+**Proposal:** v1 delivers a console app with plugins from Program.cs, a DLL directory and a NuGet folder, fully documented.
 
 ### In v1
 
-- [ ] `builder.Plugins`, `ApplyPlugins()` und `UsePlugins()` lauffähig, inklusive Handler-Pipeline und Standard-Handler
-- [ ] `IPlugin`-Vertrag mit PluginContext im Abstractions-Paket; Konfiguration je Plugin über pluginsettings.json
-- [ ] Quellen: direkt in Program.cs, DLL-Verzeichnis, NuGet-Ordner, jeweils mit Integritätsprüfung und CLI-Tool
-- [ ] Beispiel-Plugin, das einen Hosted Service hinzufügt
-- [ ] Plugin-Metadaten, Abhängigkeiten zwischen Plugins und Logging der geladenen Plugins beim Start
-- [ ] Unit- und Integrationstests
-- [ ] Anwenderdokumentation und Beispielprojekte
+- [ ] `builder.Plugins`, `ApplyPlugins()` and `UsePlugins()` working, including the handler pipeline and default handler
+- [ ] `IPlugin` contract with PluginContext in the Abstractions package; configuration per plugin via pluginsettings.json
+- [ ] Sources: directly in Program.cs, DLL directory, NuGet folder, each with integrity verification and CLI tool
+- [ ] Sample plugin that adds a hosted service
+- [ ] Plugin metadata, dependencies between plugins and logging of the loaded plugins at startup
+- [ ] Unit and integration tests
+- [ ] User documentation and sample projects
 
-### Nicht in v1
+### Not in v1
 
-- Hot Reload und Entladen von Plugins
-- Andere Host-Typen außer ASP.NET Core und Blazor Server (siehe `requirements-web-host.md`), z. B. Desktop
+- Hot reload and unloading of plugins
+- Host types other than ASP.NET Core and Blazor Server (see `requirements-web-host.md`), e.g. desktop
 
-### Danach, in dieser Reihenfolge
+### Afterwards, in this order
 
-1. Optionale Abhängigkeiten zwischen Plugins
-2. Assembly-Scan als weitere Quelle
-3. Unterstützung für `WebApplicationBuilder` (ASP.NET Core)
+1. Optional dependencies between plugins
+2. Assembly scan as another source
+3. Support for `WebApplicationBuilder` (ASP.NET Core)
 
-### v2: Plugins aktivieren und deaktivieren
+### v2: Enabling and disabling plugins
 
-**Vorschlag:** Kein Hot Reload. Plugins werden in der App aktiviert oder deaktiviert, die Änderung wirkt nach einem Neustart des Prozesses.
+**Proposal:** No hot reload. Plugins are enabled or disabled in the app; the change takes effect after a restart of the process.
 
-1. Der Zustand (aktiv/inaktiv) wird persistent in pluginsettings.json gespeichert.
-2. `ApplyPlugins()` überspringt deaktivierte Plugins beim nächsten Start.
-3. Ein Dienst der Bibliothek stößt den Neustart sauber an, z. B. über `IHostApplicationLifetime.StopApplication()` mit definiertem Exit-Code; Windows-Dienst oder systemd starten neu.
+1. The state (enabled/disabled) is stored persistently in pluginsettings.json.
+2. `ApplyPlugins()` skips disabled plugins on the next start.
+3. A service of the library triggers the restart cleanly, e.g. via `IHostApplicationLifetime.StopApplication()` with a defined exit code; Windows service or systemd restart the process.
 
-Gründe gegen Hot Reload:
+Reasons against hot reload:
 
-- Die Microsoft-DI ist nach `Build()` unveränderlich.
-- Hosted Services, Middleware-Pipeline und Blazor-Komponenten werden einmal beim Start eingerichtet.
-- Ein entladbarer `AssemblyLoadContext` wird nur ohne verbleibende Referenzen freigegeben; Lecks bleiben unbemerkt.
+- The Microsoft DI container is immutable after `Build()`.
+- Hosted services, middleware pipeline and Blazor components are set up once at startup.
+- An unloadable `AssemblyLoadContext` is only freed without remaining references; leaks go unnoticed.
 
-Sofortiges Pausieren bleibt Sache des einzelnen Plugins, z. B. per Feature-Flag über `IOptionsMonitor`.
+Pausing immediately stays the business of the individual plugin, e.g. via a feature flag through `IOptionsMonitor`.
 
-## Dokumentationsstrategie
+## Documentation strategy
 
-Dokumentation wird zusammen mit dem Code geschrieben und gilt als Teil jeder fertigen Funktion. **Entschieden:** Aufbau nach dem Diátaxis-Modell, veröffentlicht als statische Seite auf GitHub Pages.
+Documentation is written together with the code and counts as part of every finished feature. **Decided:** Structure according to the Diátaxis model, published as a static site on GitHub Pages.
 
-| Bereich | Zweck | Beispiele |
+| Area | Purpose | Examples |
 | --- | --- | --- |
-| Tutorials | Lernen durch Tun | „Erstes Plugin in 10 Minuten“ |
-| How-to-Anleitungen | Konkrete Aufgaben lösen | Hosted Service per Plugin, Plugins aus Verzeichnis laden |
-| Referenz | Vollständige API-Beschreibung | Generiert aus XML-Doku-Kommentaren |
-| Erklärungen | Hintergründe verstehen | Build- vs. Laufzeit-Phase, Ladekontexte, Designentscheidungen |
+| Tutorials | Learning by doing | "First plugin in 10 minutes" |
+| How-to guides | Solving concrete tasks | Hosted service via plugin, loading plugins from a directory |
+| Reference | Complete API description | Generated from XML doc comments |
+| Explanation | Understanding the background | Build vs. runtime phase, load contexts, design decisions |
 
-### Regeln
+### Rules
 
-- Jeder öffentliche Typ und Member hat XML-Doku-Kommentare, inklusive Beispiel wo sinnvoll.
-- Jede How-to-Anleitung verweist auf ein lauffähiges Projekt unter `samples/`.
-- Codebeispiele in der Doku werden im CI mitkompiliert, damit sie nicht veralten.
-- Im Repo: `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`.
+- Every public type and member has XML doc comments, including an example where useful.
+- Every how-to guide points to a runnable project under `samples/`.
+- Code samples in the docs are compiled in CI so they do not go stale.
+- In the repo: `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`.
 
-### Werkzeug und Sprache
+### Tool and language
 
-**Entschieden:** Die Doku ist auf Englisch und wird ausschließlich mit DocFX gebaut, für Anleitungen und API-Referenz gleichermaßen. Alle Inhalte liegen als Markdown im Repo.
+**Decided:** The docs are in English and are built exclusively with DocFX, for guides and API reference alike. All content lives as Markdown in the repo.
 
-- Anleitungen verweisen per `<xref:…>` auf API-Seiten. Kaputte Querverweise lassen den Build scheitern (Warnungen als Fehler).
-- Verweise auf .NET-Typen werden über die Microsoft-Learn-Verweisdaten automatisch verlinkt.
-- Codebeispiele werden aus Dateien unter `samples/` eingebunden, bei Bedarf als `#region`. Die Doku zeigt damit nur Code, der tatsächlich baut.
-- Grundlage ist das moderne DocFX-Template, angepasst über CSS-Variablen. „Zuletzt aktualisiert“ aus Git wird per kleiner Template-Anpassung ergänzt.
-- DocFX läuft als `dotnet tool`; das Repo braucht keine Node.js-Toolchain.
+- Guides link to API pages with `<xref:…>`. Broken cross-references fail the build (warnings as errors).
+- References to .NET types are linked automatically via the Microsoft Learn xref data.
+- Code samples are included from files under `samples/`, as `#region` if needed. This way the docs only show code that actually builds.
+- The base is the modern DocFX template, customized via CSS variables. "Last updated" from Git is added with a small template customization.
+- DocFX runs as a `dotnet tool`; the repo needs no Node.js toolchain.
 
-### Versionen
+### Versions
 
-**Entschieden:** Zunächst keine Versionsumschaltung.
+**Decided:** No version switcher for now.
 
-- Die Doku beschreibt immer die aktuelle Version.
-- Neue oder geänderte APIs tragen Hinweise wie „Available since 1.2“ oder „Changed in 2.0“.
-- Jede Hauptversion bekommt einen Migrations-Guide; dazu `CHANGELOG.md`.
-- Ältere Stände sind über die Git-Tags im Repo erreichbar.
-- Eine Versionsumschaltung wird erst erwogen, wenn zwei Hauptversionen parallel gepflegt werden.
+- The docs always describe the current version.
+- New or changed APIs carry notes such as "Available since 1.2" or "Changed in 2.0".
+- Every major version gets a migration guide; plus `CHANGELOG.md`.
+- Older states are reachable via the Git tags in the repo.
+- A version switcher is only considered once two major versions are maintained in parallel.
 
-## Leitlinien für die Umsetzung mit Claude Code
+## Guidelines for the implementation with Claude Code
 
-Aus diesem Abschnitt wird später die `CLAUDE.md` im Repository abgeleitet. **Vorschlag** für den Startstand:
+The `CLAUDE.md` in the repository is later derived from this section. **Proposal** for the initial state:
 
-### Repository-Struktur
+### Repository structure
 
 ```
-src/        Bibliothek und Abstractions
-tests/      Unit- und Integrationstests
-samples/    Lauffähige Beispiel-Apps und -Plugins
-docs/       Anwenderdokumentation
+src/        Library and abstractions
+tests/      Unit and integration tests
+samples/    Runnable sample apps and plugins
+docs/       User documentation
 ```
 
-### Code-Regeln
+### Code rules
 
-- Nullable Reference Types aktiv, Warnungen als Fehler.
-- Öffentliche API klein halten; alles andere `internal`.
-- Lesbarkeit vor Cleverness: verständliche Namen, wenige Abstraktionsebenen.
-- Keine Abhängigkeiten außer `Microsoft.Extensions.*` ohne ausdrückliche Entscheidung.
+- Nullable reference types enabled, warnings as errors.
+- Keep the public API small; everything else `internal`.
+- Readability over cleverness: clear names, few abstraction layers.
+- No dependencies other than `Microsoft.Extensions.*` without an explicit decision.
 
-### Arbeitsweise
+### Workflow
 
-- Kleine Schritte: jede Funktion mit Tests, Doku und Beispiel als ein Paket.
-- Erst den Plugin-Vertrag festziehen, dann Extensions und Handler-Pipeline, dann Laden aus Verzeichnis.
-- Abweichungen von dieser Spezifikation im Entscheidungslog unten nachtragen.
+- Small steps: every feature with tests, docs and a sample as one package.
+- First settle the plugin contract, then extensions and handler pipeline, then loading from a directory.
+- Record deviations from this specification in the decision log below.
 
 ### Tests
 
-**Entschieden:** xUnit v3 auf der Microsoft Testing Platform, Paket `xunit.v3` in Version 4.x (seit August 2026 final). Assertions mit dem eingebauten `Assert`, bei Bedarf Shouldly; kein FluentAssertions (seit v8 kostenpflichtig für kommerzielle Nutzung).
+**Decided:** xUnit v3 on the Microsoft Testing Platform, package `xunit.v3` in version 4.x (final since August 2026). Assertions with the built-in `Assert`, Shouldly if needed; no FluentAssertions (paid for commercial use since v8).
 
-1. Getrennte Testprojekte: `Plugwright.Tests` für Unit-Tests, `Plugwright.IntegrationTests` für echtes Laden, Signieren und Prüfen.
-2. Test-Plugins als eigene Projekte unter `tests/TestPlugins/`. Sie werden nicht referenziert, sondern gebaut und in den Testordner kopiert, wie echte Plugins.
-3. Vorbereitung von Test-Plugins, NuGet-Paketen und signierten Manifesten einmal pro Lauf über eine Assembly-Fixture.
-4. Jeder Integrationstest arbeitet in einem eigenen temporären Verzeichnis.
-5. Tests, die Ladekontexte betreffen, laufen gezielt seriell über xUnit-Collections.
-6. Szenarien mit Neustart und Exit-Code laufen in einem separaten Prozess, z. B. über eine kleine Test-Host-App.
+1. Separate test projects: `Plugwright.Tests` for unit tests, `Plugwright.IntegrationTests` for real loading, signing and verification.
+2. Test plugins as separate projects under `tests/TestPlugins/`. They are not referenced but built and copied into the test folder, like real plugins.
+3. Test plugins, NuGet packages and signed manifests are prepared once per run via an assembly fixture.
+4. Every integration test works in its own temporary directory.
+5. Tests that touch load contexts deliberately run serially via xUnit collections.
+6. Scenarios with restart and exit code run in a separate process, e.g. via a small test host app.
 
-## Offene Fragen und Entscheidungslog
+## Open questions and decision log
 
-### Offene Fragen für die nächsten Sessions
+### Open questions for the next sessions
 
-- [x] Architekturvariante festlegen: A, C oder A + C
-- [x] Ziel-Framework bestätigen: nur .NET 10 oder zusätzlich ältere Versionen
-- [x] Konfiguration je Plugin
-- [x] Projektname und Lizenz
-- [x] Doku-Werkzeug und Doku-Sprache
-- [x] Testframework
-- [x] Offene Punkte vor Start der Umsetzung (CI, Paketschnitt, Phase-1-Logging, Plugin-Instanzen, Ordnerkonvention, Ladeweg u. a.)
-- [x] Doppelte Plugin-IDs
-- [x] Versionssemantik bei DLL-Plugins
-- [x] Direkt hinzugefügte Plugins bei registrierten Prüfern
-- [x] NuGet-Ordner: Drittpaket-Abhängigkeiten, Entpack-Cache und Aufräumen
-- [x] Zertifikate: Zeitstempel, Sperrlistenprüfung
-- [x] CLI: Befehls- und Paketname
-- [ ] Scope v1 und v2 (Aktivieren/Deaktivieren) bestätigen
+- [x] Choose the architecture variant: A, C or A + C
+- [x] Confirm the target framework: only .NET 10 or older versions too
+- [x] Configuration per plugin
+- [x] Project name and license
+- [x] Docs tool and docs language
+- [x] Test framework
+- [x] Open points before starting the implementation (CI, package split, phase 1 logging, plugin instances, folder convention, load path and others)
+- [x] Duplicate plugin IDs
+- [x] Version semantics for DLL plugins
+- [x] Directly added plugins with registered verifiers
+- [x] NuGet folder: third-party package dependencies, extraction cache and cleanup
+- [x] Certificates: timestamps, revocation check
+- [x] CLI: command and package name
+- [ ] Confirm scope of v1 and v2 (enabling/disabling)
 
-### Entscheidungslog
+### Decision log
 
-| Datum | Entscheidung | Begründung |
+| Date | Decision | Rationale |
 | --- | --- | --- |
-| 2026-10-06 | Basis sind `IHost` und `IHostApplicationBuilder` | Moderne Standard-Abstraktionen von Microsoft nutzen |
-| 2026-10-06 | Start mit Konsolen-App auf dem Generic Host | Kleiner, klarer Einstieg |
-| 2026-10-06 | Veröffentlichung als Open Source auf GitHub | Daraus folgt der hohe Anspruch an die Doku |
-| 2026-10-06 | Ziel-Framework ist ausschließlich .NET 10 | LTS, keine Altnutzer, C# 14 Extension Members verfügbar; Multi-Targeting bei Bedarf später |
-| 2026-10-06 | Fehler in Configure: Fail-fast als Standard, optional überspringen und loggen | Stilles Überspringen verdeckt Fehler im Betrieb; Option für Szenarien, die nicht blockieren dürfen |
-| 2026-10-06 | Nur Extension Members (Variante C), keine eigene Builder- oder App-Klasse | Funktioniert mit jedem Host-Typ, auch Web; Wrapper hätten je Host-Typ nachgebaut werden müssen |
-| 2026-10-06 | Zwei explizite Aufrufe für alle Apps: builder.ApplyPlugins() vor, app.UsePlugins() nach Build() | Einheitlich für Konsole und Web; Nutzer steuert Position in der Middleware-Pipeline; .NET-Konvention AddX/UseX |
-| 2026-10-06 | Plugins.Add…() speichert nur Typen; Handler-Pipeline verarbeitet sie | Neue Plugin-Arten (Web, Blazor, eigene) ohne Änderung am Kern |
-| 2026-10-06 | Handler werden getrennt von Plugins direkt am Builder registriert | Klare Trennung: Plugins beschreiben was, Handler wie |
-| 2026-10-06 | Alle passenden Handler laufen, in Registrierungsreihenfolge | Handler als Bausteine je Interface kombinierbar, keine Sammel-Handler nötig |
-| 2026-10-06 | Kein Handler für einen Typ: Exception, Option überspringen und loggen gilt mit | Fast immer ein Konfigurationsfehler; konsistent mit Fail-fast |
-| 2026-10-06 | Handler-Registrierung über builder.PluginHandlers.Add\<T>(); in v1 nur aus der Host-Anwendung | „Handlers“ ist in .NET mehrfach belegt; Handler aus Plugins machen das Verhalten unvorhersagbar |
-| 2026-10-06 | Begriff „Plugin“ statt „Modul“ | „Modul“ steht in .NET für Aufteilung der eigenen App; „Plugin“ für optionale, nachladbare Erweiterungen; gängiger Suchbegriff |
-| 2026-10-06 | v1-Quellen: direkt in Program.cs, DLL-Verzeichnis, NuGet-Ordner; DLL und NuGet mit Integritätsprüfung | Vorgabe für v1 |
-| 2026-10-06 | Plugin-Metadaten und Abhängigkeiten zwischen Plugins kommen in v1 | Vorgabe für v1 |
-| 2026-10-06 | Metadaten aus .nuspec bzw. Assembly, Code-Attribute als Fallback; Identität auf Ebene Assembly/Paket | Keine doppelte Pflege; entspricht der Art, wie Plugins ausgeliefert werden |
-| 2026-10-06 | Abhängigkeit = Vorhandensein, Reihenfolge, Typen teilen; optionale Abhängigkeiten erst v2 | Ohne Typen teilen wären Abhängigkeiten bei isolierten Plugins kaum nutzbar; optionale erfordern Contract-Konzept |
-| 2026-10-06 | NuGet.Packaging in eigenem Paket \*.NuGet | Versionsbereiche, TFM-Auswahl und Signaturen nicht selbst nachbauen; Kern bleibt schlank |
-| 2026-10-06 | Attribute ergänzen Paket-/Assembly-Metadaten nur, überschreiben nie | Eindeutige Regel, nichts wird stillschweigend verworfen |
-| 2026-10-06 | Integritätsprüfung in v1 per Hash oder Zertifikat; DLLs über signiertes Manifest, NuGet über Paketsignatur | Plattformunabhängig; Zertifikat erspart Listenpflege bei Updates |
-| 2026-10-06 | Ohne Prüfkonfiguration: Development Warnung, sonst Exception | Bequem in der Entwicklung, sicher im Betrieb |
-| 2026-10-06 | System.Security.Cryptography.Pkcs als Abhängigkeit erlaubt | Nötig für CMS-signierte Manifeste; Microsoft-Paket |
-| 2026-10-06 | Integrität erweitert: Manifest bindet ID/Version, keine fremden Dateien; NuGet-Cache wird geprüft; Vertrauen auch über Aussteller; Algorithmus-Kennung | Schließt Manipulationswege; Zertifikatserneuerung und Algorithmuswechsel ohne Bruch |
-| 2026-10-06 | IPluginVerifier, Prüf-Protokoll mit Event-IDs und API, CLI-Tool mit verify | Erweiterbar wie Handler; nachvollziehbar im Betrieb; prüfbar in CI |
-| 2026-10-06 | Doku auf Englisch, ausschließlich mit DocFX | Geprüfte API-Querverweise, Codebeispiele aus echtem Code, nur .NET-Toolchain; Design-Flexibilität bewusst nachrangig |
-| 2026-10-06 | Zunächst keine Versionsumschaltung; aktuelle Doku mit Versionshinweisen und Migrations-Guides | Mehr Aufwand als Nutzen, solange keine Hauptversionen parallel gepflegt werden |
-| 2026-10-06 | Doku nach Diátaxis gegliedert, gehostet auf GitHub Pages | Klare Trennung nach Leserbedarf; kostenloses Hosting direkt am Repo |
-| 2026-10-06 | Lizenz MIT | Verbreitet im .NET-Ökosystem, keine Hürden für Nutzer |
-| 2026-10-06 | Projektname Plugwright | Eindeutig auffindbar, Plugin-Bezug im Namen; ExtendR, Graft und Tenon sind anderweitig belegt |
-| 2026-10-06 | Testframework xUnit v3, getrennte Unit- und Integrationstests mit eigenen Test-Plugin-Projekten | Assembly-Fixtures für teure Vorbereitung, Standard im .NET-Open-Source-Umfeld |
-| 2026-10-06 | Prüfer werden explizit über builder.PluginVerifiers.Add\<T>() registriert, auch die mitgelieferten; ohne Prüfer keine Prüfung, nur Log-Hinweis. Ersetzt „Ohne Prüfkonfiguration: Development Warnung, sonst Exception“ | Anwender entscheidet selbst über Prüfungen; einheitliches Modell wie bei Handlern |
-| 2026-10-06 | Mehrere Prüfer: alle zuständigen müssen bestehen | Strenger und vorhersehbar; der schwächste Prüfer kann nichts aushebeln |
-| 2026-10-06 | Konfiguration je Plugin in v1, in eigener pluginsettings.json unter Plugwright:Plugins:{Id}; Datei gewinnt bei Konflikten | appsettings.json ist Teil der Auslieferung und nicht von der App speicherbar; Grundlage für Aktivieren in v2 |
-| 2026-10-06 | IPlugin.Configure(PluginContext) statt Configure(IHostApplicationBuilder) | Kontextobjekt ist erweiterbar, ohne IPlugin nach 1.0 zu brechen |
-| 2026-10-06 | Prüfer-Einstellungen im Code, optional ausdrücklich an einen appsettings-Abschnitt gebunden; pluginsettings.json darf sie nie setzen | Einstellungen sind die Vertrauensbasis; die von der App beschreibbare Datei darf sie nicht aushebeln |
-| 2026-10-07 | CI mit GitHub Actions ab Start: Build, Tests, DocFX-Build; NuGet-Publish später | Codebeispiele in der Doku müssen im CI mitkompiliert werden |
-| 2026-10-07 | Paketschnitt bestätigt; IPluginHandler, PluginDescriptor und IPluginVerifier im Hauptpaket | Handler und Prüfer kommen nur aus der Host-Anwendung; Abstractions bleibt minimal |
-| 2026-10-07 | Doppelter Aufruf von ApplyPlugins() oder UsePlugins() wirft eine Exception | Fast immer ein Fehler; konsistent mit Fail-fast |
-| 2026-10-07 | Log-Einträge aus Phase 1 werden gepuffert und in UsePlugins() ausgegeben; bei Fail-fast trägt die Exception die Informationen | Vor Build() gibt es keinen ILoggerFactory; eine temporäre Factory würde Provider doppelt aufbauen |
-| 2026-10-07 | PluginContext enthält zusätzlich einen (gepufferten) ILogger | Plugins sollen beim Einrichten ohne Umwege loggen können |
-| 2026-10-07 | Genau eine Plugin-Instanz je Typ, gehalten in PluginDescriptor.Instance, genutzt von allen Handlern in beiden Phasen | Kein doppelter Zustand; Phase 2 braucht Zugriff auf die Instanz aus Phase 1 |
-| 2026-10-07 | Plugin-Klassen einer Assembly teilen sich den Settings-Abschnitt | Folgt aus der Identität auf Ebene der Assembly |
-| 2026-10-07 | „Überspringen und loggen“ als ein globaler Schalter für Configure-Fehler, fehlende Handler und fehlgeschlagene Prüfung | Kleine API; Unterscheidung nach Fehlerart bei Bedarf später |
-| 2026-10-07 | Übersprungene Plugins nehmen alle (transitiv) abhängigen Plugins mit | Abhängige würden sonst an fehlenden Typen scheitern |
-| 2026-10-07 | DLL-Verzeichnis: plugins/<Name>/<Name>.dll, Ordner ist Einheit für Hashes, Manifest und Ladekontext | Eindeutige Haupt-Assembly ohne Heuristik |
-| 2026-10-07 | System.Reflection.MetadataLoadContext als Abhängigkeit erlaubt | Metadaten ohne Code-Ausführung mit handhabbarer Reflection-API |
-| 2026-10-07 | Ladeweg: ohne Prüfer LoadFromAssemblyPath, mit Prüfern LoadFromStream; native Bibliotheken nach Hash-Prüfung vom Pfad | Kompatibel ohne Prüfung, kein Austausch zwischen Prüfen und Laden mit Prüfung; Restrisiko bei nativen Bibliotheken dokumentiert |
-| 2026-10-07 | xUnit v3 in Version 4.x (Paket xunit.v3 4.0.1) statt 3.x | 4.x ist seit August 2026 final; die Spezifikation sah den Umstieg dann vor |
-| 2026-10-07 | Derselbe Plugin- oder Handler-Typ zweimal hinzugefügt: ArgumentException | Fast immer ein Fehler; betrifft nicht die offene Frage doppelter Plugin-IDs |
-| 2026-10-07 | Fehler in IPluginHandler.Use (Phase 2) werfen immer eine PluginException, unabhängig von FailureMode | „Überspringen und loggen“ ist nur für Phase 1 festgelegt; nach Phase 1 lässt sich ein Plugin nicht mehr sauber entfernen |
-| 2026-10-07 | Fehlermeldungen als PluginException mit PluginId; Fehlbedienung der Phasen als InvalidOperationException | Gezielt abfangbar; Standard-Exception für falsche Aufrufreihenfolge |
-| 2026-10-07 | PluginDescriptor.Instance bleibt object; zusätzlich Basisklasse PluginHandler<TPlugin> mit typisierter Instanz | Plugins eigener Art sollen IPlugin nicht implementieren müssen; die Basisklasse erspart Casts und CanHandle im häufigsten Fall |
-| 2026-10-07 | Relativer Pfad in AddFromDirectory bezieht sich auf ContentRootPath | Gleiche Basis wie appsettings.json; Konvention des Generic Host |
-| 2026-10-07 | Fehlendes Plugin-Verzeichnis: Warnung im Log, keine Exception | Eine Neuinstallation ohne Plugins soll starten; Tippfehler sind im Log sichtbar |
-| 2026-10-07 | Doppelte Plugin-IDs: Exception mit beiden Quellen, auch bei SkipAndLog; Vergleich ohne Groß-/Kleinschreibung | Unklar, welche Quelle gewinnen soll; Konfigurationsschlüssel unterscheiden nicht nach Groß-/Kleinschreibung |
-| 2026-10-07 | Defekter Plugin-Ordner (fehlende oder nicht ladbare Haupt-Assembly, kein Plugin-Typ) ist ein Plugin-Fehler | Ein Unterordner ist eine bewusste Installation; sein Ausfall darf nicht still bleiben |
-| 2026-10-07 | Gemeinsame Assemblies kommen in der Version des Hosts; fehlt sie im Host, lädt das Plugin seine Kopie | Typgleichheit für Plugin-Vertrag und DI; Plugins dürfen zusätzliche Microsoft.Extensions-Pakete nutzen |
-| 2026-10-07 | Plugin-Typen im Verzeichnis: nur öffentliche Typen der Haupt-Assembly | Klare Regel ohne Reflection auf interne Typen |
-| 2026-10-07 | PluginCollection ist nicht mehr aufzählbar; Quelle des Plugins steht in Fehlermeldungen und Log-Events (PluginSource) | Mit Verzeichnissen wären nur die Typen aus dem Code aufzählbar; im Betrieb muss erkennbar sein, woher ein Plugin kommt |
-| 2026-10-07 | PluginCollection zählt die hinzugefügten Quellen auf (öffentlich: PluginSource, PluginTypeSource, PluginDirectorySource). Ersetzt „PluginCollection ist nicht mehr aufzählbar“ | Iterierbar und ehrlich: enthält, was hinzugefügt wurde. Verzeichnisse werden nicht schon beim Hinzufügen gescannt, da Handler, Prüfer und Fehlermodus erst bei ApplyPlugins() feststehen und ungeprüfte DLLs sonst geladen würden. Die Quellen-Typen braucht später auch IPluginVerifier.CanVerify |
-| 2026-10-07 | Plugin-Version ist SemVer aus <Version> (InformationalVersion ohne Build-Metadaten); Assembly-Referenzen prüfen zusätzlich die AssemblyVersion als Minimum | Gleiches Format wie NuGet-Pakete später; Referenzprüfung folgt der .NET-Bindungsregel |
-| 2026-10-07 | [PluginDependency] nur mit MinVersion | Reicht für DLL-Plugins; NuGet-Pakete bringen Versionsbereiche aus der .nuspec mit; kein eigener Bereichsparser im Kern |
-| 2026-10-07 | [Plugin] und [PluginDependency] nur auf Assembly-Ebene | Metadaten und Abhängigkeiten gehören eindeutig zur Assembly |
-| 2026-10-07 | Fehlende oder zu alte Abhängigkeit, Zyklus: Plugin-Fehler; mit SkipAndLog werden betroffene Plugins (bei Zyklen alle Mitglieder) samt Abhängigen übersprungen | Konsistent mit Fail-fast; andere Plugins sollen weiterlaufen können |
-| 2026-10-07 | Schlägt ein Plugin-Typ einer Assembly fehl, gelten abhängige Plugins als nicht erfüllt; andere Typen derselben Assembly laufen weiter | Abhängige brauchen evtl. genau die Dienste des fehlgeschlagenen Typs; Plugins im Host-Projekt sollen sich nicht gegenseitig blockieren |
-| 2026-10-07 | Plugins aus dem Code können nicht von Plugins aus einem Verzeichnis abhängen | Sie liegen im Standard-Kontext und würden eine eigene Kopie der Assembly laden; Typgleichheit wäre nicht möglich |
-| 2026-10-07 | Metadaten von Plugin-Ordnern per MetadataLoadContext mit den Host-Assemblies (TPA) und den Dateien des Ordners | Abhängigkeiten werden geprüft, bevor Plugin-Code geladen wird |
-| 2026-10-07 | InternalsVisibleTo für Plugwright.Tests | Unit-Tests für SemVer-Vergleich und Abhängigkeitsauflösung ohne öffentliche API dafür |
-| 2026-10-07 | Mitgelieferte Prüfer über eigene Methoden (AddHashVerifier, AddCertificateVerifier) mit Delegate oder Konfigurationsabschnitt; eigene über Add(instance)/Add<T>() | Prüfer brauchen Einstellungen; auffindbar und typgeprüft, Bindung an Konfiguration bleibt ein ausdrücklicher Aufruf |
-| 2026-10-07 | Plugins aus dem Code werden nicht geprüft | Sie sind Teil der Host-Anwendung; sonst bräuchte jede App einen Prüfer für den eigenen Code |
-| 2026-10-07 | Keine Zeitstempel für Manifest-Signaturen in v1 | Deutlich weniger Aufwand; nach Zertifikatsablauf wird neu signiert |
-| 2026-10-07 | Sperrlistenprüfung einstellbar, Standard NoCheck | Rechner ohne Netzzugang sollen starten; die Doku empfiehlt Online beim Vertrauen über Aussteller |
-| 2026-10-07 | CLI Plugwright.Cli / plugwright; lock-Befehl vor die übrigen Schritte gezogen | Doku und Beispiele zur Prüfung brauchen ein echtes Werkzeug für die Lock-Datei |
-| 2026-10-07 | Prüffehler aller Art sind Plugin-Fehler und lassen sich mit SkipAndLog überspringen | Konsistent mit den übrigen Ladefehlern |
-| 2026-10-07 | PluginReport im DI-Container mit aktiven und übersprungenen Plugins und Prüfergebnissen | Erfüllt „Ergebnisse per API“ und die früher besprochene Abfrage geladener Plugins |
-| 2026-10-07 | Hinweis „keine Prüfer registriert“ auf Ebene Information, nur wenn Plugin-Verzeichnisse hinzugefügt wurden | Ohne Verzeichnisse gibt es nichts zu prüfen; Information statt Warnung, da ungeprüftes Laden eine zulässige Wahl ist |
-| 2026-10-07 | Signiertes Manifest als eine Datei plugwright.manifest.p7s (CMS mit eingebettetem JSON) | Eine Datei statt Manifest plus Signatur; einfach zu signieren und auszuliefern |
-| 2026-10-07 | Vertrauen als Herausgeber über Stamm-Zertifikat als Datei und Antragsteller; Zwischenzertifikate aus der Signatur | Plattformunabhängig ohne Zertifikatsspeicher; Erneuerung des Zertifikats ohne Änderung am Host |
-| 2026-10-07 | Sperrlistenprüfung nur für Herausgeber, nicht für Fingerabdrücke | Selbstsignierte Zertifikate haben keine Sperrliste; bei Fingerabdrücken entfernt man den Eintrag |
-| 2026-10-07 | plugwright sign mit PKCS#12-Datei, Passwort auch aus PLUGWRIGHT_CERTIFICATE_PASSWORD | Gängiges Format für Signaturzertifikate; Passwort muss nicht im Shell-Verlauf landen |
-| 2026-10-07 | Beispiel SignedPlugins erzeugt eine Beispiel-CA beim Build; keine Schlüssel im Repository | Private Schlüssel gehören nicht ins Repository; Doku-Ausschnitt bleibt rechnerunabhängig |
-| 2026-10-07 | Drittpaket-Abhängigkeiten: aus dem Ordner, vom Host oder optional aus einem Feed; NuGet.Protocol in Plugwright.NuGet erlaubt | Bequem, wenn gewünscht; ohne Feed keine Netzwerkzugriffe zur Laufzeit |
-| 2026-10-07 | Pakete werden im Speicher geladen; nur native Bibliotheken in einen temporären Ordner je Prozess | Kein Cache, der geprüft, geschützt und aufgeräumt werden muss |
-| 2026-10-07 | Plugin-Pakete per Package-Type PlugwrightPlugin erkennen | Aus Metadaten erkennbar, ohne Code zu laden; Bibliothekspakete bleiben eindeutig |
-| 2026-10-07 | Paketsignaturen über eigenen Prüfer in Plugwright.NuGet mit den Vertrauenseinstellungen des CertificateVerifier | Kern bleibt frei von NuGet-Abhängigkeiten |
-| 2026-10-07 | Downloads aus dem Feed in ein Download-Verzeichnis, niedrigste passende Version | Nächster Start ohne Netz möglich; reproduzierbar und mit Lock-Datei vereinbar |
-| 2026-10-07 | Mit Prüfern werden alle Pakete geprüft, auch Bibliothekspakete | Auch Bibliotheken laufen als Code im Prozess |
-| 2026-10-07 | Plugwright.NuGet nutzt interne Typen des Kerns (InternalsVisibleTo) statt einer öffentlichen Quellen-API | Öffentliche API bleibt klein; beide Pakete werden gemeinsam versioniert |
-| 2026-10-07 | HashVerifier prüft alle Quellen außer Code-Plugins; Pakete stehen in der Lock-Datei unter ihrem Dateinamen | Ein Format für Ordner und Pakete; zwei Versionen einer Bibliothek kollidieren nicht |
-| 2026-10-07 | PackageSignatureVerifier prüft die primäre Signatur und nutzt die Vertrauenslogik des CertificateVerifier (CertificateTrust) | Gleiche Vertrauensregeln für Manifeste und Pakete; Kern bleibt ohne NuGet |
-| 2026-10-07 | Auch bei Paketsignaturen keine Auswertung von Zeitstempeln | Konsistent mit den Manifesten; für Pakete mit inzwischen abgelaufenem Zertifikat (z. B. ältere nuget.org-Pakete) die Lock-Datei verwenden |
-| 2026-10-07 | Beispiel SignedPackages signiert mit selbstsigniertem RSA-Zertifikat über die NuGet-API | NuGet akzeptiert nur Ketten zu einem Stamm, dem der signierende Rechner vertraut, oder selbstsignierte Zertifikate |
-| 2026-10-07 | Feed lädt nur Bibliothekspakete, keine Plugin-Pakete | Plugins werden bewusst installiert; ein Feed soll keine neuen Plugins einschleusen |
-| 2026-10-07 | Feed-Option DownloadTimeout, Standard 30 s | Fehlendes Netz soll den Start nicht minutenlang blockieren |
-| 2026-10-07 | Downloads werden erst nach bestandener Prüfung gespeichert; Log-Event 1007 je Download | Abgelehnte Pakete landen nicht auf der Platte; Netzwerkzugriffe beim Start sind sichtbar |
-| 2026-10-07 | plugwright lock mit mehreren Verzeichnissen | Eine Lock-Datei für Paketordner und Download-Verzeichnis |
-| 2026-10-07 | `Plugins.AddFromConfiguration` und `PluginVerifiers.AddFromConfiguration` lesen Quellen, Fehlermodus und Prüfer aus dem Abschnitt `Plugwright`; nur bei ausdrücklichem Aufruf. Ergänzt „Welche Prüfer es gibt, legt immer der Code fest“: der Code kann diese Entscheidung ausdrücklich an die Konfiguration abgeben | Betrieb soll Plugins und Prüfung ohne Neukompilieren ändern können; der Aufruf bleibt eine bewusste Entscheidung im Code, pluginsettings.json kann diese Schlüssel nie setzen |
-| 2026-10-07 | Unbekannte Schlüssel in diesen Abschnitten sind Fehler; ein Prüfer ist an, wenn sein Abschnitt Einstellungen hat oder `true` ist | Ein Tippfehler darf die Prüfung nicht still abschalten; leere JSON-Objekte erzeugen keine Konfigurationsschlüssel |
-| 2026-10-07 | `PluginPackageOptions.VerifyDownloads`, Standard `true` | Wer dem eigenen Feed vertraut, muss Downloads nicht in die Lock-Datei aufnehmen; sicher als Standard |
-| 2026-10-10 | ASP.NET Core und Blazor Server, Aktivieren/Deaktivieren per Konfiguration, Pflicht-Plugins und ein asynchroner Start-Hook kommen in v1 (`requirements-web-host.md`) | Zielanwendung mit API- und Blazor-Host braucht sie |
-| 2026-10-10 | Pakete `Plugwright.AspNetCore.Abstractions` (`IWebPlugin`, `IBlazorPlugin`) und `Plugwright.AspNetCore` (Web- und Blazor-Handler, Komponenten-Assemblies, Katalog-Endpunkt); kein eigenes `Plugwright.Blazor` | Die Verträge brauchen ASP.NET-Core-Typen und gehören nicht in `Plugwright.Abstractions`; Blazor ist Teil des Shared Framework, ein eigenes Paket spart keine Abhängigkeit |
-| 2026-10-10 | `IPluginCatalog`, `PluginInfo`, `PluginState` und das Endpunkt-DTO liegen in `Plugwright.Abstractions`; `PluginReport` bleibt für Descriptors und Prüfergebnisse, `SkippedPlugins` entfällt | Plugins sollen ihren Zustand ohne Hauptpaket prüfen können; keine zwei Listen mit gleichem Inhalt; noch nicht veröffentlicht |
-| 2026-10-10 | Fehler-Policy je Plugin mit den bestehenden Namen `FailureMode`/`PluginFailureMode` statt `FailurePolicy`; dazu `Required` | Keine Umbenennung ohne Gewinn |
-| 2026-10-10 | `PluginSource` im Katalog als Text statt Enum | Name kollidiert mit der bestehenden Klasse `PluginSource` |
-| 2026-10-10 | Web-Handler in Phase 2 je Plugin: erst `ConfigurePipeline`, dann `MapEndpoints` (statt erst alle `ConfigurePipeline`) | `Map…` fügt keine Middleware ein, das Ergebnis ist gleich; sonst bräuchte `IPluginHandler` einen weiteren Haken |
-| 2026-10-10 | Application Parts in Phase 1: vorhandenen `ApplicationPartManager` ergänzen, sonst einen mit den Standard-Parts der App anlegen, den `AddControllers()` später übernimmt | Controller werden gefunden, egal ob `AddControllers()` vor oder nach `ApplyPlugins()` steht, ohne MVC zu erzwingen |
-| 2026-10-10 | `Plugwright.AspNetCore*` und `Microsoft.AspNetCore.*` sind gemeinsame Assemblies wie `Microsoft.Extensions.*` | Typgleichheit für Web-Verträge bei Plugins aus Verzeichnissen |
-| 2026-10-10 | `IPluginStartup.StartAsync(CancellationToken)` ohne `IServiceProvider` | Die Aufgabe wird je Scope aus DI aufgelöst und bekommt Dienste per Konstruktor, wie `IHostedService` |
-| 2026-10-10 | Deaktivierte Plugins aus Verzeichnis oder Paket: Id aus Ordner- bzw. Paketname, keine Prüfung, kein Laden; Metadaten nur ohne Prüfer | „Erst prüfen, dann Metadaten lesen“ bleibt; ein deaktiviertes, beschädigtes Plugin darf den Start nicht verhindern |
-| 2026-10-10 | Dienste eines in `Configure` fehlgeschlagenen Plugins werden zurückgenommen (Stand von `builder.Services` davor); Konfigurationsquellen, `Properties` und `ConfigureContainer` nicht | Die Dienstliste lässt sich zuverlässig wiederherstellen, die übrigen Teile nicht |
-| 2026-10-10 | `pluginsettings.json` wird vor dem Aktivieren/Deaktivieren umgesetzt | R-10 und R-13 setzen sie voraus |
-| 2026-10-10 | Doku-Seiten der Web-Anforderungen folgen nach dem Umzug der Doku von DocFX auf Zensical; XML-Doku, Tests und Samples sofort | Seiten nicht zweimal schreiben |
-| 2026-10-10 | Samples dürfen Aspire- und OpenTelemetry-Pakete nutzen, Bibliotheken nicht | Aspire-ServiceDefaults wie im Template |
-| 2026-10-10 | Per-Plugin-Einstellungen in `PluginPolicy` (`Required`, `FailureMode`), gesetzt über `Add<T>(policy => …)`, `Configure(id, …)`, `Require(id)`; der globale `FailureMode` ist der Standard, die Policy überschreibt ihn | Ein Ort für alles, was der Code je Plugin festlegt; funktioniert für alle Quellen über die Plugin-Id |
-| 2026-10-10 | Probleme von Pflicht-Plugins, die vor Phase 1 bekannt sind (fehlt, deaktiviert, Abhängigkeit nicht verfügbar, Prüfung), werfen vor dem ersten `Configure`; Fehler in `Configure` werden bis zum Ende von Phase 1 gesammelt | R-11 verlangt die Auflösung vor Phase 1; Pflicht-Fehler in `Configure` lassen sich erst danach zusammen melden |
-| 2026-10-10 | Eine Kette ab einem deaktivierten Plugin ist kein Fehler: abhängige Plugins werden `DependencyUnavailable`, ohne dass der Fehlermodus greift | Deaktivieren ist eine bewusste Entscheidung und soll den Start nicht abbrechen |
-| 2026-10-10 | Fehlgeschlagene Prüfung eines Plugin-Pakets erscheint unter der Paket-Id, nicht unter dem Dateinamen | Der Katalog nennt Plugins einheitlich nach Id |
-| 2026-10-10 | Log-Event 1008 `PluginStatus` je Plugin; Meter `Plugwright` mit Gauge `plugwright.plugins` je Zustand | R-12 und R-02; Aktivitäten folgen mit den Startaufgaben (R-31) |
-| 2026-10-10 | `MapPluginCatalog(pattern, includeErrorMessages)` als einfacher Parameter statt Options-Klasse; DTO `PluginStatus` mit Zuständen als Text | Kleine API; lesbares JSON |
-| 2026-10-10 | `IPluginSettingsStore` in `Plugwright.Abstractions` mit `SetEnabledAsync` und `SaveSettingsAsync`; Pfad über `Options.SettingsFile` bzw. `Plugwright:SettingsFile` | Plugins können eigene Einstellungen speichern; Betrieb wählt einen beschreibbaren Ort |
-| 2026-10-10 | Startaufgaben: `PluginContext.AddStartup<T>()` registriert die Aufgabe scoped und einen internen Eintrag in der Dienstliste; ein interner `IHostedLifecycleService` wird als erster Hosted Service eingefügt und führt sie in `StartingAsync` aus | Läuft vor jedem `StartAsync`, auch vor dem Webserver; Reihenfolge aus Phase 1 bleibt erhalten; zurückgenommene Dienste nehmen ihre Startaufgaben mit |
-| 2026-10-10 | Fehler in einer Startaufgabe folgen dem Fehlermodus des Plugins: Pflicht oder `FailFast` → Host-Start schlägt fehl; `SkipAndLog` → `Failed`, Abhängige `DependencyUnavailable` | Gleiche Regeln wie in Phase 1; „optional“ aus R-31 entspricht `SkipAndLog` |
-| 2026-10-10 | Log-Events 1009 `PluginStartupCompleted` (mit Dauer), 1010 `PluginStartupFailed`, 1011 `PluginStartupSkipped`; Aktivität `Plugwright.Startup` in der `ActivitySource` `Plugwright` | Nachvollziehbar im Betrieb; Aktivitäten werden nur aufgezeichnet, wenn ein Listener vor dem Start existiert |
-| 2026-10-10 | Kein Paket `Plugwright.Testing` | Deaktivieren und Fehlerfälle gehen mit `WebApplicationFactory` und `UseSetting`; Tests in `WebApplicationFactoryTests` zeigen das Muster |
-| 2026-10-10 | Doku-Seite mit Zensical statt DocFX; DocFX erzeugt nur noch die API-Referenz als Markdown (`docfx metadata`, `outputFormat: markdown`), ein kleines Werkzeug (`docs/tools/FixApiMarkdown.cs`) löst dessen `<xref>`-Verweise auf. Ersetzt „Doku ausschließlich mit DocFX“ | Eine Seite mit einheitlichem Aussehen und Suche; Zensical prüft Links, Anker und Code-Ausschnitte im strikten Modus; API-Referenz weiter aus den XML-Kommentaren |
-| 2026-10-10 | Veröffentlichte Seiten in `docs/content/`, Spezifikation bleibt in `docs/design/` | Zensical kennt kein `exclude_docs`; die deutsche Spezifikation soll nicht veröffentlicht werden |
-| 2026-10-10 | Code-Ausschnitte über `pymdownx.snippets` mit Markierungen `// --8<-- [start:name]` statt `#region` | Snippets kennt keine Regionen; fehlende Dateien oder Abschnitte lassen den Build scheitern |
-| 2026-10-10 | Python (Zensical) als Werkzeug für die Doku, Version in `docs/requirements.txt` | Zensical ist ein Python-Paket; die übrige Toolchain bleibt .NET |
-| 2026-10-10 | Bekannte Lücke: DocFX dokumentiert C#-14-Extension-Members nicht (dotnet/docfx#10943 überspringt sie) | Bis DocFX sie unterstützt, beschreiben Klassen-Doku und Anleitungen `builder.Plugins`, `ApplyPlugins()` usw. |
-| 2026-10-10 | In Tests mit `WebApplicationFactory` wirkt nur `UseSetting` auf `ApplyPlugins()`; `ConfigureAppConfiguration` greift erst bei `Build()` und damit zu spät. Abweichung von R-40, dokumentiert in „Test applications that use Plugwright“ | Verhalten von Minimal Hosting: Konfigurations-Callbacks der Factory laufen beim `Build()` |
-| 2026-10-10 | Namespaces nach Paket: Typen von `Plugwright.NuGet` in `Plugwright.NuGet`, von `Plugwright.AspNetCore(.Abstractions)` in `Plugwright.AspNetCore`; `*.Abstractions` teilt den Namespace seines Hauptpakets; Extension Members bleiben in `Plugwright` | Microsoft-Konvention (z. B. `Microsoft.Extensions.Hosting.Abstractions`); Extension Members ohne zusätzliches `using` auffindbar; vor der ersten Veröffentlichung kein Bruch für Nutzer |
-| 2026-10-10 | API-Navigation als Baum wie auf Microsoft Learn: `FixApiMarkdown.cs` erzeugt `api/SUMMARY.md` (Namespace, Typen nach Art gruppiert), Zensical liest ihn über `literate-nav`; lange Namen umbrechen an Großbuchstaben | Alle Typen mit einem Klick erreichbar; die Navigation bleibt generiert und muss nicht gepflegt werden |
-| 2026-10-11 | Code-Stil nach den Microsoft-Konventionen (C#-Konventionen auf Microsoft Learn, Stil von dotnet/runtime), in `.editorconfig` festgelegt und im Build erzwungen; Bibliothekscode mit `ConfigureAwait(false)` (CA2007) und Argumentprüfung (CA1062); `var` für alle lokalen Variablen, deren Typ der Compiler ableiten kann | Einheitlicher Code ohne Diskussion im Review; `var` als Projektentscheidung, weil dotnet/runtime es nur bei offensichtlichem Typ nutzt |
-| 2026-10-11 | Ein Typ je Datei, die Datei heißt wie der Typ | Typen sind ohne Suche auffindbar, wie in dotnet/runtime |
-| 2026-10-11 | Extension-Klassen heißen `{Feature}{ErweiterterTyp}Extensions`, z. B. `PackagePluginCollectionExtensions`, `PluginCatalogEndpointRouteBuilderExtensions` | Muster von `Microsoft.Extensions.*` und ASP.NET Core |
-| 2026-10-11 | `PluginPolicy.Required` heißt `IsRequired` | Gleich wie `PluginInfo.IsRequired`; Präfix `Is` für Boolean-Eigenschaften nach den Framework Design Guidelines |
-| 2026-10-11 | R-52: `builder.Plugins.ShareAssembly(Assembly)` und `ShareAssemblies(prefix)`; Präfix nur an Namensgrenzen (`X` trifft `X` und `X.*`, nicht `XY`); gilt global für alle Plugins aus Verzeichnissen und Paketen, nur im Code; gleiche Regeln wie die eingebauten geteilten Assemblies (Host-Version gewinnt, fehlt sie dem Host, nimmt das Plugin seine Kopie) | Typgleichheit für App-Verträge, UI-Bibliotheken, EF Core; Freigabe je Plugin würde Typgleichheit zwischen Plugins brechen, erst bei echtem Bedarf |
-| 2026-10-11 | R-53: `builder.Plugins.AddFromReferencedAssemblies(prefix)` liest `deps.json` über `DependencyContext` (Präfix Pflicht, Namensgrenze wie R-52), dazu `AddFromAssembly(Assembly)`; gefundene Plugins zählen wie im Code hinzugefügte; fehlt `deps.json`, gibt es eine Exception; nicht trimming-kompatibel (dokumentiert) | `AppDomain.GetAssemblies()` sieht nicht geladene Referenzen nicht; ohne Präfix würde das Framework gescannt und fremde Plugin-Typen aktiviert |
-| 2026-10-11 | R-50: zentraler Health Check im Core (`AddHealthChecks().AddPlugins()`, Abhängigkeit `Microsoft.Extensions.Diagnostics.HealthChecks`) meldet nur Plugins, die wegen eines Fehlers nicht laufen (`Failed`, `VerificationFailed`, `NoHandler`, `DependencyUnavailable` wegen eines Fehlers); abgeschaltete Plugins und Ketten ab ihnen zählen nicht; Status bei Fehlern einstellbar, Standard `Degraded`; Laufzeit-Checks registrieren Plugins selbst in `Configure` | Plugin-eigene Checks verschwinden mit abgeschalteten oder zurückgenommenen Plugins von selbst; der zentrale Check schließt nur die Lücke der fehlgeschlagenen; auch für Worker-Hosts |
-| 2026-10-11 | R-14: keine `IPluginActivationSource`; eine Anleitung zeigt einen eigenen Konfigurationsprovider für `Plugwright:Plugins:{Id}:Enabled` | Ein Konfigurationsprovider kann das schon; keine API ohne konkreten Fall |
-| 2026-10-11 | R-15: optionale Abhängigkeiten über `[PluginDependency(…, IsOptional = true)]` (bei Paketen nur per Attribut, NuGet kennt keine optionalen); vorhanden → wie Pflicht-Abhängigkeit (Reihenfolge, Typen teilen); fehlt, abgeschaltet oder fehlgeschlagen → Plugin lädt trotzdem; zu alte Version ist ein Fehler; Attribut stuft eine aus Assembly-Referenz abgeleitete Abhängigkeit herunter; Abfrage in Phase 1 mit `PluginContext.IsPluginLoaded(id)`, zur Laufzeit über `IPluginCatalog` | Falsche Version ist ein Installationsfehler, der sichtbar sein soll; Plugin entscheidet schon beim Registrieren seiner Dienste |
-| 2026-10-11 | R-32: `IApplicationRestarter.RequestRestart()` in `Plugwright.Abstractions`, immer registriert; `builder.Plugins.Options.RestartMode` = `ApplicationRestartMode.ExitCode` (Standard: Exit-Code setzen, `StopApplication()`) oder `Relaunch` (Prozess mit gleicher Datei und gleichen Argumenten neu starten; der neue wartet mit Timeout auf das Ende des alten); `RestartExitCode` Standard 75 (`EX_TEMPFAIL`); eigene Registrierung ersetzt beides; IIS startet beim nächsten Request neu | Wie neu gestartet wird, hängt von der App ab (Dienst-Manager vs. Konsole/Desktop); ein Code ≠ 0 wirkt bei systemd `on-failure`, Windows-Diensten und Docker `on-failure`; eine Bibliothek startet nicht ungefragt Prozesse |
-| 2026-10-11 | R-51: Ziel ist volle Gleichwertigkeit mit Projektreferenzen: `_content/<Id>/…` aus `wwwroot`, Scoped CSS (Bündel je Plugin, Pfade über `IPluginComponentAssemblies`), `MapStaticAssets` mit Fingerprinting, Kompression, `@Assets`, `ImportMap`; Auslieferung (Plugin-Ordner/Temp vs. Speicher) und API erst nach einem Spike mit echtem RCL-Plugin | Plugins dürfen Blazor-Funktionen nicht einschränken; ob RCL-Publish ein Endpunkt-Manifest erzeugt und `MapStaticAssets` mehrere Manifeste und Dateien ohne physischen Pfad kann, ist ungeklärt |
-| 2026-10-11 | R-17: kein Mechanismus in Plugwright; die Anleitung „Split a plugin across hosts“ zeigt das Muster aus `SplitHosts` (Web-Host liest vor `ApplyPlugins()` den Katalog-Endpunkt der API; nicht erreichbar → UI-Plugins bleiben an) und nennt die Alternativen | Phase 1 hat kein DI, keine Service Discovery und müsste synchron per HTTP prüfen; Start beider Hosts würde gekoppelt; der Zustand der API ändert sich nach dem Start der UI |
-| 2026-10-11 | Plugin = Assembly bzw. Paket bleibt die Einheit für Katalog, Health Check, An/Aus, Einstellungen, Pflicht und Abhängigkeiten; keine Abhängigkeiten oder Zustände je Plugin-Klasse; Doku erklärt das („One plugin, several classes“) | Load Context, Metadaten, Verifizierung und Assembly-Referenzen sind je Assembly; braucht nur eine Klasse eine Abhängigkeit, hilft eine optionale Abhängigkeit mit `IsPluginLoaded`; getrennte Zustände heißen getrennte Plugins |
-| 2026-10-11 | R-51 nach Spike (`docs/design/spike-r51-static-assets.md`): Plugin-Assets getrennt vom Host mappen (`app.MapStaticAssets()` bleibt unverändert, dazu `app.MapPluginStaticAssets()`); Plugin-Manifeste werden auf `_content/{Id}/` umgeschrieben, `wwwroot` per File-Provider in den `WebRootFileProvider` gehängt | App-Code bleibt unverändert; Preis: `@Assets` und `ImportMap` kennen keine Fingerprints der Plugin-Dateien, ausgeliefert werden sie trotzdem mit Kompression, ETag und Fingerprint-Routen |
-| 2026-10-11 | R-51: Quelle der Dateien konfigurierbar: wie Assemblies (Pakete aus dem Speicher, Verzeichnisse mit Prüfern aus dem Speicher, ohne von der Platte) oder von der Platte (Pakete über den Temp-Ordner); Kompression der Paket-Assets konfigurierbar: unkomprimiert oder beim Start im Speicher komprimiert | Wenig RAM soll keine Auslieferung aus dem Speicher erzwingen; Startzeit gegen Bandbreite abwägbar. Namen und Standardwerte der Optionen und ob Verzeichnis-Plugins im Plattenmodus direkt aus ihrem Ordner ausgeliefert werden, klären bei der Umsetzung |
-| 2026-10-11 | R-51: Scoped CSS über eine Komponente `<PluginStyleSheets />` in `Plugwright.AspNetCore` für den `<head>`; ein `<link>` je Plugin aus Verzeichnis oder Paket, Plugins per Projektreferenz nicht (schon in `{App}.styles.css`) | Kein Code pro App; die Komponente kennt die Fingerprint-Route aus dem Manifest des Plugins |
-| 2026-10-11 | R-51: Verzeichnis-Plugins mit statischen Assets brauchen die Publish-Ausgabe; Pakete liefern ihre Endpunkte als MSBuild-XML (`build/Microsoft.AspNetCore.StaticWebAssetEndpoints.props`), die Plugwright liest | Build-Ausgabe enthält die Dateien nicht; Pakete enthalten kein JSON-Manifest |
-| 2026-10-11 | R-51 umgesetzt: `PluginStaticAssetsOptions.Source` mit `Disk` (Standard) und `Memory` („wie Assemblies“), `CompressPackageAssets` (Standard `false`); Verzeichnis-Plugins im Plattenmodus direkt aus ihrem `wwwroot`, Pakete über den Temp-Ordner `plugwright-assets`; das Scoped-CSS-Bündel eines veröffentlichten Plugins bleibt im Wurzelpfad (`{Id}.styles.css`), weil es die Bündel seiner Bibliotheken relativ importiert; Routen, die Host oder ein früheres Plugin schon bedienen, werden übersprungen; Build-Ausgabe wird mit Warnung 1014 übersprungen | Platte als Standard spart Speicher (Entscheidung des Nutzers); Doku nennt Sicherheitsrisiko (Dateien nach der Prüfung änderbar; gleiche Größe wird ausgeliefert) und Speicherbedarf von `Memory` (Assets der Pakete; Verzeichnisse mit Prüfern liegen ohnehin im Speicher) |
-| 2026-10-11 | R-51 ergänzt: `.AddPluginAssemblies(app)` hängt in einem `Finally`-Callback die Assets der Plugins (Label und Integrity, wie Blazor) an die `ResourceAssetCollection` des Hosts und setzt eine neue `ImportMapDefinition`; damit liefern `@Assets` und `ImportMap` auch für Plugin-Dateien Fingerprints. Ersetzt die Einschränkung aus „Plugin-Assets getrennt vom Host mappen“; `app.MapStaticAssets()` bleibt unverändert | Spike: Blazor nimmt die zuletzt hinzugefügte Sammlung, im `Finally` liegt die des Hosts schon vor; keine Änderung am App-Code, Reihenfolge der Aufrufe egal |
-| 2026-10-11 | Warnung 1016, wenn die App Routen unter `_content/{PluginId}/` eines Plugins aus Verzeichnis oder Paket selbst bedient; Asset-Tests laufen auch in `Production` | Gefunden beim manuellen Test: eine `ProjectReference` mit `ReferenceOutputAssembly="false"` zieht die Plugin-Assets ins Build-Manifest der App, das nur `Development` auflösen kann; in `Production` kamen leere Antworten. Tests liefen bis dahin nur in `Development` |
+| 2026-10-06 | The foundation is `IHost` and `IHostApplicationBuilder` | Use Microsoft's modern standard abstractions |
+| 2026-10-06 | Start with a console app on the Generic Host | Small, clear entry point |
+| 2026-10-06 | Published as open source on GitHub | Hence the high bar for the docs |
+| 2026-10-06 | The target framework is .NET 10 only | LTS, no legacy users, C# 14 extension members available; multi-targeting later if needed |
+| 2026-10-06 | Errors in Configure: fail-fast by default, optionally skip and log | Silent skipping hides errors in production; option for scenarios that must not block |
+| 2026-10-06 | Extension members only (variant C), no custom builder or app class | Works with every host type, including web; wrappers would have to be rebuilt per host type |
+| 2026-10-06 | Two explicit calls for all apps: builder.ApplyPlugins() before, app.UsePlugins() after Build() | Uniform for console and web; the user controls the position in the middleware pipeline; .NET convention AddX/UseX |
+| 2026-10-06 | Plugins.Add…() only stores types; the handler pipeline processes them | New plugin kinds (web, Blazor, custom) without changing the core |
+| 2026-10-06 | Handlers are registered separately from plugins, directly on the builder | Clear separation: plugins describe what, handlers how |
+| 2026-10-06 | All matching handlers run, in registration order | Handlers can be combined as building blocks per interface, no catch-all handlers needed |
+| 2026-10-06 | No handler for a type: exception; the skip-and-log option applies too | Almost always a configuration error; consistent with fail-fast |
+| 2026-10-06 | Handler registration via builder.PluginHandlers.Add\<T>(); in v1 only from the host application | "Handlers" has several meanings in .NET; handlers from plugins make the behavior unpredictable |
+| 2026-10-06 | Term "plugin" instead of "module" | In .NET, "module" stands for splitting up one's own app; "plugin" for optional, loadable extensions; common search term |
+| 2026-10-06 | v1 sources: directly in Program.cs, DLL directory, NuGet folder; DLL and NuGet with integrity verification | Requirement for v1 |
+| 2026-10-06 | Plugin metadata and dependencies between plugins come in v1 | Requirement for v1 |
+| 2026-10-06 | Metadata from .nuspec or assembly, code attributes as fallback; identity at assembly/package level | No duplicate maintenance; matches how plugins are shipped |
+| 2026-10-06 | Dependency = presence, order, type sharing; optional dependencies only in v2 | Without type sharing, dependencies between isolated plugins would hardly be usable; optional ones need a contract concept |
+| 2026-10-06 | NuGet.Packaging in its own package \*.NuGet | Do not rebuild version ranges, TFM selection and signatures; the core stays lean |
+| 2026-10-06 | Attributes only add to package/assembly metadata, never override | Unambiguous rule, nothing is silently discarded |
+| 2026-10-06 | Integrity verification in v1 by hash or certificate; DLLs via signed manifest, NuGet via package signature | Platform-independent; certificates save list maintenance on updates |
+| 2026-10-06 | Without verification configuration: warning in Development, exception otherwise | Convenient in development, safe in production |
+| 2026-10-06 | System.Security.Cryptography.Pkcs allowed as a dependency | Needed for CMS-signed manifests; Microsoft package |
+| 2026-10-06 | Integrity extended: manifest binds ID/version, no foreign files; NuGet cache is verified; trust via issuer too; algorithm identifier | Closes tampering paths; certificate renewal and algorithm change without breaking |
+| 2026-10-06 | IPluginVerifier, verification log with EventIds and API, CLI tool with verify | Extensible like handlers; traceable in production; checkable in CI |
+| 2026-10-06 | Docs in English, exclusively with DocFX | Checked API cross-references, code samples from real code, .NET toolchain only; design flexibility deliberately secondary |
+| 2026-10-06 | No version switcher for now; current docs with version notes and migration guides | More effort than benefit as long as no major versions are maintained in parallel |
+| 2026-10-06 | Docs structured by Diátaxis, hosted on GitHub Pages | Clear separation by reader need; free hosting right next to the repo |
+| 2026-10-06 | MIT license | Widespread in the .NET ecosystem, no hurdles for users |
+| 2026-10-06 | Project name Plugwright | Easy to find, plugin reference in the name; ExtendR, Graft and Tenon are taken |
+| 2026-10-06 | Test framework xUnit v3, separate unit and integration tests with their own test plugin projects | Assembly fixtures for expensive preparation, standard in .NET open source |
+| 2026-10-06 | Verifiers are registered explicitly via builder.PluginVerifiers.Add\<T>(), including the built-in ones; without verifiers no verification, only a log notice. Replaces "Without verification configuration: warning in Development, exception otherwise" | The user decides about verification; uniform model as for handlers |
+| 2026-10-06 | Several verifiers: all responsible ones must pass | Stricter and predictable; the weakest verifier cannot undermine anything |
+| 2026-10-06 | Configuration per plugin in v1, in a separate pluginsettings.json under Plugwright:Plugins:{Id}; the file wins on conflicts | appsettings.json is part of the deployment and cannot be saved by the app; foundation for enabling in v2 |
+| 2026-10-06 | IPlugin.Configure(PluginContext) instead of Configure(IHostApplicationBuilder) | A context object is extensible without breaking IPlugin after 1.0 |
+| 2026-10-06 | Verifier settings in code, optionally bound explicitly to an appsettings section; pluginsettings.json may never set them | The settings are the basis of trust; the file the app can write to must not undermine them |
+| 2026-10-07 | CI with GitHub Actions from the start: build, tests, DocFX build; NuGet publishing later | Code samples in the docs must be compiled in CI |
+| 2026-10-07 | Package split confirmed; IPluginHandler, PluginDescriptor and IPluginVerifier in the main package | Handlers and verifiers only come from the host application; Abstractions stays minimal |
+| 2026-10-07 | Calling ApplyPlugins() or UsePlugins() twice throws an exception | Almost always a mistake; consistent with fail-fast |
+| 2026-10-07 | Log entries from phase 1 are buffered and written in UsePlugins(); with fail-fast the exception carries the information | There is no ILoggerFactory before Build(); a temporary factory would build providers twice |
+| 2026-10-07 | PluginContext additionally contains a (buffered) ILogger | Plugins should be able to log directly while setting up |
+| 2026-10-07 | Exactly one plugin instance per type, kept in PluginDescriptor.Instance, used by all handlers in both phases | No duplicate state; phase 2 needs access to the instance from phase 1 |
+| 2026-10-07 | Plugin classes of one assembly share the settings section | Follows from identity at assembly level |
+| 2026-10-07 | Skip-and-log as one global switch for Configure errors, missing handlers and failed verification | Small API; distinguishing by error kind later if needed |
+| 2026-10-07 | Skipped plugins take all (transitively) dependent plugins with them | Dependents would otherwise fail on missing types |
+| 2026-10-07 | DLL directory: plugins/<Name>/<Name>.dll, the folder is the unit for hashes, manifest and load context | Unambiguous main assembly without heuristics |
+| 2026-10-07 | System.Reflection.MetadataLoadContext allowed as a dependency | Metadata without code execution with a manageable reflection API |
+| 2026-10-07 | Load path: without verifiers LoadFromAssemblyPath, with verifiers LoadFromStream; native libraries from their path after hash verification | Compatible without verification, no swap between verifying and loading with verification; remaining risk for native libraries documented |
+| 2026-10-07 | xUnit v3 in version 4.x (package xunit.v3 4.0.1) instead of 3.x | 4.x is final since August 2026; the specification planned the switch for then |
+| 2026-10-07 | The same plugin or handler type added twice: ArgumentException | Almost always a mistake; does not concern the open question of duplicate plugin IDs |
+| 2026-10-07 | Errors in IPluginHandler.Use (phase 2) always throw a PluginException, regardless of FailureMode | Skip-and-log is only defined for phase 1; after phase 1 a plugin cannot be removed cleanly |
+| 2026-10-07 | Errors as PluginException with PluginId; misuse of the phases as InvalidOperationException | Can be caught specifically; standard exception for a wrong call order |
+| 2026-10-07 | PluginDescriptor.Instance stays object; additionally a base class PluginHandler<TPlugin> with a typed instance | Plugins of a custom kind should not have to implement IPlugin; the base class saves casts and CanHandle in the most common case |
+| 2026-10-07 | A relative path in AddFromDirectory resolves against ContentRootPath | Same base as appsettings.json; Generic Host convention |
+| 2026-10-07 | Missing plugin directory: warning in the log, no exception | A fresh installation without plugins should start; typos are visible in the log |
+| 2026-10-07 | Duplicate plugin IDs: exception naming both sources, even with SkipAndLog; case-insensitive comparison | Unclear which source should win; configuration keys are case-insensitive |
+| 2026-10-07 | A broken plugin folder (missing or unloadable main assembly, no plugin type) is a plugin failure | A subfolder is a deliberate installation; its failure must not go unnoticed |
+| 2026-10-07 | Shared assemblies come in the host's version; if the host lacks one, the plugin loads its copy | Type identity for the plugin contract and DI; plugins may use additional Microsoft.Extensions packages |
+| 2026-10-07 | Plugin types in a directory: only public types of the main assembly | Clear rule without reflection on internal types |
+| 2026-10-07 | PluginCollection is no longer enumerable; the plugin's source appears in error messages and log events (PluginSource) | With directories only the types from code would be enumerable; in production it must be clear where a plugin comes from |
+| 2026-10-07 | PluginCollection enumerates the added sources (public: PluginSource, PluginTypeSource, PluginDirectorySource). Replaces "PluginCollection is no longer enumerable" | Iterable and honest: contains what was added. Directories are not scanned when added, since handlers, verifiers and failure mode are only known at ApplyPlugins() and unverified DLLs would otherwise be loaded. IPluginVerifier.CanVerify needs the source types later too |
+| 2026-10-07 | The plugin version is SemVer from <Version> (InformationalVersion without build metadata); assembly references additionally check the AssemblyVersion as a minimum | Same format as NuGet packages later; the reference check follows the .NET binding rule |
+| 2026-10-07 | [PluginDependency] with MinVersion only | Enough for DLL plugins; NuGet packages bring version ranges from the .nuspec; no custom range parser in the core |
+| 2026-10-07 | [Plugin] and [PluginDependency] at assembly level only | Metadata and dependencies clearly belong to the assembly |
+| 2026-10-07 | Missing or too old dependency, cycle: plugin failure; with SkipAndLog the affected plugins (for cycles all members) and their dependents are skipped | Consistent with fail-fast; other plugins should be able to keep running |
+| 2026-10-07 | If one plugin type of an assembly fails, dependent plugins count as unsatisfied; other types of the same assembly keep running | Dependents may need exactly the services of the failed type; plugins in the host project should not block each other |
+| 2026-10-07 | Plugins added in code cannot depend on plugins from a directory | They live in the default context and would load their own copy of the assembly; type identity would be impossible |
+| 2026-10-07 | Metadata of plugin folders via MetadataLoadContext with the host assemblies (TPA) and the folder's files | Dependencies are checked before plugin code is loaded |
+| 2026-10-07 | InternalsVisibleTo for Plugwright.Tests | Unit tests for SemVer comparison and dependency resolution without a public API for them |
+| 2026-10-07 | Built-in verifiers via their own methods (AddHashVerifier, AddCertificateVerifier) with a delegate or configuration section; custom ones via Add(instance)/Add<T>() | Verifiers need settings; discoverable and type-checked, binding to configuration stays an explicit call |
+| 2026-10-07 | Plugins added in code are not verified | They are part of the host application; otherwise every app would need a verifier for its own code |
+| 2026-10-07 | No timestamps for manifest signatures in v1 | Much less effort; re-sign after the certificate expires |
+| 2026-10-07 | Revocation check configurable, default NoCheck | Machines without network access should start; the docs recommend Online when trusting via issuer |
+| 2026-10-07 | CLI Plugwright.Cli / plugwright; lock command brought forward before the remaining steps | Docs and samples for verification need a real tool for the lock file |
+| 2026-10-07 | Verification failures of any kind are plugin failures and can be skipped with SkipAndLog | Consistent with the other load errors |
+| 2026-10-07 | PluginReport in the DI container with active and skipped plugins and verification results | Fulfils "results via API" and the query for loaded plugins discussed earlier |
+| 2026-10-07 | Notice "no verifiers registered" at level Information, only if plugin directories were added | Without directories there is nothing to verify; Information instead of Warning, since unverified loading is a legitimate choice |
+| 2026-10-07 | Signed manifest as one file plugwright.manifest.p7s (CMS with embedded JSON) | One file instead of manifest plus signature; easy to sign and ship |
+| 2026-10-07 | Trust as a publisher via a root certificate file and subject; intermediate certificates from the signature | Platform-independent without a certificate store; certificate renewal without changes on the host |
+| 2026-10-07 | Revocation check only for publishers, not for thumbprints | Self-signed certificates have no revocation list; with thumbprints you remove the entry |
+| 2026-10-07 | plugwright sign with a PKCS#12 file, password also from PLUGWRIGHT_CERTIFICATE_PASSWORD | Common format for signing certificates; the password need not end up in the shell history |
+| 2026-10-07 | The SignedPlugins sample creates a sample CA at build time; no keys in the repository | Private keys do not belong in the repository; the docs snippet stays machine-independent |
+| 2026-10-07 | Third-party package dependencies: from the folder, from the host or optionally from a feed; NuGet.Protocol allowed in Plugwright.NuGet | Convenient when wanted; without a feed no network access at runtime |
+| 2026-10-07 | Packages are loaded in memory; only native libraries go to a temporary folder per process | No cache that has to be verified, protected and cleaned up |
+| 2026-10-07 | Recognize plugin packages by the package type PlugwrightPlugin | Recognizable from metadata without loading code; library packages stay unambiguous |
+| 2026-10-07 | Package signatures via a separate verifier in Plugwright.NuGet with the trust settings of the CertificateVerifier | The core stays free of NuGet dependencies |
+| 2026-10-07 | Downloads from the feed go to a download directory, lowest matching version | Next start possible without network; reproducible and compatible with the lock file |
+| 2026-10-07 | With verifiers, all packages are verified, including library packages | Libraries run as code in the process too |
+| 2026-10-07 | Plugwright.NuGet uses internal types of the core (InternalsVisibleTo) instead of a public source API | The public API stays small; both packages are versioned together |
+| 2026-10-07 | HashVerifier verifies all sources except code plugins; packages are listed in the lock file under their file name | One format for folders and packages; two versions of a library do not collide |
+| 2026-10-07 | PackageSignatureVerifier verifies the primary signature and uses the trust logic of the CertificateVerifier (CertificateTrust) | Same trust rules for manifests and packages; the core stays without NuGet |
+| 2026-10-07 | No evaluation of timestamps for package signatures either | Consistent with the manifests; for packages with a meanwhile expired certificate (e.g. older nuget.org packages) use the lock file |
+| 2026-10-07 | The SignedPackages sample signs with a self-signed RSA certificate via the NuGet API | NuGet only accepts chains to a root the signing machine trusts, or self-signed certificates |
+| 2026-10-07 | The feed only downloads library packages, no plugin packages | Plugins are installed deliberately; a feed must not sneak in new plugins |
+| 2026-10-07 | Feed option DownloadTimeout, default 30 s | A missing network should not block the start for minutes |
+| 2026-10-07 | Downloads are only stored after passing verification; log event 1007 per download | Rejected packages do not land on disk; network access at startup is visible |
+| 2026-10-07 | plugwright lock with several directories | One lock file for the package folder and the download directory |
+| 2026-10-07 | `Plugins.AddFromConfiguration` and `PluginVerifiers.AddFromConfiguration` read sources, failure mode and verifiers from the `Plugwright` section; only when called explicitly. Amends "Which verifiers exist is always decided by the code": the code can explicitly hand this decision to configuration | Operations should be able to change plugins and verification without recompiling; the call stays a deliberate decision in code, pluginsettings.json can never set these keys |
+| 2026-10-07 | Unknown keys in these sections are errors; a verifier is on if its section has settings or is `true` | A typo must not silently turn verification off; empty JSON objects produce no configuration keys |
+| 2026-10-07 | `PluginPackageOptions.VerifyDownloads`, default `true` | Whoever trusts their own feed need not add downloads to the lock file; safe as the default |
+| 2026-10-10 | ASP.NET Core and Blazor Server, enabling/disabling via configuration, required plugins and an asynchronous startup hook come in v1 (`requirements-web-host.md`) | The target application with an API and a Blazor host needs them |
+| 2026-10-10 | Packages `Plugwright.AspNetCore.Abstractions` (`IWebPlugin`, `IBlazorPlugin`) and `Plugwright.AspNetCore` (web and Blazor handlers, component assemblies, catalog endpoint); no separate `Plugwright.Blazor` | The contracts need ASP.NET Core types and do not belong in `Plugwright.Abstractions`; Blazor is part of the shared framework, a separate package saves no dependency |
+| 2026-10-10 | `IPluginCatalog`, `PluginInfo`, `PluginState` and the endpoint DTO live in `Plugwright.Abstractions`; `PluginReport` stays for descriptors and verification results, `SkippedPlugins` is dropped | Plugins should be able to check their state without the main package; no two lists with the same content; not yet published |
+| 2026-10-10 | Failure policy per plugin with the existing names `FailureMode`/`PluginFailureMode` instead of `FailurePolicy`; plus `Required` | No renaming without benefit |
+| 2026-10-10 | `PluginSource` in the catalog as text instead of an enum | The name collides with the existing class `PluginSource` |
+| 2026-10-10 | Web handler in phase 2 per plugin: first `ConfigurePipeline`, then `MapEndpoints` (instead of all `ConfigurePipeline` first) | `Map…` adds no middleware, the result is the same; otherwise `IPluginHandler` would need another hook |
+| 2026-10-10 | Application parts in phase 1: extend an existing `ApplicationPartManager`, otherwise create one with the app's default parts that `AddControllers()` takes over later | Controllers are found whether `AddControllers()` comes before or after `ApplyPlugins()`, without forcing MVC |
+| 2026-10-10 | `Plugwright.AspNetCore*` and `Microsoft.AspNetCore.*` are shared assemblies like `Microsoft.Extensions.*` | Type identity for web contracts with plugins from directories |
+| 2026-10-10 | `IPluginStartup.StartAsync(CancellationToken)` without `IServiceProvider` | The task is resolved from DI per scope and gets services via its constructor, like `IHostedService` |
+| 2026-10-10 | Disabled plugins from a directory or package: ID from the folder or package name, no verification, no loading; metadata only without verifiers | "Verify first, then read metadata" stays; a disabled, damaged plugin must not prevent the start |
+| 2026-10-10 | Services of a plugin that failed in `Configure` are taken back (state of `builder.Services` before it); configuration sources, `Properties` and `ConfigureContainer` are not | The service list can be restored reliably, the other parts cannot |
+| 2026-10-10 | `pluginsettings.json` is implemented before enabling/disabling | R-10 and R-13 require it |
+| 2026-10-10 | Doc pages for the web requirements follow after the docs move from DocFX to Zensical; XML docs, tests and samples immediately | Do not write pages twice |
+| 2026-10-10 | Samples may use Aspire and OpenTelemetry packages, libraries may not | Aspire ServiceDefaults as in the template |
+| 2026-10-10 | Per-plugin settings in `PluginPolicy` (`Required`, `FailureMode`), set via `Add<T>(policy => …)`, `Configure(id, …)`, `Require(id)`; the global `FailureMode` is the default, the policy overrides it | One place for everything the code decides per plugin; works for all sources via the plugin ID |
+| 2026-10-10 | Problems of required plugins known before phase 1 (missing, disabled, dependency unavailable, verification) throw before the first `Configure`; errors in `Configure` are collected until the end of phase 1 | R-11 demands resolution before phase 1; required failures in `Configure` can only be reported together afterwards |
+| 2026-10-10 | A chain starting at a disabled plugin is no failure: dependent plugins become `DependencyUnavailable` without the failure mode applying | Disabling is a deliberate decision and should not abort the start |
+| 2026-10-10 | Failed verification of a plugin package appears under the package ID, not under the file name | The catalog names plugins uniformly by ID |
+| 2026-10-10 | Log event 1008 `PluginStatus` per plugin; meter `Plugwright` with gauge `plugwright.plugins` per state | R-12 and R-02; activities follow with the startup tasks (R-31) |
+| 2026-10-10 | `MapPluginCatalog(pattern, includeErrorMessages)` as a simple parameter instead of an options class; DTO `PluginStatus` with states as text | Small API; readable JSON |
+| 2026-10-10 | `IPluginSettingsStore` in `Plugwright.Abstractions` with `SetEnabledAsync` and `SaveSettingsAsync`; path via `Options.SettingsFile` or `Plugwright:SettingsFile` | Plugins can save their own settings; operations chooses a writable location |
+| 2026-10-10 | Startup tasks: `PluginContext.AddStartup<T>()` registers the task as scoped plus an internal entry in the service list; an internal `IHostedLifecycleService` is inserted as the first hosted service and runs them in `StartingAsync` | Runs before every `StartAsync`, including the web server; the order from phase 1 is preserved; services taken back take their startup tasks with them |
+| 2026-10-10 | Errors in a startup task follow the plugin's failure mode: required or `FailFast` → host start fails; `SkipAndLog` → `Failed`, dependents `DependencyUnavailable` | Same rules as in phase 1; "optional" from R-31 corresponds to `SkipAndLog` |
+| 2026-10-10 | Log events 1009 `PluginStartupCompleted` (with duration), 1010 `PluginStartupFailed`, 1011 `PluginStartupSkipped`; activity `Plugwright.Startup` in the `ActivitySource` `Plugwright` | Traceable in production; activities are only recorded if a listener exists before the start |
+| 2026-10-10 | No `Plugwright.Testing` package | Disabling and failure cases work with `WebApplicationFactory` and `UseSetting`; tests in `WebApplicationFactoryTests` show the pattern |
+| 2026-10-10 | Docs site with Zensical instead of DocFX; DocFX only generates the API reference as Markdown (`docfx metadata`, `outputFormat: markdown`), a small tool (`docs/tools/FixApiMarkdown.cs`) resolves its `<xref>` references. Replaces "Docs exclusively with DocFX" | One site with a uniform look and search; Zensical checks links, anchors and code snippets in strict mode; API reference still from the XML comments |
+| 2026-10-10 | Published pages in `docs/content/`, the specification stays in `docs/design/` | Zensical has no `exclude_docs`; the specification (German at the time) should not be published |
+| 2026-10-10 | Code snippets via `pymdownx.snippets` with markers `// --8<-- [start:name]` instead of `#region` | Snippets knows no regions; missing files or sections fail the build |
+| 2026-10-10 | Python (Zensical) as the docs tool, version in `docs/requirements.txt` | Zensical is a Python package; the rest of the toolchain stays .NET |
+| 2026-10-10 | Known gap: DocFX does not document C# 14 extension members (dotnet/docfx#10943 skips them) | Until DocFX supports them, class docs and guides describe `builder.Plugins`, `ApplyPlugins()` etc. |
+| 2026-10-10 | In tests with `WebApplicationFactory`, only `UseSetting` affects `ApplyPlugins()`; `ConfigureAppConfiguration` only applies at `Build()` and thus too late. Deviation from R-40, documented in "Test applications that use Plugwright" | Minimal hosting behavior: the factory's configuration callbacks run at `Build()` |
+| 2026-10-10 | Namespaces by package: types of `Plugwright.NuGet` in `Plugwright.NuGet`, of `Plugwright.AspNetCore(.Abstractions)` in `Plugwright.AspNetCore`; `*.Abstractions` shares the namespace of its main package; extension members stay in `Plugwright` | Microsoft convention (e.g. `Microsoft.Extensions.Hosting.Abstractions`); extension members discoverable without an additional `using`; no break for users before the first release |
+| 2026-10-10 | API navigation as a tree like on Microsoft Learn: `FixApiMarkdown.cs` generates `api/SUMMARY.md` (namespace, types grouped by kind), Zensical reads it via `literate-nav`; long names wrap at capital letters | All types reachable with one click; the navigation stays generated and needs no maintenance |
+| 2026-10-11 | Code style according to Microsoft's conventions (C# conventions on Microsoft Learn, dotnet/runtime style), set in `.editorconfig` and enforced in the build; library code with `ConfigureAwait(false)` (CA2007) and argument checks (CA1062); `var` for all locals whose type the compiler can infer | Uniform code without discussion in review; `var` as a project decision, because dotnet/runtime only uses it when the type is obvious |
+| 2026-10-11 | One type per file, the file is named after the type | Types can be found without searching, as in dotnet/runtime |
+| 2026-10-11 | Extension classes are named `{Feature}{ExtendedType}Extensions`, e.g. `PackagePluginCollectionExtensions`, `PluginCatalogEndpointRouteBuilderExtensions` | Pattern of `Microsoft.Extensions.*` and ASP.NET Core |
+| 2026-10-11 | `PluginPolicy.Required` is named `IsRequired` | Same as `PluginInfo.IsRequired`; prefix `Is` for Boolean properties per the Framework Design Guidelines |
+| 2026-10-11 | R-52: `builder.Plugins.ShareAssembly(Assembly)` and `ShareAssemblies(prefix)`; prefix only at name boundaries (`X` matches `X` and `X.*`, not `XY`); applies globally to all plugins from directories and packages, code only; same rules as the built-in shared assemblies (host version wins; if the host lacks it, the plugin takes its copy) | Type identity for app contracts, UI libraries, EF Core; sharing per plugin would break type identity between plugins, only when there is a real need |
+| 2026-10-11 | R-53: `builder.Plugins.AddFromReferencedAssemblies(prefix)` reads `deps.json` via `DependencyContext` (prefix required, name boundary as in R-52), plus `AddFromAssembly(Assembly)`; plugins found count as added in code; without `deps.json` an exception is thrown; not trimming-compatible (documented) | `AppDomain.GetAssemblies()` does not see references that are not loaded; without a prefix the framework would be scanned and foreign plugin types activated |
+| 2026-10-11 | R-50: central health check in the core (`AddHealthChecks().AddPlugins()`, dependency `Microsoft.Extensions.Diagnostics.HealthChecks`) reports only plugins that do not run because of an error (`Failed`, `VerificationFailed`, `NoHandler`, `DependencyUnavailable` because of an error); disabled plugins and chains starting at them do not count; status on errors configurable, default `Degraded`; runtime checks are registered by plugins themselves in `Configure` | Plugin-owned checks disappear on their own with disabled or taken-back plugins; the central check only closes the gap of the failed ones; works for worker hosts too |
+| 2026-10-11 | R-14: no `IPluginActivationSource`; a guide shows a custom configuration provider for `Plugwright:Plugins:{Id}:Enabled` | A configuration provider can already do that; no API without a concrete case |
+| 2026-10-11 | R-15: optional dependencies via `[PluginDependency(…, IsOptional = true)]` (for packages only via the attribute, NuGet has no optional ones); present → like a required dependency (order, type sharing); missing, disabled or failed → the plugin loads anyway; a too old version is an error; the attribute downgrades a dependency derived from an assembly reference; query in phase 1 with `PluginContext.IsPluginLoaded(id)`, at runtime via `IPluginCatalog` | A wrong version is an installation error that should be visible; the plugin decides while registering its services |
+| 2026-10-11 | R-32: `IApplicationRestarter.RequestRestart()` in `Plugwright.Abstractions`, always registered; `builder.Plugins.Options.RestartMode` = `ApplicationRestartMode.ExitCode` (default: set the exit code, `StopApplication()`) or `Relaunch` (restart the process with the same file and arguments; the new one waits for the old one to end, with a timeout); `RestartExitCode` default 75 (`EX_TEMPFAIL`); a custom registration replaces both; IIS restarts on the next request | How to restart depends on the app (service manager vs. console/desktop); a code ≠ 0 works with systemd `on-failure`, Windows services and Docker `on-failure`; a library does not start processes unasked |
+| 2026-10-11 | R-51: the goal is full parity with project references: `_content/<Id>/…` from `wwwroot`, scoped CSS (bundle per plugin, paths via `IPluginComponentAssemblies`), `MapStaticAssets` with fingerprinting, compression, `@Assets`, `ImportMap`; delivery (plugin folder/temp vs. memory) and API only after a spike with a real RCL plugin | Plugins must not restrict Blazor features; unclear whether RCL publish produces an endpoint manifest and whether `MapStaticAssets` can handle several manifests and files without a physical path |
+| 2026-10-11 | R-17: no mechanism in Plugwright; the guide "Split a plugin across hosts" shows the pattern from `SplitHosts` (the web host reads the API's catalog endpoint before `ApplyPlugins()`; unreachable → UI plugins stay on) and names the alternatives | Phase 1 has no DI and no service discovery and would have to check synchronously via HTTP; the start of both hosts would be coupled; the API's state changes after the UI has started |
+| 2026-10-11 | Plugin = assembly or package stays the unit for catalog, health check, on/off, settings, required and dependencies; no dependencies or states per plugin class; the docs explain this ("One plugin, several classes") | Load context, metadata, verification and assembly references are per assembly; if only one class needs a dependency, an optional dependency with `IsPluginLoaded` helps; separate states mean separate plugins |
+| 2026-10-11 | R-51 after the spike (`docs/design/spike-r51-static-assets.md`): map plugin assets separately from the host (`app.MapStaticAssets()` stays unchanged, plus `app.MapPluginStaticAssets()`); plugin manifests are rewritten to `_content/{Id}/`, `wwwroot` is attached to the `WebRootFileProvider` via a file provider | App code stays unchanged; price: `@Assets` and `ImportMap` do not know fingerprints of plugin files, but they are still served with compression, ETag and fingerprinted routes |
+| 2026-10-11 | R-51: the source of the files is configurable: like assemblies (packages from memory, directories with verifiers from memory, without from disk) or from disk (packages via the temp folder); compression of package assets configurable: uncompressed or compressed in memory at startup | Little RAM should not force serving from memory; startup time can be weighed against bandwidth. Names and defaults of the options, and whether directory plugins in disk mode are served directly from their folder, to be settled during implementation |
+| 2026-10-11 | R-51: scoped CSS via a component `<PluginStyleSheets />` in `Plugwright.AspNetCore` for the `<head>`; one `<link>` per plugin from a directory or package, not for plugins via project reference (already in `{App}.styles.css`) | No code per app; the component knows the fingerprinted route from the plugin's manifest |
+| 2026-10-11 | R-51: directory plugins with static assets need publish output; packages provide their endpoints as MSBuild XML (`build/Microsoft.AspNetCore.StaticWebAssetEndpoints.props`), which Plugwright reads | Build output does not contain the files; packages contain no JSON manifest |
+| 2026-10-11 | R-51 implemented: `PluginStaticAssetsOptions.Source` with `Disk` (default) and `Memory` ("like assemblies"), `CompressPackageAssets` (default `false`); directory plugins in disk mode directly from their `wwwroot`, packages via the temp folder `plugwright-assets`; the scoped CSS bundle of a published plugin stays at the root path (`{Id}.styles.css`), because it imports the bundles of its libraries relatively; routes the host or an earlier plugin already serves are skipped; build output is skipped with warning 1014 | Disk as the default saves memory (the user's decision); the docs name the security risk (files can change after verification; the same size is served) and the memory cost of `Memory` (package assets; directories with verifiers are in memory anyway) |
+| 2026-10-11 | R-51 amended: `.AddPluginAssemblies(app)` adds the plugins' assets (label and integrity, like Blazor) to the host's `ResourceAssetCollection` in a `Finally` callback and sets a new `ImportMapDefinition`; this way `@Assets` and `ImportMap` provide fingerprints for plugin files too. Replaces the limitation from "map plugin assets separately from the host"; `app.MapStaticAssets()` stays unchanged | Spike: Blazor takes the most recently added collection, in `Finally` the host's is already present; no change to app code, order of calls irrelevant |
+| 2026-10-11 | Warning 1016 when the app itself serves routes under `_content/{PluginId}/` of a plugin from a directory or package; asset tests also run in `Production` | Found during manual testing: a `ProjectReference` with `ReferenceOutputAssembly="false"` pulls the plugin assets into the app's build manifest, which only `Development` can resolve; `Production` returned empty responses. Until then tests only ran in `Development` |
+| 2026-10-11 | All design documents in `docs/design/` translated to English; every document in the repository is written in English | Open source project; contributors must be able to read the specification and the decision log |
