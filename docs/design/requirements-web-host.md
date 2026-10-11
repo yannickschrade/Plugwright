@@ -419,6 +419,8 @@ context.AddStartup<MigrateDataStartup>();   // Typ wird aus DI aufgelöst (Scope
 
 ## M4 Später (erst nach Rücksprache)
 
+Entschieden am 2026-10-11, Details im Entscheidungslog der Spezifikation: R-52, R-53, R-50, R-15 und R-32 werden gebaut, R-51 nach einem Spike, R-14 und R-17 werden nur als Anleitung dokumentiert. Die Tabelle zeigt den ursprünglichen Wunsch.
+
 | Id | Anforderung | Kurzbeschreibung |
 |---|---|---|
 | R-14 | Austauschbare Quelle für den Aktivierungszustand | `IPluginActivationSource`, ausgewertet in `ApplyPlugins()`, Standard ist die Konfiguration aus R-10. Damit kann der Host den Zustand z. B. aus einer eigenen Verwaltung lesen. Pflicht-Plugins bleiben unberührt. |
