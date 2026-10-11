@@ -46,7 +46,7 @@ To require a minimum version, or to depend on a plugin you do not reference, add
 
 `MinVersion` is a semantic version and is compared with the other plugin's version, the `<Version>` of its project. Prerelease versions are lower than the release: `1.2.0-beta` does not satisfy `MinVersion = "1.2.0"`. If both a reference and an attribute exist for the same plugin, both conditions must be met.
 
-The attribute applies to the whole assembly, because all plugin classes in one assembly share their dependencies.
+The attribute applies to the whole assembly, because all plugin classes in one assembly share their dependencies. If only one class of an assembly needs the other plugin, make the dependency [optional](#make-a-dependency-optional) and let that class check whether the other plugin is loaded. If the classes must start, stop and fail independently, put them in separate plugin assemblies. See [One plugin, several classes](../explanation/plugin-states.md#one-plugin-several-classes).
 
 ## Make a dependency optional
 

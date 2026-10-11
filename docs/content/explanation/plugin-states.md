@@ -15,6 +15,16 @@ Every plugin the application finds ends up in one [state](../api/Plugwright.Plug
 
 A plugin that passes all steps is `Loaded`.
 
+## One plugin, several classes
+
+A plugin is an assembly or a package with its plugin ID. Its plugin classes are entry points of that one plugin, not plugins of their own. Everything that describes or controls a plugin therefore works per plugin ID: its state in the catalog, the [health check](../how-to/report-plugin-health.md), [turning it on and off](../how-to/enable-and-disable-plugins.md), its settings, whether it is required, its dependencies and its verification. Only the log event `PluginLoaded` (1000) and [`PluginReport.Plugins`](../api/Plugwright.PluginReport.md#Plugwright_PluginReport_Plugins) list each class.
+
+The reason is that the assembly is the unit Plugwright loads: one load context per assembly, metadata and dependencies of the assembly or package, and references between assemblies. A class cannot be loaded, verified or shared without the rest of its assembly.
+
+So when parts of a feature must be turned on and off, watched or depended on separately, make them separate plugins, in separate assemblies. One class can also serve [several kinds](../how-to/combine-plugin-kinds.md), for example `IPlugin` and `IWebPlugin`, so several classes in one assembly are rarely needed.
+
+If one of several classes fails with the failure mode `SkipAndLog`, only the services of that class are removed; the other classes keep running. The plugin's state is `Failed` nevertheless, because the plugin as a whole does not work as intended.
+
 ## Failures and the failure mode
 
 Steps 2 to 6 can fail. Whether a failure stops the application depends on the plugin:
