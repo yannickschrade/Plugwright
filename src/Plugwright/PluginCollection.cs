@@ -64,7 +64,7 @@ public sealed class PluginCollection : IReadOnlyCollection<PluginSource>
     /// </remarks>
     /// <example>
     /// <code language="csharp">
-    /// builder.Plugins.Add&lt;OrdersPlugin&gt;(policy =&gt; policy.Required = true);
+    /// builder.Plugins.Add&lt;OrdersPlugin&gt;(policy =&gt; policy.IsRequired = true);
     /// builder.Plugins.Add&lt;ReportsPlugin&gt;(policy =&gt; policy.FailureMode = PluginFailureMode.SkipAndLog);
     /// </code>
     /// </example>
@@ -125,7 +125,7 @@ public sealed class PluginCollection : IReadOnlyCollection<PluginSource>
     /// <exception cref="InvalidOperationException"><c>builder.ApplyPlugins()</c> has already been called.</exception>
     /// <remarks>
     /// <c>builder.ApplyPlugins()</c> throws a <see cref="PluginException"/> if no source provides the plugin, if it is
-    /// turned off in configuration, or if it cannot be loaded. See <see cref="PluginPolicy.Required"/>.
+    /// turned off in configuration, or if it cannot be loaded. See <see cref="PluginPolicy.IsRequired"/>.
     /// </remarks>
     /// <example>
     /// <code language="csharp">
@@ -133,7 +133,7 @@ public sealed class PluginCollection : IReadOnlyCollection<PluginSource>
     /// builder.Plugins.Require("Acme.Billing");
     /// </code>
     /// </example>
-    public PluginCollection Require(string pluginId) => Configure(pluginId, policy => policy.Required = true);
+    public PluginCollection Require(string pluginId) => Configure(pluginId, policy => policy.IsRequired = true);
 
     /// <summary>
     /// Returns the policy of a plugin, or <see langword="null"/> if the application set none.
@@ -143,7 +143,7 @@ public sealed class PluginCollection : IReadOnlyCollection<PluginSource>
     /// <summary>
     /// Gets the IDs of all required plugins.
     /// </summary>
-    internal IEnumerable<string> RequiredPluginIds => _policies.Where(entry => entry.Value.Required).Select(entry => entry.Key);
+    internal IEnumerable<string> RequiredPluginIds => _policies.Where(entry => entry.Value.IsRequired).Select(entry => entry.Key);
 
     /// <summary>
     /// Adds a plugin type from the application itself or from a referenced assembly.

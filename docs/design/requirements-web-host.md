@@ -307,7 +307,7 @@ public enum PluginState
 ```csharp
 builder.Plugins.Options.DefaultFailurePolicy = PluginFailurePolicy.FailFast;   // bestehend, Standard
 
-builder.Plugins.Add<OrdersPlugin>(o => o.Required = true);
+builder.Plugins.Add<OrdersPlugin>(o => o.IsRequired = true);
 builder.Plugins.Add<ReportsPlugin>(o => o.FailurePolicy = PluginFailurePolicy.SkipAndLog);
 builder.Plugins.Require("Acme.Billing");      // für Plugins aus Verzeichnis/Paket
 ```

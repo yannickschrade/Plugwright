@@ -18,7 +18,7 @@ public sealed class PluginPolicy
     /// throws while it is configured or started stops the application with a <see cref="PluginException"/>, whatever
     /// the failure mode. The exception names all required plugins with problems at once.
     /// </remarks>
-    public bool Required { get; set; }
+    public bool IsRequired { get; set; }
 
     /// <summary>
     /// Gets or sets what happens when this plugin fails, or <see langword="null"/> to use

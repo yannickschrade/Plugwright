@@ -69,7 +69,7 @@ public sealed class RequiredPluginTests(TestPluginsFixture testPlugins) : IDispo
         var exception = Should.Throw<PluginException>(() => Apply(
             builder =>
             {
-                builder.Plugins.Add<FailingInCodePlugin>(policy => policy.Required = true);
+                builder.Plugins.Add<FailingInCodePlugin>(policy => policy.IsRequired = true);
                 builder.Plugins.Require(LoggingId);
             },
             new() { [$"Plugwright:Plugins:{LoggingId}:Settings:Fail"] = "true" }));

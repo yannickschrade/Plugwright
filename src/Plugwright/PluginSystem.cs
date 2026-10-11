@@ -384,7 +384,7 @@ internal sealed class PluginSystem
     {
         foreach (var unit in units)
         {
-            unit.IsRequired = Plugins.GetPolicy(unit.Id)?.Required == true;
+            unit.IsRequired = Plugins.GetPolicy(unit.Id)?.IsRequired == true;
         }
 
         foreach (var pluginId in Plugins.RequiredPluginIds)
@@ -754,7 +754,7 @@ internal sealed class PluginSystem
     private void Fail(string pluginId, string source, string reason, Exception? exception, PluginInfo info)
     {
         var policy = Plugins.GetPolicy(pluginId);
-        info = info with { IsRequired = policy?.Required == true };
+        info = info with { IsRequired = policy?.IsRequired == true };
         Catalog.Set(info);
 
         if (info.IsRequired)

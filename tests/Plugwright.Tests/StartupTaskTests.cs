@@ -102,7 +102,7 @@ public sealed class StartupTaskTests
     {
         var builder = TestHost.CreateBuilder();
         builder.Plugins.Options.FailureMode = PluginFailureMode.SkipAndLog;
-        builder.Plugins.Add<FailingStartupPlugin>(policy => policy.Required = true);
+        builder.Plugins.Add<FailingStartupPlugin>(policy => policy.IsRequired = true);
         using var app = Build(builder);
 
         var exception = await Should.ThrowAsync<PluginException>(() => app.StartAsync(TestContext.Current.CancellationToken));

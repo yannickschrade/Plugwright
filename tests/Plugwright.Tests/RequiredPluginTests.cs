@@ -39,7 +39,7 @@ public sealed class RequiredPluginTests
     public void Required_plugin_cannot_be_turned_off()
     {
         var builder = TestHost.CreateBuilder(new Dictionary<string, string?> { [$"Plugwright:Plugins:{TestsId}:Enabled"] = "false" });
-        builder.Plugins.Add<MarkerPlugin>(policy => policy.Required = true);
+        builder.Plugins.Add<MarkerPlugin>(policy => policy.IsRequired = true);
 
         var exception = Should.Throw<PluginException>(builder.ApplyPlugins);
 
@@ -53,7 +53,7 @@ public sealed class RequiredPluginTests
     {
         var builder = TestHost.CreateBuilder();
         builder.Plugins.Options.FailureMode = PluginFailureMode.SkipAndLog;
-        builder.Plugins.Add<ThrowingPlugin>(policy => policy.Required = true);
+        builder.Plugins.Add<ThrowingPlugin>(policy => policy.IsRequired = true);
 
         var exception = Should.Throw<PluginException>(builder.ApplyPlugins);
 
@@ -104,7 +104,7 @@ public sealed class RequiredPluginTests
     public void Catalog_shows_that_a_plugin_is_required()
     {
         var builder = TestHost.CreateBuilder();
-        builder.Plugins.Add<MarkerPlugin>(policy => policy.Required = true);
+        builder.Plugins.Add<MarkerPlugin>(policy => policy.IsRequired = true);
 
         Build(builder).Services.GetRequiredService<IPluginCatalog>().Plugins.ShouldHaveSingleItem().IsRequired.ShouldBeTrue();
     }
