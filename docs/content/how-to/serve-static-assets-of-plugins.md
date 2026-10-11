@@ -37,6 +37,10 @@ Scoped CSS (`Weather.razor.css`) and JavaScript modules next to a component (`We
 | Directory | The output of `dotnet publish`. The output of `dotnet build` lacks the asset files; such a plugin loads, but its assets are skipped with the warning `PluginStaticAssetsNotPublished` (1014). |
 | Package | The package that `dotnet pack` creates. Assets of library packages the plugin depends on are served as well. |
 
+!!! warning "Do not reference the plugin from the application"
+
+    A plugin loaded from a directory or a package must not be referenced by the application, not even with `ReferenceOutputAssembly="false"` to build it first. The SDK then adds the plugin's assets to the application's own, pointing to the plugin's source folder. The application serves them instead of the plugin: in `Development` from the source folder, otherwise with an empty response. Plugwright logs the warning `PluginStaticAssetsServedByApplication` (1016) in that case. To build and copy the plugin with the application, call its `Publish` target with the `MSBuild` task, as `samples/BlazorPluginFolder` does.
+
 ## How the assets are served
 
 `MapPluginStaticAssets()` uses the endpoints that the SDK describes for every Razor class library, so plugin assets get what the application's own get: compression, ETags, cache headers and fingerprinted routes such as `_content/Acme.Weather.Ui/sun.k2h7f3x1qa.svg` with a cache time of one year.

@@ -48,7 +48,8 @@ internal sealed class PluginStaticAssets
             var environment = services.GetRequiredService<IWebHostEnvironment>();
             var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger(PluginSystem.LoggerCategory);
 
-            var routes = ReadHostRoutes(environment);
+            var hostRoutes = ReadHostRoutes(environment);
+            var routes = new HashSet<string>(hostRoutes, StringComparer.OrdinalIgnoreCase);
             var manifestEndpoints = new JsonArray();
             List<IFileProvider> providers = [];
             List<string> styleSheets = [];
@@ -71,15 +72,27 @@ internal sealed class PluginStaticAssets
 
                 // A route the application or an earlier plugin serves, for example of a shared component library, stays theirs.
                 List<JsonObject> accepted = [];
+                var ownRoutesOfApplication = 0;
                 foreach (var group in assetEndpoints.GroupBy(endpoint => (string)endpoint["Route"]!, StringComparer.OrdinalIgnoreCase))
                 {
                     if (routes.Contains(group.Key))
                     {
                         PluginStaticAssetsLog.RouteSkipped(logger, assets.Id, group.Key);
+                        if (hostRoutes.Contains(group.Key) && group.Key.StartsWith($"_content/{assets.Id}/", StringComparison.OrdinalIgnoreCase))
+                        {
+                            ownRoutesOfApplication++;
+                        }
+
                         continue;
                     }
 
                     accepted.AddRange(group);
+                }
+
+                // The application serving a plugin's own assets means that it references the plugin, which is a mistake.
+                if (ownRoutesOfApplication > 0)
+                {
+                    PluginStaticAssetsLog.ServedByApplication(logger, assets.Id, ownRoutesOfApplication);
                 }
 
                 routes.UnionWith(accepted.Select(endpoint => (string)endpoint["Route"]!));

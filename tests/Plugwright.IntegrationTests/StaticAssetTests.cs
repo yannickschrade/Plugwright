@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Plugwright.IntegrationTests;
@@ -33,12 +35,16 @@ public sealed partial class StaticAssetTests(TestPluginsFixture testPlugins) : I
     public void Dispose() => _directory.Dispose();
 
     [Theory]
-    [InlineData("Disk")]
-    [InlineData("Memory")]
-    public async Task Assets_of_a_published_plugin_folder_are_served_like_those_of_a_project_reference(string source)
+    [InlineData("Disk", "Development")]
+    [InlineData("Memory", "Development")]
+    [InlineData("Disk", "Production")]
+    [InlineData("Memory", "Production")]
+    public async Task Assets_of_a_published_plugin_folder_are_served_like_those_of_a_project_reference(string source, string environment)
     {
         InstallPublishedPlugin();
-        using var host = StartHost(Directory(source));
+        var settings = Directory(source);
+        settings["environment"] = environment;
+        using var host = StartHost(settings);
         var client = host.CreateClient();
 
         (await GetStringAsync(client, $"/_content/{PluginId}/plugin.css")).ShouldContain("rebeccapurple");
@@ -48,6 +54,7 @@ public sealed partial class StaticAssetTests(TestPluginsFixture testPlugins) : I
         using var compressed = await GetAsync(client, $"/_content/{PluginId}/plugin.css", acceptEncoding: "br");
         compressed.Content.Headers.ContentEncoding.ShouldBe(["br"]);
         compressed.Headers.ETag.ShouldNotBeNull();
+        (await compressed.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken)).ShouldNotBeEmpty();
     }
 
     [Fact]
@@ -86,9 +93,11 @@ public sealed partial class StaticAssetTests(TestPluginsFixture testPlugins) : I
     }
 
     [Theory]
-    [InlineData("Directory")]
-    [InlineData("Package")]
-    public async Task Assets_and_ImportMap_know_the_plugin_assets_and_keep_the_host_assets(string kind)
+    [InlineData("Directory", "Development")]
+    [InlineData("Package", "Development")]
+    [InlineData("Directory", "Production")]
+    [InlineData("Package", "Production")]
+    public async Task Assets_and_ImportMap_know_the_plugin_assets_and_keep_the_host_assets(string kind, string environment)
     {
         Dictionary<string, string?> settings;
         if (kind == "Directory")
@@ -102,15 +111,18 @@ public sealed partial class StaticAssetTests(TestPluginsFixture testPlugins) : I
             settings = Packages("Disk", compress: false);
         }
 
+        settings["environment"] = environment;
         using var host = StartHost(settings);
         var client = host.CreateClient();
+        host.Services.GetRequiredService<IHostEnvironment>().EnvironmentName.ShouldBe(environment);
         var page = await GetStringAsync(client, "/blazor-assets");
 
         // @Assets in the plugin's page returns the fingerprinted route, which is served for a year.
         var pluginStyleSheet = Regex.Match(page, "id=\"plugin-css\" rel=\"preload\" href=\"(?<href>[^\"]+)\"").Groups["href"].Value;
         pluginStyleSheet.ShouldMatch($"^_content/{Regex.Escape(PluginId)}/plugin\\.[a-z0-9]+\\.css$");
-        using var response = await GetAsync(client, "/" + pluginStyleSheet);
+        using var response = await GetAsync(client, "/" + pluginStyleSheet, acceptEncoding: "br");
         response.Headers.CacheControl!.ToString().ShouldContain("immutable");
+        (await response.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken)).ShouldNotBeEmpty();
 
         // The host's own assets keep their fingerprints, and the import map knows the plugin's module.
         Regex.Match(page, "id=\"host-script\" src=\"(?<src>[^\"]+)\"").Groups["src"].Value.ShouldMatch("^_framework/blazor\\.web\\.[a-z0-9]+\\.js$");

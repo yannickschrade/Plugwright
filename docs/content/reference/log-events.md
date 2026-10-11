@@ -20,6 +20,7 @@ Plugwright logs with the category `Plugwright` and fixed event IDs. Use them to 
 | 1013 | `RestartWaitTimedOut` | Warning | A process started by a restart waited 30 seconds for the previous process to exit, and starts anyway. |
 | 1014 | `PluginStaticAssetsNotPublished` | Warning | The static web assets of a plugin folder are not served, because the folder contains build output instead of the output of `dotnet publish`. |
 | 1015 | `PluginStaticAssetSkipped` | Debug | A static web asset of a plugin is not served, because the application or another plugin already serves its route. |
+| 1016 | `PluginStaticAssetsServedByApplication` | Warning | The application itself serves static web assets below `_content/{PluginId}/` of a plugin from a directory or a package, so the plugin's files are not used. Usually the application references the plugin project; remove the reference. |
 
 ## Structured values
 
