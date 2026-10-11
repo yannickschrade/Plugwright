@@ -76,7 +76,8 @@ public static class PackagePluginCollectionExtensions
             ArgumentNullException.ThrowIfNull(plugins);
             ArgumentNullException.ThrowIfNull(section);
 
-            if (section.Value is { } path)
+            // A plain value is the path. Some configuration sources also give a section with children an empty value.
+            if (section.Value is { } path && !section.GetChildren().Any())
             {
                 return plugins.AddFromPackages(path);
             }
