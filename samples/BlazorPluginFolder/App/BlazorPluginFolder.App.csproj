@@ -5,12 +5,11 @@
   </ItemGroup>
 
   <!--
-    For the sample only: publish the plugin to plugins/Acme.Weather.Ui/ next to the app. The app does not reference it.
-    Plugins with static web assets must be published: the build output lacks the asset files.
+    For the sample only: publish the plugin to plugins/Acme.Weather.Ui/ next to the app. Plugins with static web assets
+    must be published: the build output lacks the asset files. The app must not reference the plugin project, not even
+    with ReferenceOutputAssembly="false": the SDK would add the plugin's assets to the app's own, pointing to the
+    plugin's source folder.
   -->
-  <ItemGroup>
-    <ProjectReference Include="..\Acme.Weather.Ui\Acme.Weather.Ui.csproj" ReferenceOutputAssembly="false" Private="false" />
-  </ItemGroup>
 
   <Target Name="PublishSamplePlugin" AfterTargets="Build">
     <MSBuild Projects="..\Acme.Weather.Ui\Acme.Weather.Ui.csproj"
