@@ -132,6 +132,9 @@ docs/                        zensical.toml, content/ (published pages), design/ 
 - Nullable reference types enabled, warnings as errors.
 - Full .NET naming conventions (dotnet/runtime style), enforced via `.editorconfig`: `_camelCase` private/internal instance fields, `s_camelCase` static fields, PascalCase constants, types and members, camelCase parameters and locals, no `this.`.
 - Keep the public API small; everything else `internal`.
+- Code style follows Microsoft's conventions (dotnet/runtime), set in `.editorconfig` and enforced in the build: Allman braces, usings outside the namespace with `System` first, `var` for every local whose type can be inferred, `ConfigureAwait(false)` and argument checks in library code.
+- One type per file, named after the type.
+- Extension classes are named `{Feature}{ExtendedType}Extensions`, e.g. `PackagePluginCollectionExtensions`.
 - Namespaces follow the package: `Plugwright` (core and `Plugwright.Abstractions`), `Plugwright.NuGet`, `Plugwright.AspNetCore` (also `Plugwright.AspNetCore.Abstractions`). Extension members of every package stay in `Plugwright`, so `using Plugwright;` finds them.
 - Readability over cleverness: clear names, few abstraction layers.
 - Every public type and member has XML doc comments, with examples where useful.
