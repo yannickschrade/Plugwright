@@ -20,6 +20,8 @@
     <ProjectReference Include="..\..\src\Plugwright.NuGet\Plugwright.NuGet.csproj" />
     <ProjectReference Include="..\..\src\Plugwright.AspNetCore\Plugwright.AspNetCore.csproj" />
     <ProjectReference Include="..\TestWebHost\TestWebHost.csproj" />
+    <!-- The host's copy of TextLib (2.0), while the Greeter plugin ships 1.0: tests for shared assemblies. -->
+    <ProjectReference Include="..\TestPlugins\TextLibV2\TextLibV2.csproj" />
   </ItemGroup>
 
   <!-- Samples tested with WebApplicationFactory<Program>. Aliases keep their Program classes apart. -->

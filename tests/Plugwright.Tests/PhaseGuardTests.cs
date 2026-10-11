@@ -55,6 +55,17 @@ public sealed class PhaseGuardTests
     }
 
     [Fact]
+    public void Sharing_assemblies_after_ApplyPlugins_throws()
+    {
+        var builder = TestHost.CreateBuilder();
+        builder.ApplyPlugins();
+
+        Should.Throw<InvalidOperationException>(() => builder.Plugins.ShareAssembly(typeof(PhaseGuardTests).Assembly))
+            .Message.ShouldStartWith("Assemblies cannot be shared after builder.ApplyPlugins()");
+        Should.Throw<InvalidOperationException>(() => builder.Plugins.ShareAssemblies("Acme"));
+    }
+
+    [Fact]
     public void Adding_a_handler_after_ApplyPlugins_throws()
     {
         var builder = TestHost.CreateBuilder();

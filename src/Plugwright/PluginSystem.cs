@@ -566,7 +566,7 @@ internal sealed class PluginSystem
         Type[] exportedTypes;
         try
         {
-            unit.Assembly = new PluginLoadContext(unit.Assemblies, dependencies).LoadMainAssembly();
+            unit.Assembly = new PluginLoadContext(unit.Assemblies, dependencies, Plugins.SharedAssemblies).LoadMainAssembly();
             exportedTypes = unit.Assembly.GetExportedTypes();
         }
         catch (Exception exception)

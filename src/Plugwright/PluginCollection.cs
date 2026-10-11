@@ -1,4 +1,6 @@
 using System.Collections;
+using System.Reflection;
+using System.Runtime.Loader;
 using Microsoft.Extensions.Configuration;
 
 namespace Plugwright;
@@ -134,6 +136,89 @@ public sealed class PluginCollection : IReadOnlyCollection<PluginSource>
     /// </code>
     /// </example>
     public PluginCollection Require(string pluginId) => Configure(pluginId, policy => policy.IsRequired = true);
+
+    /// <summary>
+    /// Shares an assembly of the host with all plugins from directories and packages: they use the host's copy, so
+    /// that its types are the same in the host and in every plugin.
+    /// </summary>
+    /// <param name="assembly">An assembly the host has loaded, usually <c>typeof(SomeType).Assembly</c>.</param>
+    /// <returns>This collection, for chaining.</returns>
+    /// <exception cref="InvalidOperationException"><c>builder.ApplyPlugins()</c> has already been called.</exception>
+    /// <exception cref="ArgumentException">The assembly is not in the host's default load context.</exception>
+    /// <remarks>
+    /// <para>
+    /// Share the contracts of your application, UI libraries and frameworks whose types plugins exchange with the host,
+    /// such as Entity Framework Core. The host's version is used even if a plugin ships another version; if the
+    /// plugin was compiled against a newer one, it can fail at runtime with a <see cref="MissingMethodException"/>.
+    /// </para>
+    /// <para>
+    /// The plugin contracts, <c>Microsoft.Extensions.*</c> and <c>Microsoft.AspNetCore.*</c> are always shared.
+    /// Plugins added in code use the host's assemblies anyway.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code language="csharp">
+    /// builder.Plugins.ShareAssembly(typeof(INavigationItem).Assembly);
+    /// </code>
+    /// </example>
+    public PluginCollection ShareAssembly(Assembly assembly)
+    {
+        ArgumentNullException.ThrowIfNull(assembly);
+        _system.ThrowIfApplied("Assemblies cannot be shared");
+
+        if (AssemblyLoadContext.GetLoadContext(assembly) != AssemblyLoadContext.Default)
+        {
+            throw new ArgumentException(
+                $"Assembly '{assembly.GetName().Name}' is not in the host's default load context. "
+                + "Only assemblies of the host can be shared with plugins.",
+                nameof(assembly));
+        }
+
+        SharedAssemblies.AddName(assembly.GetName().Name!);
+        return this;
+    }
+
+    /// <summary>
+    /// Shares all assemblies of the host whose names start with a prefix with all plugins from directories and
+    /// packages, like <see cref="ShareAssembly"/>.
+    /// </summary>
+    /// <param name="prefix">
+    /// The start of the assembly names, compared without case and only at a dot: <c>Microsoft.EntityFrameworkCore</c>
+    /// shares <c>Microsoft.EntityFrameworkCore</c> and <c>Microsoft.EntityFrameworkCore.SqlServer</c>, but not
+    /// <c>Microsoft.EntityFrameworkCoreX</c>.
+    /// </param>
+    /// <returns>This collection, for chaining.</returns>
+    /// <exception cref="InvalidOperationException"><c>builder.ApplyPlugins()</c> has already been called.</exception>
+    /// <exception cref="ArgumentException">The prefix is empty, or starts or ends with a dot.</exception>
+    /// <remarks>
+    /// An assembly with a matching name that the host does not have is not shared: the plugin loads its own copy.
+    /// </remarks>
+    /// <example>
+    /// <code language="csharp">
+    /// builder.Plugins.ShareAssemblies("Microsoft.EntityFrameworkCore");
+    /// </code>
+    /// </example>
+    public PluginCollection ShareAssemblies(string prefix)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(prefix);
+        _system.ThrowIfApplied("Assemblies cannot be shared");
+
+        if (prefix.StartsWith('.') || prefix.EndsWith('.'))
+        {
+            throw new ArgumentException(
+                $"The prefix '{prefix}' must not start or end with a dot. It is compared at dots: "
+                + "'Acme' shares 'Acme' and 'Acme.Contracts'.",
+                nameof(prefix));
+        }
+
+        SharedAssemblies.AddPrefix(prefix);
+        return this;
+    }
+
+    /// <summary>
+    /// Gets the assemblies that plugins from directories and packages take from the host.
+    /// </summary>
+    internal SharedAssemblies SharedAssemblies { get; } = new();
 
     /// <summary>
     /// Returns the policy of a plugin, or <see langword="null"/> if the application set none.

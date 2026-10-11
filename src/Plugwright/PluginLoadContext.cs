@@ -9,35 +9,26 @@ namespace Plugwright;
 /// </summary>
 /// <remarks>
 /// Assemblies of plugins this plugin depends on come from those plugins' load contexts, so both use the same types.
-/// Shared are the plugin contract (Plugwright) and Microsoft.Extensions.*. They come from the host whenever the host
-/// has them, regardless of the version the plugin ships. Everything else, including framework assemblies the plugin
-/// does not ship, follows the usual rules: the plugin's own copy first, then the default context.
+/// Shared assemblies (<see cref="SharedAssemblies"/>) come from the host whenever the host has them, regardless of the
+/// version the plugin ships. Everything else, including framework assemblies the plugin does not ship, follows the usual
+/// rules: the plugin's own copy first, then the default context.
 /// </remarks>
 internal sealed class PluginLoadContext : AssemblyLoadContext
 {
     private readonly PluginAssemblies _assemblies;
     private readonly IReadOnlyDictionary<string, Assembly> _dependencies;
+    private readonly SharedAssemblies _sharedAssemblies;
 
     /// <param name="assemblies">The plugin's own assemblies.</param>
     /// <param name="dependencies">The main assemblies of the plugins this plugin depends on, by assembly name.</param>
-    public PluginLoadContext(PluginAssemblies assemblies, IReadOnlyDictionary<string, Assembly> dependencies)
+    /// <param name="sharedAssemblies">The assemblies that come from the host.</param>
+    public PluginLoadContext(
+        PluginAssemblies assemblies, IReadOnlyDictionary<string, Assembly> dependencies, SharedAssemblies sharedAssemblies)
         : base(name: assemblies.MainAssemblyName, isCollectible: false)
     {
         _assemblies = assemblies;
         _dependencies = dependencies;
-    }
-
-    /// <summary>
-    /// Returns whether an assembly always comes from the host: the plugin contracts, <c>Microsoft.Extensions.*</c> and
-    /// <c>Microsoft.AspNetCore.*</c>, so that their types are the same in the host and in every plugin.
-    /// </summary>
-    public static bool IsShared(AssemblyName assemblyName)
-    {
-        var name = assemblyName.Name;
-        return name is "Plugwright" or "Plugwright.Abstractions" or "Plugwright.AspNetCore" or "Plugwright.AspNetCore.Abstractions"
-            || (name is not null
-                && (name.StartsWith("Microsoft.Extensions.", StringComparison.Ordinal)
-                    || name.StartsWith("Microsoft.AspNetCore.", StringComparison.Ordinal)));
+        _sharedAssemblies = sharedAssemblies;
     }
 
     public Assembly LoadMainAssembly() => _assemblies.LoadMainAssembly(this);
@@ -49,7 +40,7 @@ internal sealed class PluginLoadContext : AssemblyLoadContext
             return dependency;
         }
 
-        if (IsShared(assemblyName) && TryLoadFromDefault(assemblyName) is { } shared)
+        if (_sharedAssemblies.Contains(assemblyName) && TryLoadFromDefault(assemblyName) is { } shared)
         {
             return shared;
         }
