@@ -8,7 +8,7 @@ namespace Plugwright;
 /// <summary>
 /// Adds <c>AddPluginAssemblies(app)</c> to <see cref="RazorComponentsEndpointConventionBuilder"/>.
 /// </summary>
-public static class PluginComponentsExtensions
+public static class PluginRazorComponentsEndpointConventionBuilderExtensions
 {
     extension(RazorComponentsEndpointConventionBuilder builder)
     {

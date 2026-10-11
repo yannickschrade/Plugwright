@@ -3,7 +3,7 @@ using NuGet.Versioning;
 namespace Plugwright.NuGet;
 
 /// <summary>
-/// A folder of NuGet packages added with <see cref="PluginPackageExtensions.AddFromPackages(PluginCollection, string, Action{PluginPackageOptions})"/>.
+/// A folder of NuGet packages added with <see cref="PackagePluginCollectionExtensions.AddFromPackages(PluginCollection, string, Action{PluginPackageOptions})"/>.
 /// </summary>
 public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
 {
@@ -14,7 +14,7 @@ public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
     }
 
     /// <summary>
-    /// Gets the path as it was passed to <see cref="PluginPackageExtensions.AddFromPackages(PluginCollection, string, Action{PluginPackageOptions})"/>.
+    /// Gets the path as it was passed to <see cref="PackagePluginCollectionExtensions.AddFromPackages(PluginCollection, string, Action{PluginPackageOptions})"/>.
     /// A relative path is resolved against the content root when <c>builder.ApplyPlugins()</c> runs.
     /// </summary>
     public string Path { get; }

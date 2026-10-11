@@ -18,7 +18,7 @@ namespace Plugwright.NuGet;
 /// are not used; the signing certificate must be valid at verification time.
 /// </para>
 /// <para>
-/// Register it with <see cref="PackageVerifierExtensions.AddPackageSignatureVerifier(PluginVerifierCollection, Action{CertificateVerifierOptions})"/>.
+/// Register it with <see cref="PackagePluginVerifierCollectionExtensions.AddPackageSignatureVerifier(PluginVerifierCollection, Action{CertificateVerifierOptions})"/>.
 /// Sign packages with <c>dotnet nuget sign</c>.
 /// </para>
 /// </remarks>

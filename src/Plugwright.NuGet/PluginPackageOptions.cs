@@ -1,7 +1,7 @@
 namespace Plugwright.NuGet;
 
 /// <summary>
-/// Options of a package folder added with <see cref="PluginPackageExtensions.AddFromPackages(PluginCollection, string, Action{PluginPackageOptions})"/>.
+/// Options of a package folder added with <see cref="PackagePluginCollectionExtensions.AddFromPackages(PluginCollection, string, Action{PluginPackageOptions})"/>.
 /// </summary>
 public sealed class PluginPackageOptions
 {

@@ -6,7 +6,7 @@ namespace Plugwright;
 /// <summary>
 /// Adds NuGet package folders as a plugin source to <c>builder.Plugins</c>.
 /// </summary>
-public static class PluginPackageExtensions
+public static class PackagePluginCollectionExtensions
 {
     extension(PluginCollection plugins)
     {

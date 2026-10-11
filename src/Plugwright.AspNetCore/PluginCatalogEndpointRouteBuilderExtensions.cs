@@ -7,7 +7,7 @@ namespace Plugwright;
 /// <summary>
 /// Adds <c>MapPluginCatalog()</c> to <see cref="IEndpointRouteBuilder"/>.
 /// </summary>
-public static class PluginCatalogEndpointExtensions
+public static class PluginCatalogEndpointRouteBuilderExtensions
 {
     extension(IEndpointRouteBuilder endpoints)
     {

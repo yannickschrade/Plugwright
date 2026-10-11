@@ -6,7 +6,7 @@ namespace Plugwright;
 /// <summary>
 /// Adds the <see cref="PackageSignatureVerifier"/> to <c>builder.PluginVerifiers</c>.
 /// </summary>
-public static class PackageVerifierExtensions
+public static class PackagePluginVerifierCollectionExtensions
 {
     extension(PluginVerifierCollection verifiers)
     {

@@ -120,4 +120,4 @@ Because assemblies come from memory, [`Location`](https://learn.microsoft.com/do
 ## See also
 
 - [Load plugins from a directory](load-plugins-from-a-directory.md)
-- [`PluginPackageExtensions`](../api/Plugwright.PluginPackageExtensions.md)
+- [`PackagePluginCollectionExtensions`](../api/Plugwright.PackagePluginCollectionExtensions.md)
