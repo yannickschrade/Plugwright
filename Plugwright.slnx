@@ -3,6 +3,7 @@
     <Project Path="samples/CustomHandler/CustomHandler.csproj" />
     <Project Path="samples/FailureHandling/FailureHandling.csproj" />
     <Project Path="samples/Heartbeat/Heartbeat.csproj" />
+    <Project Path="samples/WorkerHealth/WorkerHealth.csproj" />
   </Folder>
   <Folder Name="/samples/BlazorHost/">
     <Project Path="samples/BlazorHost/Acme.Orders.Ui/Acme.Orders.Ui.csproj" />

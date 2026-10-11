@@ -1,6 +1,6 @@
 # Report plugin health
 
-Health checks tell load balancers, orchestrators and dashboards whether an application works. With plugins, two questions need an answer: did all plugins start, and do the running plugins work? Plugwright answers the first, each plugin answers the second. The examples come from `samples/SplitHosts` in the repository.
+Health checks tell load balancers, orchestrators and dashboards whether an application works. With plugins, two questions need an answer: did all plugins start, and do the running plugins work? Plugwright answers the first, each plugin answers the second. The examples come from `samples/SplitHosts`, a web application, and `samples/WorkerHealth`, a worker without web server, in the repository.
 
 ## Report plugins that did not start
 
@@ -31,6 +31,29 @@ Plugins can only fail without stopping the application if they are skipped, with
 ```csharp
 builder.Services.AddHealthChecks().AddPlugins("plugins", HealthStatus.Unhealthy, ["ready"]);
 ```
+
+## Report health without a web server
+
+Health checks are not tied to ASP.NET Core. `AddHealthChecks()` and `AddPlugins()` work in every application built on the .NET Generic Host, including console and worker applications. Only `MapHealthChecks()`, which answers health requests over HTTP, needs ASP.NET Core.
+
+Without a web server, either ask `HealthCheckService` yourself with `CheckHealthAsync()`, or let a publisher receive the results: `AddHealthChecks()` registers a hosted service that runs all checks periodically and hands the report to every registered `IHealthCheckPublisher`. The worker in `samples/WorkerHealth` writes the status to a file, which a Kubernetes exec probe or a monitoring agent can read:
+
+```csharp
+--8<-- "samples/WorkerHealth/FileHealthPublisher.cs:publisher"
+```
+
+```csharp
+--8<-- "samples/WorkerHealth/Program.cs:host"
+```
+
+The sample's plugin fails without a connection string, so the file says:
+
+```text
+Degraded
+plugins: Degraded 1 plugin(s) do not run because of an error: WorkerHealth (Failed)
+```
+
+`HealthCheckPublisherOptions` sets when the checks run: `Delay` after the start (default 5 seconds) and then every `Period` (default 30 seconds).
 
 ## Let plugins report their own health
 
