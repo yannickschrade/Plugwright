@@ -35,6 +35,20 @@ internal sealed class VerifiedFiles
         return (new VerifiedFiles(contentByPath), pluginFiles);
     }
 
+    /// <summary>
+    /// Returns the verified files below a folder, by path relative to it with '/' as separator. The bytes are not copied.
+    /// </summary>
+    public Dictionary<string, byte[]> GetFilesBelow(string folder)
+    {
+        var prefix = Path.GetFullPath(folder).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        return _contentByPath
+            .Where(entry => entry.Key.StartsWith(prefix, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+            .ToDictionary(
+                entry => entry.Key[prefix.Length..].Replace(Path.DirectorySeparatorChar, '/'),
+                entry => entry.Value,
+                s_pathComparer);
+    }
+
     public bool TryGetContent(string path, out byte[] content) =>
         _contentByPath.TryGetValue(Path.GetFullPath(path), out content!);
 

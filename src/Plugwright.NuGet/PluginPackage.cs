@@ -62,6 +62,11 @@ internal sealed class PluginPackage
     /// </summary>
     public IReadOnlyDictionary<string, byte[]> NativeLibraries { get; private init; } = new Dictionary<string, byte[]>();
 
+    /// <summary>
+    /// Gets the static web assets of a Razor class library package, or <see langword="null"/> if it has none.
+    /// </summary>
+    public PluginStaticWebAssets? StaticWebAssets { get; private init; }
+
     public override string ToString() => $"{Id} {Version.ToNormalizedString()}";
 
     /// <exception cref="InvalidDataException">The file is not a valid package.</exception>
@@ -80,6 +85,7 @@ internal sealed class PluginPackage
                 Dependencies = [.. dependencyGroup?.Packages ?? []],
                 Assemblies = ReadAssemblies(reader, files),
                 NativeLibraries = ReadNativeLibraries(reader, files),
+                StaticWebAssets = ReadStaticWebAssets(reader, files, nuspec.GetId()),
             };
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
@@ -156,6 +162,30 @@ internal sealed class PluginPackage
         {
             yield return "unix";
         }
+    }
+
+    /// <summary>
+    /// Reads the endpoints of a Razor class library package and the files below <c>staticwebassets/</c>.
+    /// </summary>
+    private static PluginStaticWebAssets? ReadStaticWebAssets(PackageArchiveReader reader, List<string> files, string id)
+    {
+        const string EndpointsFile = "build/Microsoft.AspNetCore.StaticWebAssetEndpoints.props";
+        const string AssetFolder = "staticwebassets/";
+        if (!files.Contains(EndpointsFile, StringComparer.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return new PluginStaticWebAssets
+        {
+            Id = id,
+            Format = PluginStaticWebAssetsFormat.PackageEndpoints,
+            Endpoints = System.Text.Encoding.UTF8.GetString(ReadAll(reader, files.First(file => file.Equals(EndpointsFile, StringComparison.OrdinalIgnoreCase))))
+                .TrimStart('\uFEFF'),
+            Files = files
+                .Where(file => file.StartsWith(AssetFolder, StringComparison.OrdinalIgnoreCase) && !file.EndsWith('/'))
+                .ToDictionary(file => file[AssetFolder.Length..], file => ReadAll(reader, file), StringComparer.Ordinal),
+        };
     }
 
     private static byte[] ReadAll(PackageArchiveReader reader, string file)

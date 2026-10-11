@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <!-- A component library package with static web assets and scoped CSS, used by the BlazorAssets plugin. -->
+  <PropertyGroup>
+    <PackageId>Plugwright.TestPackages.AssetsLibrary</PackageId>
+    <AssemblyName>Plugwright.TestPackages.AssetsLibrary</AssemblyName>
+    <RootNamespace>Plugwright.TestPackages.AssetsLibrary</RootNamespace>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+</Project>

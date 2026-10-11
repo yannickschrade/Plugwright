@@ -50,6 +50,7 @@ internal sealed class PackageDependencyResolver
         Dictionary<string, byte[]> assemblies,
         Dictionary<string, byte[]> nativeLibraries,
         List<PluginDependency> pluginDependencies,
+        List<PluginStaticWebAssets> staticWebAssets,
         HashSet<string> visited)
     {
         foreach (var dependency in package.Dependencies)
@@ -92,7 +93,12 @@ internal sealed class PackageDependencyResolver
                     nativeLibraries.TryAdd(name, content);
                 }
 
-                if (Resolve(library, assemblies, nativeLibraries, pluginDependencies, visited) is { } problem)
+                if (library.StaticWebAssets is { } libraryAssets)
+                {
+                    staticWebAssets.Add(libraryAssets);
+                }
+
+                if (Resolve(library, assemblies, nativeLibraries, pluginDependencies, staticWebAssets, visited) is { } problem)
                 {
                     return problem;
                 }

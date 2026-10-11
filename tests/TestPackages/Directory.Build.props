@@ -7,6 +7,8 @@
     and the integration tests copy them into package folders, like real plugin packages.
   -->
   <PropertyGroup>
+    <!-- The Razor SDK sets the default configuration after this file, but the output folder needs it. -->
+    <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
     <IsPackable>true</IsPackable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageOutputPath>$(MSBuildThisFileDirectory)../../artifacts/test-packages/$(Configuration)/</PackageOutputPath>

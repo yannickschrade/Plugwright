@@ -13,7 +13,9 @@ if (controllers == "Before")
     builder.Services.AddControllers();
 }
 
+builder.Plugins.AddNuGetSupport();
 builder.Plugins.AddFromConfiguration(builder.Configuration.GetSection("Plugwright"));
+builder.PluginVerifiers.AddFromConfiguration(builder.Configuration.GetSection("Plugwright:Verification"));
 foreach (var required in builder.Configuration.GetSection("TestWebHost:Require").GetChildren())
 {
     builder.Plugins.Require(required.Value!);
@@ -55,6 +57,12 @@ if (controllers != "None")
 app.MapOpenApi();
 app.MapPluginCatalog();
 app.MapPluginCatalog("/_plugwright/plugins-with-errors", includeErrorMessages: true);
+app.MapStaticAssets();
+app.MapPluginStaticAssets(options =>
+{
+    options.Source = builder.Configuration.GetValue("TestWebHost:StaticAssets:Source", PluginStaticAssetSource.Disk);
+    options.CompressPackageAssets = builder.Configuration.GetValue<bool>("TestWebHost:StaticAssets:Compress");
+});
 app.MapRazorComponents<App>().AddPluginAssemblies(app);
 
 app.Run();

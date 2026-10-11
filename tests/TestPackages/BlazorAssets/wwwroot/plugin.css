@@ -1,0 +1,5 @@
+/* A style sheet of the plugin. It is long enough to become smaller when it is compressed, so that the tests can check
+   compression. Brotli and gzip add some bytes of their own, which only pay off for files of some size. */
+.plugin { color: rebeccapurple; }
+.plugin-header { font-weight: bold; margin: 0 0 1rem 0; }
+.plugin-footer { font-size: small; margin: 1rem 0 0 0; }

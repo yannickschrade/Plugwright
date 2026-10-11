@@ -69,6 +69,11 @@ internal sealed class PluginUnit
     public List<PluginUnit> OptionallyDependsOn { get; } = [];
 
     /// <summary>
+    /// Gets the static web assets the plugin ships: of its folder, or of its package and its library packages.
+    /// </summary>
+    public List<PluginStaticWebAssets> StaticWebAssets { get; } = [];
+
+    /// <summary>
     /// Gets or sets the plugin's state, or <see langword="null"/> while it is still being processed.
     /// </summary>
     public PluginState? State { get; set; }

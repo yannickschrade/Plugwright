@@ -4,6 +4,7 @@
     <OutputType>Exe</OutputType>
     <TestPluginsPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../artifacts/test-plugins/$(Configuration)/'))</TestPluginsPath>
     <RestartHostPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../artifacts/restart-host/$(Configuration)/'))</RestartHostPath>
+    <PublishedPluginsPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../artifacts/published-plugins/$(Configuration)/'))</PublishedPluginsPath>
     <TestPackagesPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../artifacts/test-packages/$(Configuration)/'))</TestPackagesPath>
   </PropertyGroup>
 
@@ -51,12 +52,18 @@
     <ProjectReference Include="..\TestPackages\LibraryV2\LibraryV2.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="..\TestPackages\Greeter\Greeter.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="..\TestPackages\Reports\Reports.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\TestPackages\AssetsLibrary\AssetsLibrary.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\TestPackages\BlazorAssets\BlazorAssets.csproj" ReferenceOutputAssembly="false" Private="false" />
   </ItemGroup>
 
   <ItemGroup>
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
       <_Parameter1>TestPluginsPath</_Parameter1>
       <_Parameter2>$(TestPluginsPath)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>PublishedPluginsPath</_Parameter1>
+      <_Parameter2>$(PublishedPluginsPath)</_Parameter2>
     </AssemblyAttribute>
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
       <_Parameter1>RestartHostPath</_Parameter1>
@@ -72,5 +79,12 @@
     <Using Include="Xunit" />
     <Using Include="Shouldly" />
   </ItemGroup>
+
+  <!-- Plugins with static web assets must be published; the build output lacks the asset files. -->
+  <Target Name="PublishTestPlugins" AfterTargets="Build">
+    <MSBuild Projects="..\TestPackages\BlazorAssets\BlazorAssets.csproj"
+             Targets="Publish"
+             Properties="Configuration=$(Configuration);GeneratePackageOnBuild=false;PublishDir=$(PublishedPluginsPath)Plugwright.TestPackages.BlazorAssets/" />
+  </Target>
 
 </Project>

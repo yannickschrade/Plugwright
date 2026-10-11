@@ -24,6 +24,7 @@ internal sealed class PluginSystem
     private readonly List<PluginVerification> _verifications = [];
     private readonly List<(string PluginId, string Problem, Exception? Exception)> _requiredProblems = [];
     private readonly HashSet<string> _unavailableBecauseDisabled = new(StringComparer.OrdinalIgnoreCase);
+    private List<PluginUnit> _units = [];
     private bool _applied;
     private bool _used;
 
@@ -66,6 +67,13 @@ internal sealed class PluginSystem
                 $"{action} after builder.ApplyPlugins() has been called. Add plugins and handlers before calling ApplyPlugins().");
         }
     }
+
+    /// <summary>
+    /// Gets the static web assets of the loaded plugins from directories and packages, in the order the plugins were applied.
+    /// Read by Plugwright.AspNetCore after the host is built.
+    /// </summary>
+    public IEnumerable<PluginStaticWebAssets> StaticWebAssets =>
+        _units.Where(unit => unit.State == PluginState.Loaded).SelectMany(unit => unit.StaticWebAssets);
 
     /// <summary>
     /// Returns whether a plugin does not run because of an error, not because it or a plugin it depends on is turned off.
@@ -111,6 +119,7 @@ internal sealed class PluginSystem
         // Problems with required plugins that are known before any plugin runs stop the application right here.
         ThrowIfRequiredPluginsHaveProblems();
 
+        _units = sortedUnits;
         foreach (var unit in sortedUnits)
         {
             ApplyUnit(builder, unit, handlers);
@@ -442,13 +451,41 @@ internal sealed class PluginSystem
         try
         {
             var info = PluginMetadataReader.ReadWithoutLoading(mainAssemblyPath, verifiedFiles?.GetContent(mainAssemblyPath));
-            return PluginUnit.FromFolder(info, folder, new FolderAssemblies(mainAssemblyPath, verifiedFiles));
+            var unit = PluginUnit.FromFolder(info, folder, new FolderAssemblies(mainAssemblyPath, verifiedFiles));
+            if (FindStaticWebAssets(folder, name, verifiedFiles) is { } staticWebAssets)
+            {
+                unit.StaticWebAssets.Add(staticWebAssets);
+            }
+
+            return unit;
         }
         catch (Exception exception)
         {
             Fail(name, folder, PluginState.Failed, $"'{mainAssemblyFile}' could not be read: {exception.Message}", exception);
             return null;
         }
+    }
+
+    /// <summary>
+    /// Finds the static web assets of a published plugin folder: its endpoints manifest and the files in <c>wwwroot</c>.
+    /// </summary>
+    private static PluginStaticWebAssets? FindStaticWebAssets(string folder, string name, VerifiedFiles? verifiedFiles)
+    {
+        var manifestPath = Path.Combine(folder, $"{name}.staticwebassets.endpoints.json");
+        if (!File.Exists(manifestPath))
+        {
+            return null;
+        }
+
+        var webRoot = Path.Combine(folder, "wwwroot");
+        return new PluginStaticWebAssets
+        {
+            Id = name,
+            Format = PluginStaticWebAssetsFormat.EndpointsManifest,
+            Endpoints = System.Text.Encoding.UTF8.GetString(verifiedFiles?.GetContent(manifestPath) ?? File.ReadAllBytes(manifestPath)).TrimStart('\uFEFF'),
+            Folder = webRoot,
+            Files = verifiedFiles?.GetFilesBelow(webRoot),
+        };
     }
 
     private static PluginMetadata? TryReadMetadata(string mainAssemblyPath)

@@ -162,8 +162,9 @@ public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
         var assemblies = new Dictionary<string, byte[]>(package.Assemblies, StringComparer.OrdinalIgnoreCase);
         var nativeLibraries = new Dictionary<string, byte[]>(package.NativeLibraries, StringComparer.Ordinal);
         List<PluginDependency> pluginDependencies = [];
+        List<PluginStaticWebAssets> staticWebAssets = package.StaticWebAssets is { } own ? [own] : [];
 
-        var problem = resolver.Resolve(package, assemblies, nativeLibraries, pluginDependencies, visited: [package.Id]);
+        var problem = resolver.Resolve(package, assemblies, nativeLibraries, pluginDependencies, staticWebAssets, visited: [package.Id]);
         if (problem is not null)
         {
             context.Fail(package.Id, package.Path, problem, exception: null);
@@ -191,7 +192,9 @@ public sealed class PluginPackageSource : PluginSource, IDiscoveringPluginSource
         };
 
         var info = assemblyInfo with { Metadata = metadata, SatisfiesVersionRange = SatisfiesVersionRange };
-        return PluginUnit.FromSource(info, package.Path, "package", new PackageAssemblies(package.Id, assemblies, nativeLibraries));
+        var unit = PluginUnit.FromSource(info, package.Path, "package", new PackageAssemblies(package.Id, assemblies, nativeLibraries));
+        unit.StaticWebAssets.AddRange(staticWebAssets);
+        return unit;
     }
 
     private static bool SatisfiesVersionRange(PluginDependency dependency, string version) =>

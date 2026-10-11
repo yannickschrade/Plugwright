@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Plugwright.AspNetCore\Plugwright.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\Plugwright.NuGet\Plugwright.NuGet.csproj" />
   </ItemGroup>
 
 </Project>

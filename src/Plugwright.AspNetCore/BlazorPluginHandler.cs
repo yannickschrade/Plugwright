@@ -29,9 +29,12 @@ namespace Plugwright.AspNetCore;
 /// </example>
 public sealed class BlazorPluginHandler : PluginHandler<IBlazorPlugin>, IPluginHandlerSetup
 {
-    void IPluginHandlerSetup.Setup(IHostApplicationBuilder builder) =>
+    void IPluginHandlerSetup.Setup(IHostApplicationBuilder builder)
+    {
         builder.Services.AddSingleton<IPluginComponentAssemblies>(
             services => new PluginComponentAssemblies(services.GetRequiredService<PluginReport>()));
+        builder.Services.AddSingleton<PluginStaticAssets>();
+    }
 
     /// <inheritdoc/>
     /// <remarks>

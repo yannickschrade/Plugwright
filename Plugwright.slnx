@@ -93,6 +93,8 @@
     <Project Path="tests/ScannedPlugins/Plugins/ScannedPlugins.csproj" />
   </Folder>
   <Folder Name="/tests/TestPackages/">
+    <Project Path="tests/TestPackages/AssetsLibrary/AssetsLibrary.csproj" />
+    <Project Path="tests/TestPackages/BlazorAssets/BlazorAssets.csproj" />
     <Project Path="tests/TestPackages/Greeter/Greeter.csproj" />
     <Project Path="tests/TestPackages/LibraryV1/LibraryV1.csproj" />
     <Project Path="tests/TestPackages/LibraryV2/LibraryV2.csproj" />

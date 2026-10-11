@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <!--
+    A Blazor plugin with static web assets: a file in wwwroot, scoped CSS, a JavaScript module next to its page, and a
+    component library with assets of its own. Packed as a plugin package and, by the integration tests, published as a
+    plugin folder.
+  -->
+  <PropertyGroup>
+    <PackageId>Plugwright.TestPackages.BlazorAssets</PackageId>
+    <AssemblyName>Plugwright.TestPackages.BlazorAssets</AssemblyName>
+    <RootNamespace>Plugwright.TestPackages.BlazorAssets</RootNamespace>
+    <PackageType>PlugwrightPlugin</PackageType>
+    <Version>1.0.0</Version>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugwright.AspNetCore.Abstractions\Plugwright.AspNetCore.Abstractions.csproj" Private="false" ExcludeAssets="runtime" />
+    <ProjectReference Include="..\AssetsLibrary\AssetsLibrary.csproj" />
+  </ItemGroup>
+
+</Project>
