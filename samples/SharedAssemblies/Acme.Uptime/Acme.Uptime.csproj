@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Copy all dependencies into the build output, so the output can be deployed as a plugin folder. -->
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugwright.Abstractions\Plugwright.Abstractions.csproj" Private="false" ExcludeAssets="runtime" />
+    <!--
+      A plain reference: the plugin folder gets its own copy of the contract, as with a contract from a NuGet package.
+      The host's ShareAssembly call makes the plugin use the host's copy anyway.
+    -->
+    <ProjectReference Include="..\Contracts\SharedAssemblies.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- A contract of the host application that plugins implement. The host shares it with ShareAssembly. -->
+
+</Project>

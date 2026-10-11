@@ -36,6 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Required plugins and a failure mode per plugin: `PluginPolicy`, `builder.Plugins.Add<T>(policy => …)`, `Configure(pluginId, …)` and `Require(pluginId)`. All problems of required plugins are reported in one exception.
 - Startup tasks: `IPluginStartup` and `PluginContext.AddStartup<T>()` run after `Build()`, before every hosted service and the web server, in dependency order, each in its own scope. Log events 1009–1011, activities in the `ActivitySource` `Plugwright`.
 - `MapPluginCatalog()` in `Plugwright.AspNetCore`: read-only endpoint with `PluginStatus` (in `Plugwright.Abstractions`).
+- `builder.Plugins.ShareAssembly(assembly)` and `ShareAssemblies(prefix)`: plugins from directories and packages use the host's copy of these assemblies, for example application contracts or Entity Framework Core.
  checked before loading, applied in dependency order, with shared types across load contexts. Dependents of skipped plugins are skipped.
 - Per-plugin settings section `Plugwright:Plugins:{PluginId}:Settings`.
 - `PluginFailureMode.SkipAndLog` to skip failing plugins instead of stopping the application.

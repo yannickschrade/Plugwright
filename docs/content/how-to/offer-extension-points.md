@@ -35,7 +35,7 @@ A plugin that is turned off or fails contributes nothing, because its services a
 ## Things to keep in mind
 
 - Version the contract carefully. A plugin compiled against an older contract must still load; add members instead of changing them.
-- Plugins loaded from a directory or a package share the contract with the host only if they use the host's copy of its assembly. Reference the contract project with `Private="false" ExcludeAssets="runtime"`, as for `Plugwright.Abstractions`, so that the plugin folder contains no copy of its own. See [Load contexts and shared assemblies](../explanation/load-contexts.md).
+- Plugins loaded from a directory or a package share the contract with the host only if they use the host's copy of its assembly. Share it in the host with `builder.Plugins.ShareAssembly(typeof(NavigationItem).Assembly)`, or reference the contract project in plugins with `Private="false" ExcludeAssets="runtime"`, as for `Plugwright.Abstractions`, so that the plugin folder contains no copy of its own. See [Share your own assemblies](../explanation/load-contexts.md#share-your-own-assemblies).
 - Services are the extension mechanism for everything a plugin contributes at runtime. Plugwright only transports them; how the host uses them is up to the host.
 
 ## See also

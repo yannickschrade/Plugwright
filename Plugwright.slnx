@@ -38,6 +38,11 @@
     <Project Path="samples/PluginPolicies/Acme.Reports/Acme.Reports.csproj" />
     <Project Path="samples/PluginPolicies/App/PluginPolicies.App.csproj" />
   </Folder>
+  <Folder Name="/samples/SharedAssemblies/">
+    <Project Path="samples/SharedAssemblies/Acme.Uptime/Acme.Uptime.csproj" />
+    <Project Path="samples/SharedAssemblies/App/SharedAssemblies.App.csproj" />
+    <Project Path="samples/SharedAssemblies/Contracts/SharedAssemblies.Contracts.csproj" />
+  </Folder>
   <Folder Name="/samples/SignedPackages/">
     <Project Path="samples/SignedPackages/App/SignedPackages.App.csproj" />
   </Folder>
