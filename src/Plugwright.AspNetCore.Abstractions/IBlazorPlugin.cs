@@ -18,6 +18,8 @@ namespace Plugwright.AspNetCore;
 /// }
 /// </code>
 /// </example>
+// An empty marker interface instead of an attribute (CA1040): handlers select plugins by the interfaces they
+// implement (PluginHandler<T>), so an interface lets BlazorPluginHandler work like every other handler.
 public interface IBlazorPlugin
 {
 }
