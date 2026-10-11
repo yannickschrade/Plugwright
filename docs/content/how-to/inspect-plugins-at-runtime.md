@@ -68,5 +68,6 @@ The endpoint answers `GET /_plugwright/plugins` (the route is a parameter) with 
 
 ## See also
 
+- [Report plugin health](report-plugin-health.md)
 - [Keep running when a plugin fails](handle-plugin-failures.md)
 - [Use Plugwright with .NET Aspire](use-with-aspire.md)

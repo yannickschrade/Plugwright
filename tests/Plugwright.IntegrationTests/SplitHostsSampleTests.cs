@@ -18,7 +18,7 @@ namespace Plugwright.IntegrationTests;
 public sealed class SplitHostsSampleTests
 {
     [Fact]
-    public async Task Api_host_serves_the_plugin_endpoint_and_its_health_check()
+    public async Task Api_host_serves_the_plugin_endpoint_and_the_health_checks()
     {
         using var factory = new WebApplicationFactory<SplitHostsApiSample::Program>();
         var client = factory.CreateClient();
@@ -27,7 +27,7 @@ public sealed class SplitHostsSampleTests
         (await client.GetStringAsync("/api/orders", cancellationToken)).ShouldContain("Espresso machine");
         (await client.GetStringAsync("/health", cancellationToken)).ShouldBe("Healthy");
         factory.Services.GetRequiredService<IOptions<HealthCheckServiceOptions>>().Value.Registrations
-            .Select(registration => registration.Name).ShouldBe(["self", "orders"]);
+            .Select(registration => registration.Name).ShouldBe(["self", "plugins", "orders"]);
     }
 
     [Theory]

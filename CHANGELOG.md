@@ -37,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Startup tasks: `IPluginStartup` and `PluginContext.AddStartup<T>()` run after `Build()`, before every hosted service and the web server, in dependency order, each in its own scope. Log events 1009–1011, activities in the `ActivitySource` `Plugwright`.
 - `MapPluginCatalog()` in `Plugwright.AspNetCore`: read-only endpoint with `PluginStatus` (in `Plugwright.Abstractions`).
 - `builder.Plugins.AddFromAssembly(assembly)` and `AddFromReferencedAssemblies(prefix)`: plugin types of assemblies the application references, found through its `.deps.json` file. They count as plugins added in code.
+- Health check for plugins: `builder.Services.AddHealthChecks().AddPlugins()` reports plugins that do not run because of an error (`Degraded` by default); plugins that are turned off are healthy.
 - `builder.Plugins.ShareAssembly(assembly)` and `ShareAssemblies(prefix)`: plugins from directories and packages use the host's copy of these assemblies, for example application contracts or Entity Framework Core.
  checked before loading, applied in dependency order, with shared types across load contexts. Dependents of skipped plugins are skipped.
 - Per-plugin settings section `Plugwright:Plugins:{PluginId}:Settings`.

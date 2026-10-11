@@ -49,6 +49,7 @@ nav = [
       { "Keep running when a plugin fails" = "how-to/handle-plugin-failures.md" },
       { "Run startup tasks" = "how-to/run-startup-tasks.md" },
       { "Inspect plugins at runtime" = "how-to/inspect-plugins-at-runtime.md" },
+      { "Report plugin health" = "how-to/report-plugin-health.md" },
     ] },
     { "Develop and test" = [
       { "Develop plugins in a solution" = "how-to/develop-plugins-in-a-solution.md" },
