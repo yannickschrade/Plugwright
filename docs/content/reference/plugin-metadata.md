@@ -21,7 +21,10 @@ Attributes only fill gaps. They never override what the project file sets. If th
 ```csharp
 [assembly: Plugin(Description = "Sends a heartbeat to the monitoring system.", Authors = "Acme")]
 [assembly: PluginDependency("Acme.Logging", MinVersion = "1.2.0")]
+[assembly: PluginDependency("Acme.Reports", IsOptional = true)]
 ```
+
+A dependency with `IsOptional = true` lets the plugin run without the other plugin. See [Make a dependency optional](../how-to/declare-plugin-dependencies.md#make-a-dependency-optional).
 
 ## Versions
 

@@ -29,6 +29,7 @@
     <Project Path="samples/PackagePlugins/App/PackagePlugins.App.csproj" />
   </Folder>
   <Folder Name="/samples/PluginDependencies/">
+    <Project Path="samples/PluginDependencies/Acme.Farewell/Acme.Farewell.csproj" />
     <Project Path="samples/PluginDependencies/Acme.Formatting/Acme.Formatting.csproj" />
     <Project Path="samples/PluginDependencies/Acme.Welcome/Acme.Welcome.csproj" />
     <Project Path="samples/PluginDependencies/App/PluginDependencies.App.csproj" />

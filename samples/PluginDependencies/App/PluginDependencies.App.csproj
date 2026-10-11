@@ -13,11 +13,11 @@
   </ItemGroup>
 
   <!--
-    For the sample only: build both plugins and copy their output to plugins/<Name>/ next to the app.
-    The app references neither plugin.
+    For the sample only: build the plugins and copy their output to plugins/<Name>/ next to the app.
+    The app references none of them.
   -->
   <ItemGroup>
-    <SamplePlugin Include="Acme.Formatting;Acme.Welcome" />
+    <SamplePlugin Include="Acme.Formatting;Acme.Welcome;Acme.Farewell" />
     <ProjectReference Include="@(SamplePlugin->'..\%(Identity)\%(Identity).csproj')" ReferenceOutputAssembly="false" Private="false" />
   </ItemGroup>
 

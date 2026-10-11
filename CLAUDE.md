@@ -6,7 +6,7 @@ The full specification (German, with rationale and decision log) lives in `docs/
 
 ## Status
 
-Done: repo setup (central package management, CI, docs with Zensical and DocFX API reference), plugin contract, extension members and handler pipeline, directory loading, metadata and dependencies, verification with `HashVerifier` and `CertificateVerifier`, `PluginReport`, CLI `lock` and `sign`, NuGet package source with verification (lock file, `PackageSignatureVerifier`) and optional feed, sources and verifiers from configuration (`AddFromConfiguration`), web hosts (`Plugwright.AspNetCore`, M1 of `docs/design/requirements-web-host.md`), `pluginsettings.json` with `IPluginSettingsStore`, plugin catalog, enabling/disabling, required plugins and per-plugin failure mode, catalog endpoint (M2). startup tasks (`IPluginStartup`, M3). Shared assemblies (R-52), assembly scan (R-53), health check (R-50). Doc pages for M1–M3 are written. M4 questions decided (decision log 2026-10-11). Next: M4 in the order R-15 (optional dependencies), R-32 (`IApplicationRestarter`), R-51 (spike first), guides for R-14 and R-17; then CLI `verify` (step 7).
+Done: repo setup (central package management, CI, docs with Zensical and DocFX API reference), plugin contract, extension members and handler pipeline, directory loading, metadata and dependencies, verification with `HashVerifier` and `CertificateVerifier`, `PluginReport`, CLI `lock` and `sign`, NuGet package source with verification (lock file, `PackageSignatureVerifier`) and optional feed, sources and verifiers from configuration (`AddFromConfiguration`), web hosts (`Plugwright.AspNetCore`, M1 of `docs/design/requirements-web-host.md`), `pluginsettings.json` with `IPluginSettingsStore`, plugin catalog, enabling/disabling, required plugins and per-plugin failure mode, catalog endpoint (M2). startup tasks (`IPluginStartup`, M3). Shared assemblies (R-52), assembly scan (R-53), health check (R-50), optional dependencies (R-15). Doc pages for M1–M3 are written. M4 questions decided (decision log 2026-10-11). Next: M4 in the order R-32 (`IApplicationRestarter`), R-51 (spike first), guides for R-14 and R-17; then CLI `verify` (step 7).
 
 ## Baseline
 
@@ -97,7 +97,7 @@ docs/                        zensical.toml, content/ (published pages), design/ 
   - Missing dependency, version mismatch or cycle → exception that names the problem; with skip-and-log the affected plugins (all cycle members) and their dependents are skipped.
   - Dependencies are processed before dependents in both phases.
   - A plugin's load context forwards its dependencies' assemblies to their load contexts.
-- Optional dependencies (R-15, decided, not built yet): `[PluginDependency(…, IsOptional = true)]`; present → like a required one; missing, disabled or failed → the plugin loads anyway; too old → error. `PluginContext.IsPluginLoaded(id)` in phase 1.
+- Optional dependencies (R-15): `[PluginDependency(…, IsOptional = true)]`; present → like a required one; missing, disabled or failed → the plugin loads anyway; too old → error. `PluginContext.IsPluginLoaded(id)` in phase 1.
 - NuGet folder (`AddFromPackages`, in `Plugwright.NuGet`, uses core internals via `InternalsVisibleTo`):
   - Plugin packages have package type `PlugwrightPlugin` and an assembly named like the package ID; all others are library packages.
   - Loaded in memory, no extraction; only native libraries go to a per-process temp folder, re-checked before loading.
