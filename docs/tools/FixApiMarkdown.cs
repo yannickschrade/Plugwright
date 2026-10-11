@@ -18,7 +18,10 @@ if (args.Length != 1 || !Directory.Exists(args[0]))
 }
 
 var apiFolder = args[0];
-var pages = Directory.GetFiles(apiFolder, "*.md").ToDictionary(file => Path.GetRelativePath(apiFolder, file), File.ReadAllText);
+// SUMMARY.md is this tool's own output from an earlier run, not a page of DocFX.
+var pages = Directory.GetFiles(apiFolder, "*.md")
+    .Where(file => Path.GetFileName(file) != "SUMMARY.md")
+    .ToDictionary(file => Path.GetRelativePath(apiFolder, file), File.ReadAllText);
 
 // Every anchor DocFX writes is a uid with all other characters replaced by '_', for example
 // Plugwright_PluginContext_Builder. Remember the page of each anchor and the display name of each page.
