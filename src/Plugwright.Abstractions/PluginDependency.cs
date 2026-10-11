@@ -35,13 +35,23 @@ public sealed class PluginDependency
     public string? VersionRange { get; init; }
 
     /// <summary>
-    /// Returns the dependency, for example <c>Acme.Logging &gt;= 1.2.0</c> or <c>Acme.Logging [1.2.0, 2.0.0)</c>.
+    /// Gets whether the plugin also runs without the plugin depended on. See <see cref="PluginDependencyAttribute.IsOptional"/>.
     /// </summary>
-    /// <returns>The plugin ID and, if set, the allowed versions.</returns>
-    public override string ToString() => (VersionRange, MinVersion) switch
+    public bool IsOptional { get; init; }
+
+    /// <summary>
+    /// Returns the dependency, for example <c>Acme.Logging &gt;= 1.2.0</c>, <c>Acme.Logging [1.2.0, 2.0.0)</c> or
+    /// <c>Acme.Logging (optional)</c>.
+    /// </summary>
+    /// <returns>The plugin ID and, if set, the allowed versions and whether the dependency is optional.</returns>
+    public override string ToString()
     {
-        ({ } range, _) => $"{PluginId} {range}",
-        (null, { } minVersion) => $"{PluginId} >= {minVersion}",
-        _ => PluginId,
-    };
+        var text = (VersionRange, MinVersion) switch
+        {
+            ({ } range, _) => $"{PluginId} {range}",
+            (null, { } minVersion) => $"{PluginId} >= {minVersion}",
+            _ => PluginId,
+        };
+        return IsOptional ? $"{text} (optional)" : text;
+    }
 }

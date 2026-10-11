@@ -5,7 +5,8 @@ namespace Plugwright;
 /// </summary>
 /// <remarks>
 /// A unit depends on another unit if it declares a <see cref="PluginDependencyAttribute"/> for it, or if it references
-/// the other unit's assembly. Problems are reported through a callback, which either throws or marks the unit as failed.
+/// the other unit's assembly. An optional dependency that is missing is no problem; one that is present orders and shares
+/// types like a required one. Problems are reported through a callback, which either throws or marks the unit as failed.
 /// </remarks>
 internal static class PluginDependencyResolver
 {
@@ -32,17 +33,35 @@ internal static class PluginDependencyResolver
     }
 
     /// <summary>
-    /// Fills <see cref="PluginUnit.DependsOn"/> and <see cref="PluginUnit.Metadata"/>.
+    /// Fills <see cref="PluginUnit.DependsOn"/>, <see cref="PluginUnit.OptionallyDependsOn"/> and <see cref="PluginUnit.Metadata"/>.
     /// </summary>
     /// <returns>A description of the first problem, or <see langword="null"/>.</returns>
     private static (PluginState? State, string? Problem) FindDependencies(PluginUnit unit, Dictionary<string, PluginUnit> unitsById)
     {
         List<PluginDependency> dependencies = [];
 
-        foreach (var dependency in unit.Info.Metadata.Dependencies)
+        // A dependency is optional only if every declaration of it is; a package dependency in the .nuspec is required.
+        var optionalIds = unit.Info.Metadata.Dependencies
+            .GroupBy(dependency => dependency.PluginId, StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.All(dependency => dependency.IsOptional))
+            .Select(group => group.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var declared in unit.Info.Metadata.Dependencies)
         {
+            var isOptional = optionalIds.Contains(declared.PluginId);
+            var dependency = declared.IsOptional == isOptional
+                ? declared
+                : new PluginDependency(declared.PluginId, declared.MinVersion) { VersionRange = declared.VersionRange };
+
             if (!unitsById.TryGetValue(dependency.PluginId, out var other))
             {
+                if (isOptional)
+                {
+                    dependencies.Add(dependency);
+                    continue;
+                }
+
                 return (PluginState.DependencyUnavailable, $"It depends on plugin '{dependency.PluginId}', which is not available.");
             }
 
@@ -50,7 +69,7 @@ internal static class PluginDependencyResolver
             if (other.State is not null)
             {
                 dependencies.Add(dependency);
-                AddDependency(unit, other);
+                AddDependency(unit, other, isOptional);
                 continue;
             }
 
@@ -77,7 +96,7 @@ internal static class PluginDependencyResolver
             }
 
             dependencies.Add(dependency);
-            AddDependency(unit, other);
+            AddDependency(unit, other, isOptional);
         }
 
         foreach (var reference in unit.Info.References)
@@ -98,7 +117,7 @@ internal static class PluginDependencyResolver
                 dependencies.Add(new PluginDependency(other.Id));
             }
 
-            AddDependency(unit, other);
+            AddDependency(unit, other, optionalIds.Contains(other.Id));
         }
 
         unit.Metadata = new PluginMetadata(unit.Info.Metadata.Id, unit.Info.Metadata.Version)
@@ -108,7 +127,7 @@ internal static class PluginDependencyResolver
             Dependencies = dependencies,
         };
 
-        if (unit.IsInCode && unit.DependsOn.FirstOrDefault(other => !other.IsInCode) is { } folderDependency)
+        if (unit.IsInCode && unit.DependsOn.Concat(unit.OptionallyDependsOn).FirstOrDefault(other => !other.IsInCode) is { } folderDependency)
         {
             return (PluginState.DependencyUnavailable, $"It depends on plugin '{folderDependency.Id}' from {folderDependency.Source}. "
                 + "Plugins added in code can only depend on plugins added in code.");
@@ -117,11 +136,12 @@ internal static class PluginDependencyResolver
         return (null, null);
     }
 
-    private static void AddDependency(PluginUnit unit, PluginUnit other)
+    private static void AddDependency(PluginUnit unit, PluginUnit other, bool isOptional)
     {
-        if (!unit.DependsOn.Contains(other))
+        var list = isOptional ? unit.OptionallyDependsOn : unit.DependsOn;
+        if (!list.Contains(other))
         {
-            unit.DependsOn.Add(other);
+            list.Add(other);
         }
     }
 
@@ -163,7 +183,7 @@ internal static class PluginDependencyResolver
             }
 
             path.Add(unit);
-            foreach (var dependency in unit.DependsOn)
+            foreach (var dependency in unit.DependsOn.Concat(unit.OptionallyDependsOn))
             {
                 Visit(dependency);
             }

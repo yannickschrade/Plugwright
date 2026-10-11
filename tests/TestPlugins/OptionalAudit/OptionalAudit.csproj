@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Depends on the Logging plugin optionally. The reference copies Logging's assembly into this folder; without the
+    Logging plugin, the load context must not use that copy.
+  -->
+  <PropertyGroup>
+    <AssemblyName>Plugwright.TestPlugins.OptionalAudit</AssemblyName>
+    <RootNamespace>Plugwright.TestPlugins.OptionalAudit</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugwright.Abstractions\Plugwright.Abstractions.csproj" Private="false" ExcludeAssets="runtime" />
+    <ProjectReference Include="..\Logging\Logging.csproj" />
+  </ItemGroup>
+
+</Project>

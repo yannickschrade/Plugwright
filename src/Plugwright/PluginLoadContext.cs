@@ -17,17 +17,28 @@ internal sealed class PluginLoadContext : AssemblyLoadContext
 {
     private readonly PluginAssemblies _assemblies;
     private readonly IReadOnlyDictionary<string, Assembly> _dependencies;
+    private readonly IReadOnlySet<string> _unavailableDependencies;
     private readonly SharedAssemblies _sharedAssemblies;
 
     /// <param name="assemblies">The plugin's own assemblies.</param>
-    /// <param name="dependencies">The main assemblies of the plugins this plugin depends on, by assembly name.</param>
+    /// <param name="dependencies">
+    /// The main assemblies of the plugins this plugin depends on, also optionally, that are loaded, by assembly name.
+    /// </param>
+    /// <param name="unavailableDependencies">
+    /// The names of the plugins this plugin depends on optionally that are not loaded. Their assemblies are not loaded
+    /// from the plugin's folder, so that the plugin cannot use a private copy by accident.
+    /// </param>
     /// <param name="sharedAssemblies">The assemblies that come from the host.</param>
     public PluginLoadContext(
-        PluginAssemblies assemblies, IReadOnlyDictionary<string, Assembly> dependencies, SharedAssemblies sharedAssemblies)
+        PluginAssemblies assemblies,
+        IReadOnlyDictionary<string, Assembly> dependencies,
+        IReadOnlySet<string> unavailableDependencies,
+        SharedAssemblies sharedAssemblies)
         : base(name: assemblies.MainAssemblyName, isCollectible: false)
     {
         _assemblies = assemblies;
         _dependencies = dependencies;
+        _unavailableDependencies = unavailableDependencies;
         _sharedAssemblies = sharedAssemblies;
     }
 
@@ -38,6 +49,11 @@ internal sealed class PluginLoadContext : AssemblyLoadContext
         if (assemblyName.Name is not null && _dependencies.TryGetValue(assemblyName.Name, out var dependency))
         {
             return dependency;
+        }
+
+        if (assemblyName.Name is not null && _unavailableDependencies.Contains(assemblyName.Name))
+        {
+            return null;
         }
 
         if (_sharedAssemblies.Contains(assemblyName) && TryLoadFromDefault(assemblyName) is { } shared)

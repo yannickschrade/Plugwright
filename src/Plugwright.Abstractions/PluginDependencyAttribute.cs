@@ -41,4 +41,27 @@ public sealed class PluginDependencyAttribute : Attribute
     /// <see langword="null"/> accepts any version.
     /// </summary>
     public string? MinVersion { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether this plugin also runs without the other plugin. The default is <see langword="false"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// If the other plugin is present, an optional dependency works like a required one: the other plugin is processed
+    /// first, and both use the same types. If it is missing, turned off or fails, this plugin is loaded anyway. Ask
+    /// <see cref="PluginContext.IsPluginLoaded"/> in <see cref="IPlugin.Configure"/>, or <see cref="IPluginCatalog"/> at
+    /// runtime, and touch the other plugin's types only if it is loaded.
+    /// </para>
+    /// <para>
+    /// A version that is too old is an error, as for a required dependency. A reference to the other plugin's assembly
+    /// becomes optional through this attribute. In a NuGet package, declare optional dependencies only with this
+    /// attribute: a package dependency in the <c>.nuspec</c> is always required.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code language="csharp">
+    /// [assembly: PluginDependency("Acme.Logging", MinVersion = "1.2.0", IsOptional = true)]
+    /// </code>
+    /// </example>
+    public bool IsOptional { get; set; }
 }

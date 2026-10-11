@@ -63,6 +63,12 @@ internal sealed class PluginUnit
     public List<PluginUnit> DependsOn { get; } = [];
 
     /// <summary>
+    /// Gets the units this unit depends on optionally and that are present: they come first and share their types, but
+    /// this unit does not need them.
+    /// </summary>
+    public List<PluginUnit> OptionallyDependsOn { get; } = [];
+
+    /// <summary>
     /// Gets or sets the plugin's state, or <see langword="null"/> while it is still being processed.
     /// </summary>
     public PluginState? State { get; set; }
@@ -100,7 +106,8 @@ internal sealed class PluginUnit
         Reason = Reason,
         ErrorMessage = ErrorMessage,
         IsRequired = IsRequired,
-        Dependencies = [.. Metadata.Dependencies.Select(dependency => dependency.PluginId)],
+        Dependencies = [.. Metadata.Dependencies.Where(dependency => !dependency.IsOptional).Select(dependency => dependency.PluginId)],
+        OptionalDependencies = [.. Metadata.Dependencies.Where(dependency => dependency.IsOptional).Select(dependency => dependency.PluginId)],
         AppliedHandlers = [.. AppliedHandlers],
     };
 

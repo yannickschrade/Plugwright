@@ -148,6 +148,84 @@ public sealed class PluginDependencyResolverTests
         _failures.ShouldHaveSingleItem().Reason.ShouldContain("Plugins added in code can only depend on plugins added in code.");
     }
 
+    [Fact]
+    public void Missing_optional_dependency_is_no_problem()
+    {
+        var reports = Unit("Reports", dependencies: [new PluginDependency("Logging") { IsOptional = true }]);
+
+        Resolve(reports);
+
+        _failures.ShouldBeEmpty();
+        reports.DependsOn.ShouldBeEmpty();
+        reports.OptionallyDependsOn.ShouldBeEmpty();
+        reports.Metadata.Dependencies.ShouldHaveSingleItem().ToString().ShouldBe("Logging (optional)");
+        reports.ToInfo().Dependencies.ShouldBeEmpty();
+        reports.ToInfo().OptionalDependencies.ShouldBe(["Logging"]);
+    }
+
+    [Fact]
+    public void Present_optional_dependency_comes_first()
+    {
+        var reports = Unit("Reports", dependencies: [new PluginDependency("Logging") { IsOptional = true }]);
+        var logging = Unit("Logging");
+
+        Resolve(reports, logging).Select(unit => unit.Id).ShouldBe(["Logging", "Reports"]);
+
+        reports.DependsOn.ShouldBeEmpty();
+        reports.OptionallyDependsOn.ShouldBe([logging]);
+    }
+
+    [Fact]
+    public void Optional_dependency_with_a_version_that_is_too_old_is_reported()
+    {
+        var reports = Unit("Reports", dependencies: [new PluginDependency("Logging", "2.0.0") { IsOptional = true }]);
+        var logging = Unit("Logging", version: "1.5.0");
+
+        Resolve(reports, logging);
+
+        _failures.ShouldBe([("Reports", "It requires plugin 'Logging' version 2.0.0 or later, but version 1.5.0 is available.")]);
+    }
+
+    [Fact]
+    public void Optional_attribute_makes_an_assembly_reference_optional()
+    {
+        var reports = Unit(
+            "Reports",
+            dependencies: [new PluginDependency("Logging") { IsOptional = true }],
+            references: [new AssemblyName("Logging, Version=1.0.0.0")]);
+        var logging = Unit("Logging");
+
+        Resolve(reports, logging);
+
+        reports.DependsOn.ShouldBeEmpty();
+        reports.OptionallyDependsOn.ShouldBe([logging]);
+        reports.Metadata.Dependencies.ShouldHaveSingleItem().IsOptional.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Required_declaration_wins_over_an_optional_one()
+    {
+        // A package dependency in the .nuspec and an optional attribute for the same plugin.
+        var reports = Unit(
+            "Reports",
+            dependencies: [new PluginDependency("Logging") { VersionRange = "[1.0.0, )" }, new PluginDependency("Logging") { IsOptional = true }]);
+
+        Resolve(reports);
+
+        _failures.ShouldBe([("Reports", "It depends on plugin 'Logging', which is not available.")]);
+    }
+
+    [Fact]
+    public void Optional_dependency_takes_part_in_cycles()
+    {
+        var a = Unit("A", dependencies: [new PluginDependency("B") { IsOptional = true }]);
+        var b = Unit("B", dependencies: [new PluginDependency("A")]);
+
+        Resolve(a, b);
+
+        _failures.Select(failure => failure.PluginId).Order().ShouldBe(["A", "B"]);
+    }
+
     private List<PluginUnit> Resolve(params List<PluginUnit> units) =>
         PluginDependencyResolver.Resolve(units, (unit, state, reason) =>
         {

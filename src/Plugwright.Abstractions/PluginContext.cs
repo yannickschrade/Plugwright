@@ -89,6 +89,42 @@ public sealed class PluginContext
     public ILogger Logger { get; }
 
     /// <summary>
+    /// Gets the catalog the plugin system fills while it applies plugins, or <see langword="null"/> for a context created
+    /// in a unit test.
+    /// </summary>
+    internal IPluginCatalog? Catalog { get; init; }
+
+    /// <summary>
+    /// Returns whether a plugin is loaded, for example a plugin this plugin depends on optionally.
+    /// </summary>
+    /// <param name="pluginId">The plugin ID, compared without case.</param>
+    /// <returns>
+    /// <see langword="true"/> if the plugin is loaded; <see langword="false"/> if it is missing, turned off, failed, or not
+    /// processed yet.
+    /// </returns>
+    /// <remarks>
+    /// Plugins a plugin depends on, also optionally, are always processed before it, so the answer is final for them.
+    /// For other plugins it can change later in the start. A context created with the public constructor, as in a unit
+    /// test, knows no plugins and returns <see langword="false"/>.
+    /// </remarks>
+    /// <example>
+    /// <code language="csharp">
+    /// public void Configure(PluginContext context)
+    /// {
+    ///     if (context.IsPluginLoaded("Acme.Logging"))
+    ///     {
+    ///         context.Builder.Services.AddSingleton&lt;IAuditSink, LoggingAuditSink&gt;();
+    ///     }
+    /// }
+    /// </code>
+    /// </example>
+    public bool IsPluginLoaded(string pluginId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(pluginId);
+        return Catalog?.Find(pluginId)?.State == PluginState.Loaded;
+    }
+
+    /// <summary>
     /// Adds an asynchronous startup task for this plugin. It runs after the host is built and before the application
     /// starts, see <see cref="IPluginStartup"/>.
     /// </summary>

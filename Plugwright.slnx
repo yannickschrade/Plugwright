@@ -104,6 +104,7 @@
     <Project Path="tests/TestPlugins/Logging/Logging.csproj" />
     <Project Path="tests/TestPlugins/NeedsNewLogging/NeedsNewLogging.csproj" />
     <Project Path="tests/TestPlugins/NoPlugins/NoPlugins.csproj" />
+    <Project Path="tests/TestPlugins/OptionalAudit/OptionalAudit.csproj" />
     <Project Path="tests/TestPlugins/TextLibV1/TextLibV1.csproj" />
     <Project Path="tests/TestPlugins/TextLibV2/TextLibV2.csproj" />
     <Project Path="tests/TestPlugins/Web/Web.csproj" />

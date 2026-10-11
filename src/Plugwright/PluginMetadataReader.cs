@@ -65,7 +65,11 @@ internal static class PluginMetadataReader
             .Where(attribute => AttributeName(attribute) == PluginDependencyAttributeName)
             .Select(attribute => new PluginDependency(
                 (string)attribute.ConstructorArguments[0].Value!,
-                NamedArgument(attribute, nameof(PluginDependencyAttribute.MinVersion))))
+                NamedArgument(attribute, nameof(PluginDependencyAttribute.MinVersion)))
+            {
+                IsOptional = attribute.NamedArguments.Any(argument =>
+                    argument.MemberName == nameof(PluginDependencyAttribute.IsOptional) && argument.TypedValue.Value is true),
+            })
             .ToList();
 
         var metadata = new PluginMetadata(id, version)

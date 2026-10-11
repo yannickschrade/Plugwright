@@ -53,9 +53,15 @@ public sealed record PluginInfo
     public bool IsRequired { get; init; }
 
     /// <summary>
-    /// Gets the IDs of the plugins this plugin depends on.
+    /// Gets the IDs of the plugins this plugin needs: if one of them is not loaded, this plugin is not loaded either.
     /// </summary>
     public IReadOnlyList<string> Dependencies { get; init; } = [];
+
+    /// <summary>
+    /// Gets the IDs of the plugins this plugin uses if they are loaded, and runs without otherwise.
+    /// See <see cref="PluginDependencyAttribute.IsOptional"/>.
+    /// </summary>
+    public IReadOnlyList<string> OptionalDependencies { get; init; } = [];
 
     /// <summary>
     /// Gets the names of the plugin handlers that processed the plugin, for example <c>DefaultPluginHandler</c> and

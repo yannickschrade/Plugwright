@@ -671,12 +671,20 @@ internal sealed class PluginSystem
     private bool LoadUnit(PluginUnit unit, List<IPluginHandler> handlers)
     {
         var mainAssemblyFile = $"{unit.Assemblies!.MainAssemblyName}.dll";
-        var dependencies = unit.DependsOn.ToDictionary(dependency => dependency.Id, dependency => dependency.Assembly!);
+        var dependencies = unit.DependsOn
+            .Concat(unit.OptionallyDependsOn.Where(dependency => dependency.Assembly is not null))
+            .ToDictionary(dependency => dependency.Id, dependency => dependency.Assembly!, StringComparer.OrdinalIgnoreCase);
+
+        // An optional dependency that is not loaded must not be loaded from a copy in the plugin's own folder.
+        var unavailableDependencies = unit.Metadata.Dependencies
+            .Where(dependency => dependency.IsOptional && !dependencies.ContainsKey(dependency.PluginId))
+            .Select(dependency => dependency.PluginId)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         Type[] exportedTypes;
         try
         {
-            unit.Assembly = new PluginLoadContext(unit.Assemblies, dependencies, Plugins.SharedAssemblies).LoadMainAssembly();
+            unit.Assembly = new PluginLoadContext(unit.Assemblies, dependencies, unavailableDependencies, Plugins.SharedAssemblies).LoadMainAssembly();
             exportedTypes = unit.Assembly.GetExportedTypes();
         }
         catch (Exception exception)
@@ -737,7 +745,10 @@ internal sealed class PluginSystem
             builder,
             builder.Configuration.GetSection(PluginConfiguration.SettingsSectionPath(unit.Id)),
             unit.Metadata,
-            _logBuffer.CreateLogger(pluginType.FullName ?? pluginType.Name));
+            _logBuffer.CreateLogger(pluginType.FullName ?? pluginType.Name))
+        {
+            Catalog = Catalog,
+        };
         var plugin = new PluginDescriptor(pluginType, instance, context, unit.Source);
 
         // If a handler fails, the services registered for this plugin type are taken back. Configuration sources,
