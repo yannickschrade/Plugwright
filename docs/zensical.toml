@@ -45,6 +45,7 @@ nav = [
     ] },
     { "Run and operate" = [
       { "Turn plugins on and off" = "how-to/enable-and-disable-plugins.md" },
+      { "Read plugin states from your own store" = "how-to/read-plugin-states-from-your-own-store.md" },
       { "Required and optional plugins" = "how-to/required-and-optional-plugins.md" },
       { "Keep running when a plugin fails" = "how-to/handle-plugin-failures.md" },
       { "Run startup tasks" = "how-to/run-startup-tasks.md" },

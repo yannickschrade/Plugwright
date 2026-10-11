@@ -44,7 +44,7 @@ The application can change the state itself, for example on an administration pa
 --8<-- "samples/BlazorHost/App/Components/Pages/Plugins.razor:toggle"
 ```
 
-The page in `samples/BlazorHost` lists all plugins with a button each. After a restart, the plugins that were turned off are not loaded. To restart from the page, see [Restart the application](restart-the-application.md).
+The page in `samples/BlazorHost` lists all plugins with a button each. After a restart, the plugins that were turned off are not loaded. To restart from the page, see [Restart the application](restart-the-application.md). To keep the states in a database or another store of your own, see [Read plugin states from your own store](read-plugin-states-from-your-own-store.md).
 
 ## The plugin settings file
 

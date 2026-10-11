@@ -12,6 +12,9 @@
   <Folder Name="/samples/ConfiguredPlugins/">
     <Project Path="samples/ConfiguredPlugins/App/ConfiguredPlugins.App.csproj" />
   </Folder>
+  <Folder Name="/samples/CustomActivation/">
+    <Project Path="samples/CustomActivation/App/CustomActivation.App.csproj" />
+  </Folder>
   <Folder Name="/samples/DirectoryPlugins/">
     <Project Path="samples/DirectoryPlugins/Acme.Greeter/Acme.Greeter.csproj" />
     <Project Path="samples/DirectoryPlugins/App/DirectoryPlugins.App.csproj" />
