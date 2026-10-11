@@ -5,13 +5,20 @@
   </ItemGroup>
 
   <!--
-    For the sample only: publish the plugin to plugins/Acme.Weather.Ui/ next to the app. Plugins with static web assets
-    must be published: the build output lacks the asset files. The app must not reference the plugin project, not even
-    with ReferenceOutputAssembly="false": the SDK would add the plugin's assets to the app's own, pointing to the
-    plugin's source folder.
+    dotnet build -p:PluginsAsProjects=true references the plugin as a project, for debugging and Hot Reload.
+    Otherwise the plugin is published to plugins/ next to the app, as it is deployed. Never both: a plugin loaded from a
+    folder must not be referenced, not even with ReferenceOutputAssembly="false", or the SDK adds its static web assets
+    to the app's own.
   -->
+  <PropertyGroup Condition="'$(PluginsAsProjects)' == 'true'">
+    <DefineConstants>$(DefineConstants);PLUGINS_AS_PROJECTS</DefineConstants>
+  </PropertyGroup>
 
-  <Target Name="PublishSamplePlugin" AfterTargets="Build">
+  <ItemGroup Condition="'$(PluginsAsProjects)' == 'true'">
+    <ProjectReference Include="..\Acme.Weather.Ui\Acme.Weather.Ui.csproj" />
+  </ItemGroup>
+
+  <Target Name="PublishPlugins" AfterTargets="Build" Condition="'$(PluginsAsProjects)' != 'true'">
     <MSBuild Projects="..\Acme.Weather.Ui\Acme.Weather.Ui.csproj"
              Targets="Publish"
              Properties="Configuration=$(Configuration);PublishDir=$(MSBuildProjectDirectory)\$(OutDir)plugins\Acme.Weather.Ui\" />

@@ -22,6 +22,34 @@ Acme.Orders.Abstractions/       DTOs shared by both parts (class library, no plu
 
 See [Split a plugin across an API host and a UI host](split-plugin-across-hosts.md) for the code.
 
+## Switch between project references and a plugin folder
+
+Plugins that are deployed separately are loaded from a directory or a package in production, but are easier to debug as project references. Switch between the two at build time, never use both at once:
+
+- A plugin added in code and the same plugin from a folder have the same plugin ID, and the application does not start.
+- A plugin loaded from a folder must not be referenced by the application, not even with `ReferenceOutputAssembly="false"` to build it first. The SDK then adds the plugin's static web assets to the application's own, and the application serves them instead of the plugin. See [Serve static assets of plugins](serve-static-assets-of-plugins.md).
+
+`samples/BlazorPluginFolder` switches with an MSBuild property. Built normally, it publishes the plugin to `plugins/` next to the application; built with `-p:PluginsAsProjects=true`, it references the plugin as a project and defines a compilation symbol:
+
+```xml
+--8<-- "samples/BlazorPluginFolder/App/BlazorPluginFolder.App.csproj"
+```
+
+The application chooses the plugin source by the same symbol:
+
+```csharp
+--8<-- "samples/BlazorPluginFolder/App/Program.cs:sources"
+```
+
+```bash
+dotnet run --project samples/BlazorPluginFolder/App                            # plugin from plugins/
+dotnet run --project samples/BlazorPluginFolder/App -p:PluginsAsProjects=true  # plugin as a project
+```
+
+A compilation symbol keeps the project reference and the plugin source in step: a build either references the plugin or loads it from the folder. To always debug with project references, set the property in the Debug configuration, for example with `<PluginsAsProjects Condition="'$(Configuration)' == 'Debug'">true</PluginsAsProjects>` in the application's project file.
+
+Static web assets work in both modes: with project references, `app.MapStaticAssets()` serves them as part of the application, and `<PluginStyleSheets />` renders nothing for such plugins.
+
 ## Debug plugins
 
 Plugins referenced as projects are part of the application: breakpoints, stepping and exceptions work as in your own code.

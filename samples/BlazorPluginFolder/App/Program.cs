@@ -6,7 +6,13 @@ using Plugwright.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents();
 
-builder.Plugins.AddFromDirectory(Path.Combine(AppContext.BaseDirectory, "plugins"));
+// --8<-- [start:sources]
+#if PLUGINS_AS_PROJECTS
+builder.Plugins.AddFromReferencedAssemblies("Acme");                     // referenced plugin projects
+#else
+builder.Plugins.AddFromDirectory(Path.Combine(AppContext.BaseDirectory, "plugins"));   // published plugins
+#endif
+// --8<-- [end:sources]
 builder.PluginHandlers.Add<BlazorPluginHandler>();
 builder.ApplyPlugins();
 
