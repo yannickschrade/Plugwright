@@ -9,6 +9,10 @@
     <Project Path="samples/BlazorHost/App/BlazorHost.App.csproj" />
     <Project Path="samples/BlazorHost/BlazorHost.Abstractions/BlazorHost.Abstractions.csproj" />
   </Folder>
+  <Folder Name="/samples/BlazorPluginFolder/">
+    <Project Path="samples/BlazorPluginFolder/Acme.Weather.Ui/Acme.Weather.Ui.csproj" />
+    <Project Path="samples/BlazorPluginFolder/App/BlazorPluginFolder.App.csproj" />
+  </Folder>
   <Folder Name="/samples/ConfiguredPlugins/">
     <Project Path="samples/ConfiguredPlugins/App/ConfiguredPlugins.App.csproj" />
   </Folder>

@@ -43,6 +43,8 @@ Plugwright reads all files of a plugin into memory, verifies these bytes, reads 
 
 Native libraries are the exception, because the operating system loads them from disk. Plugwright compares them with their verified content right before loading them. A very short window remains between that check and the load.
 
+Static web assets of plugins, such as scripts and style sheets for the browser, are served from disk by default and can be changed after verification. Serve them from the verified bytes with `PluginStaticAssetSource.Memory`; see [Serve static assets of plugins](../how-to/serve-static-assets-of-plugins.md#security).
+
 ## Signatures and time
 
 Manifest signatures carry no timestamp. A signing certificate must be valid when the plugin is verified, not only when it was signed. When it expires, plugins must be signed again. Revocation checking is off by default, so that machines without network access start; turn it on for publishers trusted through a certificate authority.

@@ -18,6 +18,8 @@ Plugwright logs with the category `Plugwright` and fixed event IDs. Use them to 
 | 1011 | `PluginStartupSkipped` | Warning | A startup task did not run because its plugin is not loaded, for example because a dependency failed in its own startup task. |
 | 1012 | `ApplicationRestartRequested` | Information | [`IApplicationRestarter.RequestRestart()`](../how-to/restart-the-application.md) was called. Includes the restart mode. |
 | 1013 | `RestartWaitTimedOut` | Warning | A process started by a restart waited 30 seconds for the previous process to exit, and starts anyway. |
+| 1014 | `PluginStaticAssetsNotPublished` | Warning | The static web assets of a plugin folder are not served, because the folder contains build output instead of the output of `dotnet publish`. |
+| 1015 | `PluginStaticAssetSkipped` | Debug | A static web asset of a plugin is not served, because the application or another plugin already serves its route. |
 
 ## Structured values
 

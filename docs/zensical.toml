@@ -31,6 +31,7 @@ nav = [
     { "Web and Blazor" = [
       { "Use plugins in an ASP.NET Core app" = "how-to/use-in-a-web-app.md" },
       { "Add Blazor pages from plugins" = "how-to/add-blazor-pages.md" },
+      { "Serve static assets of plugins" = "how-to/serve-static-assets-of-plugins.md" },
       { "One plugin, several kinds" = "how-to/combine-plugin-kinds.md" },
       { "Split a plugin across hosts" = "how-to/split-plugin-across-hosts.md" },
       { "Use Plugwright with .NET Aspire" = "how-to/use-with-aspire.md" },

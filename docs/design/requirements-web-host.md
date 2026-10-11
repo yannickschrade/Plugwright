@@ -419,7 +419,7 @@ context.AddStartup<MigrateDataStartup>();   // Typ wird aus DI aufgelöst (Scope
 
 ## M4 Später (erst nach Rücksprache)
 
-Entschieden am 2026-10-11, Details im Entscheidungslog der Spezifikation: R-52, R-53, R-50, R-15 und R-32 werden gebaut, R-51 nach einem Spike, R-14 und R-17 werden nur als Anleitung dokumentiert. Die Tabelle zeigt den ursprünglichen Wunsch.
+Entschieden am 2026-10-11, Details im Entscheidungslog der Spezifikation. Umgesetzt am 2026-10-11: R-52, R-53, R-50, R-15, R-32 und R-51 (nach Spike, `spike-r51-static-assets.md`); R-14 und R-17 als Anleitungen. Die Tabelle zeigt den ursprünglichen Wunsch.
 
 | Id | Anforderung | Kurzbeschreibung |
 |---|---|---|

@@ -53,15 +53,15 @@ To cover both, inject [`IPluginComponentAssemblies`](../api/Plugwright.AspNetCor
 
 Files in the plugin's `wwwroot` folder are served under `_content/<assembly name>/`, as for every Razor class library that the host references. The page above links its CSS file this way.
 
-!!! note
-
-    This works for plugins that the host references as a project or package. For plugins loaded from a directory or a package folder at runtime, the host does not know their static files yet.
+This works for plugins that the host references as a project or package. Plugins loaded from a directory or a package at runtime need `app.MapPluginStaticAssets()` and `<PluginStyleSheets />`; see [Serve static assets of plugins](serve-static-assets-of-plugins.md).
 
 ## Menus and other extension points
 
 Plugwright has no types for menus, navigation entries or page sections: those are contracts of your application. The sample defines a `NavigationItem` in a small project that host and plugins share, and the plugin registers an entry as a service. See [Offer extension points to plugins](offer-extension-points.md).
 
 ## See also
+
+- [Serve static assets of plugins](serve-static-assets-of-plugins.md)
 
 - [Use plugins in an ASP.NET Core app](use-in-a-web-app.md)
 - [Split a plugin across an API host and a UI host](split-plugin-across-hosts.md)

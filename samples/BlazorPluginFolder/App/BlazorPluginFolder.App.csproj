@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugwright.AspNetCore\Plugwright.AspNetCore.csproj" />
+  </ItemGroup>
+
+  <!--
+    For the sample only: publish the plugin to plugins/Acme.Weather.Ui/ next to the app. The app does not reference it.
+    Plugins with static web assets must be published: the build output lacks the asset files.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Acme.Weather.Ui\Acme.Weather.Ui.csproj" ReferenceOutputAssembly="false" Private="false" />
+  </ItemGroup>
+
+  <Target Name="PublishSamplePlugin" AfterTargets="Build">
+    <MSBuild Projects="..\Acme.Weather.Ui\Acme.Weather.Ui.csproj"
+             Targets="Publish"
+             Properties="Configuration=$(Configuration);PublishDir=$(MSBuildProjectDirectory)\$(OutDir)plugins\Acme.Weather.Ui\" />
+  </Target>
+
+</Project>

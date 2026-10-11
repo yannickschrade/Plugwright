@@ -1,0 +1,8 @@
+/* Scoped CSS: applies to this page only. */
+.title {
+    color: darkorange;
+}
+
+.forecast {
+    font-style: italic;
+}
