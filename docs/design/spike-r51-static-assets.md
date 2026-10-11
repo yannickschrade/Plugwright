@@ -29,3 +29,7 @@ Alle Formate mit Endpunkten enthalten Fingerprints, SRI-Hashes, ETags und Cache-
 - Pakete: Endpunkte aus MSBuild-XML lesen und nach JSON übersetzen; keine vorkomprimierten Varianten.
 - Scoped CSS: Plugins aus Verzeichnissen/Paketen sind nicht in `{App}.styles.css` enthalten; ihr Bündel muss im Layout per `<link>` eingebunden werden. Bei Projektreferenzen ist es schon enthalten und darf nicht doppelt eingebunden werden.
 - Integrität: Manifest und `wwwroot` sind Teil der Plugin-Dateien und damit von Lock-Datei bzw. Manifest abgedeckt. Aus dem Speicher ausgeliefert, gelten die geprüften Bytes; von der Platte könnten Dateien nach der Prüfung getauscht werden.
+
+## Nachtrag: `@Assets` ohne zusammengeführtes Manifest
+
+Die `ResourceAssetCollection` und die `ImportMapDefinition` hängen als Metadaten an den Razor-Components-Endpunkten; Blazor nimmt die zuletzt hinzugefügte. In einem `Finally`-Callback des `RazorComponentsEndpointConventionBuilder` liegt die Sammlung des Hosts bereits vor (getestet: 30 Einträge). Eine neue Sammlung aus Host-Einträgen plus Plugin-Einträgen (je Endpunkt ohne Selektoren, nur `label` und `integrity`, wie Blazor sie bildet) und eine daraus erzeugte `ImportMapDefinition` liefern Fingerprints für Host- und Plugin-Dateien und eine Import-Map mit den Modulen beider.

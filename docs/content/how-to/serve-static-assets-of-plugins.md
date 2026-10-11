@@ -20,13 +20,15 @@ Link the plugins' scoped CSS in the `<head>` of `App.razor`, after the applicati
 
 ## Use assets in the plugin
 
-The plugin refers to its files as with a project reference, below `_content/{PluginId}/`:
+The plugin refers to its files as with a project reference, below `_content/{PluginId}/`, best through `@Assets`, which returns the fingerprinted route:
 
 ```razor
 --8<-- "samples/BlazorPluginFolder/Acme.Weather.Ui/Pages/Weather.razor:page"
 ```
 
-Scoped CSS (`Weather.razor.css`) and JavaScript modules next to a component (`Weather.razor.js`) work as usual. Assets of component libraries that the plugin uses are served below their own `_content/{LibraryName}/` path.
+Scoped CSS (`Weather.razor.css`) and JavaScript modules next to a component (`Weather.razor.js`) work as usual; `<ImportMap />` contains the plugins' modules. Assets of component libraries that the plugin uses are served below their own `_content/{LibraryName}/` path.
+
+`@Assets` and `<ImportMap />` know the plugins' assets because `.AddPluginAssemblies(app)` adds them to the application's own resource collection. The order of `MapPluginStaticAssets()` and `AddPluginAssemblies(app)` does not matter.
 
 ## Deploy the plugin
 
@@ -41,7 +43,6 @@ Scoped CSS (`Weather.razor.css`) and JavaScript modules next to a component (`We
 
 - **Routes.** The plugin's own assets are below `_content/{PluginId}/`, assets of its libraries below `_content/{LibraryName}/`. The scoped CSS bundle of a published plugin is at the root, `{PluginId}.styles.css`, because it imports the bundles of its libraries with relative paths.
 - **Routes the application already serves stay its own.** If the application and a plugin, or two plugins, use the same component library, the first one serves its assets; the others are skipped. The log event `PluginStaticAssetSkipped` (1015, debug) lists them.
-- **`@Assets` and `ImportMap` do not know plugin assets.** `@Assets["_content/Acme.Weather.Ui/sun.svg"]` returns the path unchanged, without fingerprint, and the import map contains no plugin modules. The files are served all the same, with ETags, but browsers check them for changes instead of caching them for a year.
 - **The web root file provider changes.** `MapPluginStaticAssets()` replaces `IWebHostEnvironment.WebRootFileProvider` with one that also contains the plugins' assets, below `_plugwright/{Id}/`.
 - **Packages are not compressed.** NuGet packages contain their assets uncompressed; published plugin folders contain Brotli and gzip versions. Compress the assets of packages at startup with `CompressPackageAssets`, or use [response compression](https://learn.microsoft.com/aspnet/core/performance/response-compression) in the application.
 
