@@ -65,6 +65,16 @@ When the backend plugin is turned off or fails in the API host, the UI plugin's 
 
 This is application code, not part of Plugwright. The decision lasts until the next start of the web host. To try it, uncomment the line in the app host that turns off `Acme.Orders`.
 
+### Decide what fits your application
+
+The check couples the start of the web host to the API, so decide on these points:
+
+- **The API is not reachable at startup.** The sample keeps the UI plugins on: an API that starts a moment later should not hide features until the next restart, and the pages show the API's error in the meantime. If showing a feature without backend is worse, turn the UI plugins off instead, or wait for the API with a timeout. With .NET Aspire, `WaitFor(api)` in the app host starts the web host only when the API runs.
+- **The API changes after the web host started.** If the API restarts with the backend plugin turned off, the web host still shows the UI plugin until its own next start. If that matters, decide at runtime instead: query the API's catalog when rendering the menu, with a short cache, and hide the link or show a notice. The UI plugin then stays loaded, and only its visibility changes.
+- **Service discovery is not available before `Build()`.** The sample reads the API's address from configuration, where Aspire puts it. Without Aspire, configure the address yourself.
+
+Plugwright leaves these decisions to the application, because the right answer depends on how the hosts are run.
+
 ## See also
 
 - [Use Plugwright with .NET Aspire](use-with-aspire.md)
