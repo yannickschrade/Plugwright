@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.StaticAssets;
@@ -26,6 +27,12 @@ internal sealed class PluginStaticAssets
         ?? throw new InvalidOperationException(
             "The static web assets of plugins are not mapped. Call app.MapPluginStaticAssets() after app.UsePlugins().");
 
+    /// <summary>
+    /// Gets the plugins' assets as Blazor resources, for <c>@Assets</c> and <c>ImportMap</c>. Empty until
+    /// <c>app.MapPluginStaticAssets()</c> was called.
+    /// </summary>
+    public IReadOnlyList<ResourceAsset> Resources { get; private set; } = [];
+
     public StaticAssetsEndpointConventionBuilder Map(IEndpointRouteBuilder endpoints, PluginStaticAssetsOptions options)
     {
         lock (_lock)
@@ -45,6 +52,7 @@ internal sealed class PluginStaticAssets
             var manifestEndpoints = new JsonArray();
             List<IFileProvider> providers = [];
             List<string> styleSheets = [];
+            List<ResourceAsset> resources = [];
             var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var assets in system.StaticWebAssets.Where(assets => ids.Add(assets.Id)))
@@ -80,6 +88,7 @@ internal sealed class PluginStaticAssets
                     manifestEndpoints.Add(endpoint);
                 }
 
+                resources.AddRange(PluginStaticAssetEndpoints.ToResources(accepted));
                 providers.Add(new PrefixFileProvider(assetPrefix, CreateFileProvider(assets, compressed, options.Source)));
                 if (PluginStaticAssetEndpoints.FindStyleSheet(assets, accepted) is { } styleSheet)
                 {
@@ -94,6 +103,7 @@ internal sealed class PluginStaticAssets
             var manifest = new JsonObject { ["Version"] = 1, ["ManifestType"] = "Publish", ["Endpoints"] = manifestEndpoints };
             File.WriteAllText(manifestPath, manifest.ToJsonString());
 
+            Resources = resources;
             _styleSheets = styleSheets;
             return endpoints.MapStaticAssets(manifestPath);
         }

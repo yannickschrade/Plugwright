@@ -26,8 +26,8 @@ public static class PluginStaticAssetsEndpointRouteBuilderExtensions
         /// <para>
         /// Plugin folders must contain the output of <c>dotnet publish</c>; the output of <c>dotnet build</c> lacks the
         /// asset files and is skipped with a warning. Include the scoped CSS of plugins with
-        /// <see cref="PluginStyleSheets"/>. <c>@Assets</c> and <c>ImportMap</c> do not know plugin assets: they return
-        /// their routes without fingerprint.
+        /// <see cref="PluginStyleSheets"/>. <c>.AddPluginAssemblies(app)</c> makes the assets known to <c>@Assets</c> and
+        /// <c>ImportMap</c>.
         /// </para>
         /// <para>
         /// The call replaces <c>IWebHostEnvironment.WebRootFileProvider</c> with one that also contains the plugins'

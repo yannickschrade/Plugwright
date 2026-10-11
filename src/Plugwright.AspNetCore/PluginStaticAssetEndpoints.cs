@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
+using Microsoft.AspNetCore.Components;
 
 namespace Plugwright.AspNetCore;
 
@@ -46,6 +47,19 @@ internal static class PluginStaticAssetEndpoints
             .Select(endpoint => (string)endpoint["Route"]!)
             .FirstOrDefault();
     }
+
+    /// <summary>
+    /// Returns the endpoints as Blazor resources, as Blazor builds them from a manifest: one per endpoint without selectors,
+    /// with its label and integrity.
+    /// </summary>
+    public static IEnumerable<ResourceAsset> ToResources(IEnumerable<JsonObject> endpoints) =>
+        endpoints
+            .Where(endpoint => endpoint["Selectors"] is not JsonArray { Count: > 0 })
+            .Select(endpoint => new ResourceAsset(
+                (string)endpoint["Route"]!,
+                [.. ((JsonArray?)endpoint["EndpointProperties"] ?? [])
+                    .Where(property => (string?)property!["Name"] is "label" or "integrity")
+                    .Select(property => new ResourceAssetProperty((string)property!["Name"]!, (string)property["Value"]!))]));
 
     /// <summary>
     /// Adds Brotli and gzip variants of every asset that becomes smaller, like <c>dotnet publish</c> does.

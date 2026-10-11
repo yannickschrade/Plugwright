@@ -85,6 +85,38 @@ public sealed partial class StaticAssetTests(TestPluginsFixture testPlugins) : I
         page.ShouldContain("from the library");
     }
 
+    [Theory]
+    [InlineData("Directory")]
+    [InlineData("Package")]
+    public async Task Assets_and_ImportMap_know_the_plugin_assets_and_keep_the_host_assets(string kind)
+    {
+        Dictionary<string, string?> settings;
+        if (kind == "Directory")
+        {
+            InstallPublishedPlugin();
+            settings = Directory("Disk");
+        }
+        else
+        {
+            InstallPackages();
+            settings = Packages("Disk", compress: false);
+        }
+
+        using var host = StartHost(settings);
+        var client = host.CreateClient();
+        var page = await GetStringAsync(client, "/blazor-assets");
+
+        // @Assets in the plugin's page returns the fingerprinted route, which is served for a year.
+        var pluginStyleSheet = Regex.Match(page, "id=\"plugin-css\" rel=\"preload\" href=\"(?<href>[^\"]+)\"").Groups["href"].Value;
+        pluginStyleSheet.ShouldMatch($"^_content/{Regex.Escape(PluginId)}/plugin\\.[a-z0-9]+\\.css$");
+        using var response = await GetAsync(client, "/" + pluginStyleSheet);
+        response.Headers.CacheControl!.ToString().ShouldContain("immutable");
+
+        // The host's own assets keep their fingerprints, and the import map knows the plugin's module.
+        Regex.Match(page, "id=\"host-script\" src=\"(?<src>[^\"]+)\"").Groups["src"].Value.ShouldMatch("^_framework/blazor\\.web\\.[a-z0-9]+\\.js$");
+        page.ShouldContain($"_content/{PluginId}/Pages/Assets.razor.js");
+    }
+
     [Fact]
     public async Task Memory_serves_the_verified_bytes_and_Disk_serves_the_file()
     {
