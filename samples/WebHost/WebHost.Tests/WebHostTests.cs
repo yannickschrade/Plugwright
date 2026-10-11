@@ -27,8 +27,10 @@ public sealed class WebHostTests
             .WithWebHostBuilder(builder => builder.UseSetting("Plugwright:Plugins:Acme.Greetings:Enabled", "false"));
 
         var response = await factory.CreateClient().GetAsync("/greetings/Ada", TestContext.Current.CancellationToken);
+        var controllerResponse = await factory.CreateClient().GetAsync("/api/greetings", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, controllerResponse.StatusCode);
         Assert.Equal("The greetings plugin is turned off.", await factory.CreateClient().GetStringAsync("/", TestContext.Current.CancellationToken));
         var catalog = factory.Services.GetRequiredService<IPluginCatalog>();
         Assert.Equal(PluginState.Disabled, catalog.Find("Acme.Greetings")?.State);

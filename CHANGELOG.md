@@ -46,3 +46,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Per-plugin settings section `Plugwright:Plugins:{PluginId}:Settings`.
 - `PluginFailureMode.SkipAndLog` to skip failing plugins instead of stopping the application.
 - Buffered logging in phase 1, log events `PluginLoaded` (1000), `PluginSkipped` (1001), `PluginDirectoryNotFound` (1002) and `AssemblyOutsidePluginFolder` (1003). Events name the plugin's source.
+
+### Fixed
+
+- `WebPluginHandler`: controllers of a web plugin added in code no longer answer when the plugin is turned off or fails. MVC found them on its own because the host references the plugin's assembly; the handler now takes the assemblies of web plugins added in code out of MVC's default application parts and adds back only those of loaded plugins.
+

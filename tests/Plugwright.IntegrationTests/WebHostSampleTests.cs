@@ -1,5 +1,6 @@
 extern alias WebHostSample;
 
+using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Plugwright.IntegrationTests;
@@ -32,5 +33,18 @@ public sealed class WebHostSampleTests : IDisposable
 
         var response = await client.GetAsync("/", cancellationToken);
         response.Headers.GetValues("X-Greeted-By").ShouldBe(["Acme.Greetings"]);
+    }
+
+    [Fact]
+    public async Task Controllers_of_a_plugin_turned_off_do_not_answer_although_the_host_references_its_assembly()
+    {
+        // The app references Acme.Greetings, so MVC would find GreetingsController on its own.
+        using var factory = _factory.WithWebHostBuilder(builder =>
+            builder.UseSetting("Plugwright:Plugins:Acme.Greetings:Enabled", "false"));
+        var client = factory.CreateClient();
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        (await client.GetAsync("/api/greetings?name=Grace", cancellationToken)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await client.GetAsync("/greetings/Ada", cancellationToken)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 }
