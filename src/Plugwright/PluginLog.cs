@@ -51,6 +51,14 @@ internal static partial class PluginLog
         Message = "Startup task {StartupTask} of plugin {PluginId} skipped: {Reason}")]
     public static partial void PluginStartupSkipped(ILogger logger, string pluginId, string startupTask, string reason);
 
+    [LoggerMessage(EventId = 1012, EventName = "ApplicationRestartRequested", Level = LogLevel.Information,
+        Message = "Application restart requested ({RestartMode})")]
+    public static partial void ApplicationRestartRequested(ILogger logger, ApplicationRestartMode restartMode);
+
+    [LoggerMessage(EventId = 1013, EventName = "RestartWaitTimedOut", Level = LogLevel.Warning,
+        Message = "The previous process {ProcessId} of the application did not exit within {Timeout}; starting anyway")]
+    public static partial void RestartWaitTimedOut(ILogger logger, int processId, TimeSpan timeout);
+
     [LoggerMessage(EventId = 1008, EventName = "PluginStatus",
         Message = "Plugin {PluginId} {PluginVersion} ({PluginSource}): {PluginState}{Reason}")]
     private static partial void PluginStatus(

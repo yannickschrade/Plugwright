@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A small application for restart tests, which must run in their own process. The first run requests a restart as
+    soon as it has started; a relaunched run stops by itself. Every step is appended to the file given as argument.
+    Usage: RestartHost <exitcode|relaunch> <log file>
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <OutDir>$(MSBuildThisFileDirectory)../../artifacts/restart-host/$(Configuration)/</OutDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Plugwright\Plugwright.csproj" />
+  </ItemGroup>
+
+</Project>

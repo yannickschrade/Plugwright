@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Runtime.Loader;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.DependencyModel;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -90,6 +91,7 @@ internal sealed class PluginSystem
 
         _applied = true;
 
+        ApplicationRestarter.WaitForPreviousProcess(Logger);
         var settingsSource = AddSettingsFile(builder);
 
         var handlers = Handlers.CreateHandlers();
@@ -128,7 +130,23 @@ internal sealed class PluginSystem
 
         builder.Services.AddSingleton(this);
         builder.Services.AddSingleton<IPluginCatalog>(Catalog);
+        AddRestarter(builder.Services);
         builder.Services.AddSingleton(new PluginReport([.. _activePlugins.Select(active => active.Plugin)], [.. _verifications]));
+    }
+
+    /// <summary>
+    /// Registers the built-in <see cref="IApplicationRestarter"/>, unless the application registered its own before.
+    /// One registered after <c>ApplyPlugins()</c> wins as well, because the last registration is resolved.
+    /// </summary>
+    private void AddRestarter(IServiceCollection services)
+    {
+        var mode = Plugins.Options.RestartMode;
+        var exitCode = Plugins.Options.RestartExitCode;
+        services.TryAddSingleton<IApplicationRestarter>(provider => new ApplicationRestarter(
+            provider.GetRequiredService<IHostApplicationLifetime>(),
+            provider.GetRequiredService<ILoggerFactory>().CreateLogger(LoggerCategory),
+            mode,
+            exitCode));
     }
 
     /// <summary>

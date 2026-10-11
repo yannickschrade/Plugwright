@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TestPluginsPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../artifacts/test-plugins/$(Configuration)/'))</TestPluginsPath>
+    <RestartHostPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../artifacts/restart-host/$(Configuration)/'))</RestartHostPath>
     <TestPackagesPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../artifacts/test-packages/$(Configuration)/'))</TestPackagesPath>
   </PropertyGroup>
 
@@ -33,6 +34,7 @@
 
   <!-- Build the test plugins first, but never reference them: the tests load them like real plugins. -->
   <ItemGroup>
+    <ProjectReference Include="..\RestartHost\RestartHost.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="..\TestPlugins\Greeter\Greeter.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="..\TestPlugins\Counter\Counter.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="..\TestPlugins\NoPlugins\NoPlugins.csproj" ReferenceOutputAssembly="false" Private="false" />
@@ -55,6 +57,10 @@
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
       <_Parameter1>TestPluginsPath</_Parameter1>
       <_Parameter2>$(TestPluginsPath)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>RestartHostPath</_Parameter1>
+      <_Parameter2>$(RestartHostPath)</_Parameter2>
     </AssemblyAttribute>
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
       <_Parameter1>TestPackagesPath</_Parameter1>

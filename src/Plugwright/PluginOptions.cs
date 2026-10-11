@@ -39,4 +39,28 @@ public sealed class PluginOptions
     /// </code>
     /// </example>
     public string? SettingsFile { get; set; } = "pluginsettings.json";
+
+    /// <summary>
+    /// Gets or sets how <see cref="IApplicationRestarter"/> restarts the application. The default is
+    /// <see cref="ApplicationRestartMode.ExitCode"/>.
+    /// </summary>
+    /// <example>
+    /// <code language="csharp">
+    /// builder.Plugins.Options.RestartMode = ApplicationRestartMode.Relaunch;
+    /// </code>
+    /// </example>
+    public ApplicationRestartMode RestartMode { get; set; } = ApplicationRestartMode.ExitCode;
+
+    /// <summary>
+    /// Gets or sets the exit code with which the application stops for a restart in
+    /// <see cref="ApplicationRestartMode.ExitCode"/> mode. The default is 75 (<c>EX_TEMPFAIL</c>: a temporary failure,
+    /// try again).
+    /// </summary>
+    /// <remarks>
+    /// The code is not 0, so that service managers that restart only after a failure restart the application as well:
+    /// systemd with <c>Restart=on-failure</c>, Windows services with recovery actions for stops with errors, and Docker
+    /// with <c>--restart on-failure</c>. The code is set with <see cref="Environment.ExitCode"/>, so it only applies if
+    /// <c>Main</c> returns <c>void</c> or <see cref="Task"/>, not an <see cref="int"/> of its own.
+    /// </remarks>
+    public int RestartExitCode { get; set; } = 75;
 }
