@@ -45,6 +45,8 @@ Controllers in the plugin's assembly are found without further code. The handler
 
 Controllers and endpoints of plugins appear in the OpenAPI document like those of the host, for example with `AddOpenApi()` and `MapOpenApi()`.
 
+A controller answers only while its plugin is loaded. This also holds when the host references the plugin's project or package, as with plugins added in code: MVC would find the controllers of such an assembly on its own, so the handler takes the assemblies of web plugins added in code out of MVC's discovery and adds back only those of plugins that load. A plugin that is [turned off](enable-and-disable-plugins.md) or fails therefore leaves no controllers behind. Controllers in the host's own assembly are never affected.
+
 ## Place the middleware
 
 Plugin middleware runs where `app.UsePlugins()` stands in the pipeline. Middleware that the host adds before the call runs before the plugins' middleware, middleware after the call runs after it. Put `UsePlugins()` after the middleware the plugins rely on, such as authentication, and before the endpoints of the host.

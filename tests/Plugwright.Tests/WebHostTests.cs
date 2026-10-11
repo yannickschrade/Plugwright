@@ -95,6 +95,22 @@ public sealed class WebHostTests
         exception.Message.ShouldContain("BlazorPluginHandler");
     }
 
+    [Fact]
+    public void The_host_assembly_stays_an_application_part_when_a_web_plugin_in_it_is_turned_off()
+    {
+        var builder = CreateWebBuilder();
+        var partManager = builder.Services.AddControllers().PartManager;
+        var hostAssembly = typeof(EndpointOnlyPlugin).Assembly.GetName().Name!;
+        builder.Environment.ApplicationName.ShouldBe(hostAssembly);
+        builder.Configuration[$"Plugwright:Plugins:{hostAssembly}:Enabled"] = "false";
+        builder.Plugins.Add<EndpointOnlyPlugin>();
+        builder.PluginHandlers.Add<WebPluginHandler>();
+
+        builder.ApplyPlugins();
+
+        partManager.ApplicationParts.Select(part => part.Name).ShouldContain(hostAssembly);
+    }
+
     private static WebApplicationBuilder CreateWebBuilder()
     {
         var builder = WebApplication.CreateSlimBuilder();

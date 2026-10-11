@@ -18,6 +18,12 @@ namespace Plugwright.AspNetCore;
 /// <c>builder.ApplyPlugins()</c>.
 /// </para>
 /// <para>
+/// A host that references a plugin's assembly (a plugin added in code) would otherwise expose the plugin's controllers
+/// through MVC's own discovery, even when the plugin is turned off or fails. Before any plugin is processed, the handler
+/// therefore removes the assemblies of web plugins added in code from MVC's application parts; only plugins that load
+/// get them back. The host's own assembly is never removed.
+/// </para>
+/// <para>
 /// Phase 2 calls <see cref="IWebPlugin.ConfigurePipeline"/> and then <see cref="IWebPlugin.MapEndpoints"/> of each
 /// plugin, in dependency order. Middleware therefore runs at the position of <c>app.UsePlugins()</c>. The host must be a
 /// web application, such as one built by <c>WebApplication.CreateBuilder()</c>.
@@ -37,8 +43,38 @@ namespace Plugwright.AspNetCore;
 /// app.Run();
 /// </code>
 /// </example>
-public sealed class WebPluginHandler : PluginHandler<IWebPlugin>
+public sealed class WebPluginHandler : PluginHandler<IWebPlugin>, IPluginHandlerSetup
 {
+    void IPluginHandlerSetup.Setup(IHostApplicationBuilder builder)
+    {
+        var sources = builder.Plugins.ToList();
+        var candidates = sources.OfType<PluginTypeSource>()
+            .Where(source => IsWebPlugin(source.PluginType))
+            .Select(source => source.PluginType.Assembly)
+            .Concat(sources.OfType<PluginAssemblySource>().Select(source => source.Assembly).Where(ContainsWebPlugin))
+            .ToHashSet();
+        var prefixes = sources.OfType<PluginReferencedAssembliesSource>().Select(source => source.Prefix).ToList();
+        if (candidates.Count == 0 && prefixes.Count == 0)
+        {
+            return;
+        }
+
+        var manager = GetOrAddApplicationPartManager(builder);
+        var hostAssembly = builder.Environment.ApplicationName;
+        var pluginAssemblyNames = manager.ApplicationParts.OfType<AssemblyPart>()
+            .Select(part => part.Assembly)
+            .Where(assembly => prefixes.Any(prefix => AssemblyNamePrefix.Matches(assembly.GetName().Name!, prefix)) && ContainsWebPlugin(assembly))
+            .Concat(candidates)
+            .Select(assembly => assembly.GetName().Name!)
+            .Where(name => !string.Equals(name, hostAssembly, StringComparison.Ordinal))
+            .ToHashSet(StringComparer.Ordinal);
+
+        foreach (var part in manager.ApplicationParts.Where(part => pluginAssemblyNames.Contains(part.Name)).ToList())
+        {
+            manager.ApplicationParts.Remove(part);
+        }
+    }
+
     /// <inheritdoc/>
     protected override void Apply(IWebPlugin instance, PluginDescriptor plugin, IHostApplicationBuilder builder)
     {
@@ -111,6 +147,21 @@ public sealed class WebPluginHandler : PluginHandler<IWebPlugin>
             RelatedAssemblyAttribute.GetRelatedAssemblies(assembly, throwOnError: false)
                 .OrderBy(related => related.FullName, StringComparer.Ordinal)
                 .Prepend(assembly);
+    }
+
+    private static bool IsWebPlugin(Type type) => type is { IsClass: true, IsAbstract: false } && typeof(IWebPlugin).IsAssignableFrom(type);
+
+    private static bool ContainsWebPlugin(Assembly assembly)
+    {
+        try
+        {
+            return assembly.GetExportedTypes().Any(IsWebPlugin);
+        }
+        catch (ReflectionTypeLoadException)
+        {
+            // Not loadable as a whole: the plugin system reports it; MVC's discovery stays as it is.
+            return false;
+        }
     }
 
     private static void AddParts(ApplicationPartManager manager, Assembly assembly)
