@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @inject IPluginCatalog Catalog
 @inject IPluginSettingsStore SettingsStore
+@inject IApplicationRestarter Restarter
 @inject IConfiguration Configuration
 
 <PageTitle>Plugins</PageTitle>
@@ -41,7 +42,12 @@
 
 @if (_changed)
 {
-    <p>Restart the application to apply the change.</p>
+    @* --8<-- [start:restart] *@
+    <p>
+        The change takes effect at the next start.
+        <button @onclick="Restarter.RequestRestart">Restart now</button>
+    </p>
+    @* --8<-- [end:restart] *@
 }
 
 @code {

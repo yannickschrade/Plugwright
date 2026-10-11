@@ -48,6 +48,7 @@ nav = [
       { "Required and optional plugins" = "how-to/required-and-optional-plugins.md" },
       { "Keep running when a plugin fails" = "how-to/handle-plugin-failures.md" },
       { "Run startup tasks" = "how-to/run-startup-tasks.md" },
+      { "Restart the application" = "how-to/restart-the-application.md" },
       { "Inspect plugins at runtime" = "how-to/inspect-plugins-at-runtime.md" },
       { "Report plugin health" = "how-to/report-plugin-health.md" },
     ] },

@@ -16,6 +16,8 @@ Plugwright logs with the category `Plugwright` and fixed event IDs. Use them to 
 | 1009 | `PluginStartupCompleted` | Information | A [startup task](../how-to/run-startup-tasks.md) completed. |
 | 1010 | `PluginStartupFailed` | Error | A startup task threw. Includes the exception. |
 | 1011 | `PluginStartupSkipped` | Warning | A startup task did not run because its plugin is not loaded, for example because a dependency failed in its own startup task. |
+| 1012 | `ApplicationRestartRequested` | Information | [`IApplicationRestarter.RequestRestart()`](../how-to/restart-the-application.md) was called. Includes the restart mode. |
+| 1013 | `RestartWaitTimedOut` | Warning | A process started by a restart waited 30 seconds for the previous process to exit, and starts anyway. |
 
 ## Structured values
 
