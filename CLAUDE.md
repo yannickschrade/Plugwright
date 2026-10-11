@@ -2,7 +2,7 @@
 
 Plugwright is an open-source C# library that adds a plugin system to the .NET Generic Host (`IHostApplicationBuilder` / `IHost`). Plugins extend a host application through dependency injection. Excellent user documentation is a core requirement, not an afterthought.
 
-The full specification (German, with rationale and decision log) lives in `docs/design/specification.md`. Read the relevant section before working on a feature. This file only holds the rules that always apply.
+The full specification (with rationale and decision log) lives in `docs/design/specification.md`. Read the relevant section before working on a feature. This file only holds the rules that always apply.
 
 ## Status
 
@@ -12,7 +12,7 @@ Done: repo setup (central package management, CI, docs with Zensical and DocFX A
 
 - Target `net10.0` only, C# 14 (extension members). No multi-targeting.
 - License: MIT.
-- Code, comments, XML docs, docs site, commit messages: English.
+- Everything in the repository is English: code, comments, XML docs, docs site, design documents, samples, commit messages. Open source project. Check every new or changed document for this.
 - Allowed dependencies: `Microsoft.Extensions.*` (core uses `DependencyModel` for the assembly scan and `Diagnostics.HealthChecks` for `AddPlugins()`), the ASP.NET Core shared framework (only in `Plugwright.AspNetCore*`), `NuGet.Packaging` and `NuGet.Protocol` (only in `Plugwright.NuGet`), `System.Security.Cryptography.Pkcs`, `System.Reflection.MetadataLoadContext`. Ask before adding anything else.
 - CI: GitHub Actions with build, tests and docs build (DocFX API Markdown + Zensical, strict) on every push and PR.
 
@@ -169,5 +169,5 @@ docs/                        zensical.toml, content/ (published pages), design/ 
 
 - Small steps: every feature ships with tests, docs and a sample.
 - Order: plugin contract → extension members and handler pipeline → directory loading → metadata and dependencies → verification → NuGet source → CLI.
-- Anything marked "Vorschlag" or "Offen" in the specification is not decided yet. Ask before implementing it. Currently open:
+- Anything marked "Proposal" or listed under "Open points" in the specification is not decided yet. Ask before implementing it. Currently open:
 - When a decision changes, add a row to the decision log in the specification.
